@@ -1,0 +1,1 @@
+# TODO converter input files from .h5 to .npy to increase file read time with np.memmap
