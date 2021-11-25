@@ -7,32 +7,45 @@ import torch_optimizer as optim
 import torchmetrics.functional as F
 
 import plotters
+    
+class CombustionModule(pl.LightningModule):
 
-def _common_step(module, batch, batch_idx, stage):
-    y_hat = module(batch.x, batch.edge_index)
-    loss = F.mean_squared_error(y_hat, batch.y)
-    r2 = F.r2_score(y_hat, batch.y)
+    def forward(self, x, edge_index):
+        return self.model(x, edge_index)
 
-    module.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(batch))
-    module.log(f"{stage}_r2", r2, on_step=True, batch_size=len(batch))
+    def _common_step(self, batch, batch_idx, stage):
+        y_hat = self(batch.x, batch.edge_index)
+        loss = F.mean_squared_error(y_hat, batch.y)
+        r2 = F.r2_score(y_hat, batch.y)
 
-    return y_hat, loss, r2
+        self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(batch))
+        self.log(f"{stage}_r2", r2, on_step=True, batch_size=len(batch))
 
-def _test_step(batch, y_hat, model_name):
-    pos = np.stack(batch.pos.cpu().numpy())
-    x_max = np.max(pos[:, 0:1]) 
-    y_max = np.max(pos[:, 1:2]) 
-    z_max = np.max(pos[:, 2:3]) 
-    grid_shape = (x_max + 1, y_max + 1, z_max + 1)
-
-    _ = plotters.Plotter(batch.y.cpu().numpy(), y_hat, model_name, grid_shape)
+        return y_hat, loss, r2
     
     
-# class CombustionModule(pl.LightningModule):
+    def training_step(self, batch, batch_idx):
+        _, loss, _ = self._common_step(batch, batch_idx, "train")
+        return loss
+    
+        
+    def validation_step(self, batch, batch_idx):
+        y_hat, _, _ = self._common_step(batch, batch_idx, "val")
+        
+        
+    def test_step(self, batch, batch_idx):
+        y_hat, _, _ = self._common_step(batch, batch_idx, "test")
+        pos = np.stack(batch.pos.cpu().numpy())
+        x_max = np.max(pos[:, 0:1]) 
+        y_max = np.max(pos[:, 1:2]) 
+        z_max = np.max(pos[:, 2:3]) 
+        grid_shape = (x_max + 1, y_max + 1, z_max + 1)
+
+        _ = plotters.Plotter(batch.y.cpu().numpy(), y_hat.cpu().numpy(), self.model.__class__.__name__, grid_shape)
 
 
 @MODEL_REGISTRY
-class LitGAT(pl.LightningModule):
+class LitGAT(CombustionModule):
     
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers, dropout, heads, jk, lr):
         super().__init__()
@@ -48,31 +61,13 @@ class LitGAT(pl.LightningModule):
                                 heads=heads,
                                 jk=jk)
         
-
-    def forward(self, x, edge_index):
-        return self.model(x, edge_index)
-    
-    
-    def training_step(self, batch, batch_idx):
-        _, loss, _ = _common_step(self, batch, batch_idx, "train")
-        return loss
-    
-        
-    def validation_step(self, batch, batch_idx):
-        y_hat, _, _ = _common_step(self, batch, batch_idx, "val")
-        
-        
-    def test_step(self, batch, batch_idx):
-        y_hat, _, _ = _common_step(self, batch, batch_idx, "test")
-        _test_step(batch, y_hat.cpu().numpy(), self.model.__class__.__name__)
-        
     
     def configure_optimizers(self):
         return optim.AdamP(self.parameters(), lr=self.lr)
 
 
 @MODEL_REGISTRY
-class LitGCN(pl.LightningModule):
+class LitGCN(CombustionModule):
     
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers, dropout, jk, lr):
         super().__init__()
@@ -87,32 +82,13 @@ class LitGCN(pl.LightningModule):
                                 jk=jk,
                                 act=nn.SiLU(inplace=True))
         
-        
-        
-    def forward(self, x, edge_index):
-        return self.model(x, edge_index)
-    
-    
-    def training_step(self, batch, batch_idx):
-        _, loss, _ = _common_step(self, batch, batch_idx, "train")
-        return loss
-    
-        
-    def validation_step(self, batch, batch_idx):
-        y_hat, _, _ = _common_step(self, batch, batch_idx, "val")
-        
-        
-    def test_step(self, batch, batch_idx):
-        y_hat, _, _ = _common_step(self, batch, batch_idx, "test")
-        _test_step(batch, y_hat.cpu().numpy(), self.model.__class__.__name__)
-        
     
     def configure_optimizers(self):
         return optim.AdamP(self.parameters(), lr=self.lr)
 
 
 @MODEL_REGISTRY
-class LitGraphUNet(pl.LightningModule):
+class LitGraphUNet(CombustionModule):
     
     def __init__(self, in_channels, hidden_channels, out_channels, depth, pool_ratios, lr):
         super().__init__()
@@ -126,32 +102,13 @@ class LitGraphUNet(pl.LightningModule):
                                       pool_ratios=pool_ratios,
                                       act=nn.SiLU(inplace=True))
         
-        
-        
-    def forward(self, x, edge_index):
-        return self.model(x, edge_index)
-    
-    
-    def training_step(self, batch, batch_idx):
-        _, loss, _ = _common_step(self, batch, batch_idx, "train")
-        return loss
-    
-        
-    def validation_step(self, batch, batch_idx):
-        y_hat, _, _ = _common_step(self, batch, batch_idx, "val")
-        
-        
-    def test_step(self, batch, batch_idx):
-        y_hat, _, _ = _common_step(self, batch, batch_idx, "test")
-        _test_step(batch, y_hat.cpu().numpy(), self.model.__class__.__name__)
-        
     
     def configure_optimizers(self):
         return optim.AdamP(self.parameters(), lr=self.lr)
 
 
 @MODEL_REGISTRY
-class LitGIN(pl.LightningModule):
+class LitGIN(CombustionModule):
     
     def __init__(self, in_channels, hidden_channels, out_channels, num_layers, dropout, lr):
         super().__init__()
@@ -164,25 +121,6 @@ class LitGIN(pl.LightningModule):
                                       num_layers=num_layers,
                                       dropout=dropout,
                                       act=nn.SiLU(inplace=True))
-        
-        
-        
-    def forward(self, x, edge_index):
-        return self.model(x, edge_index)
-    
-    
-    def training_step(self, batch, batch_idx):
-        _, loss, _ = _common_step(self, batch, batch_idx, "train")
-        return loss
-    
-        
-    def validation_step(self, batch, batch_idx):
-        y_hat, _, _ = _common_step(self, batch, batch_idx, "val")
-        
-        
-    def test_step(self, batch, batch_idx):
-        y_hat, _, _ = _common_step(self, batch, batch_idx, "test")
-        _test_step(batch, y_hat.cpu().numpy(), self.model.__class__.__name__)
         
     
     def configure_optimizers(self):
