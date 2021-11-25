@@ -1,8 +1,10 @@
-import config
+import config as cfg
 import h5py
 import networkx as nx
+import numpy as np
 import os
 import pytorch_lightning as pl
+from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 import torch
 import torch_geometric as pyg
 import torch_optimizer as optim
@@ -11,7 +13,6 @@ import yaml
 class CombustionDataset(pyg.data.Dataset):
     
     def __init__(self, root, transform=None, pre_transform=None):
-        self._grid_shape = None
         super().__init__(root, transform, pre_transform)
 
     @property
@@ -24,15 +25,6 @@ class CombustionDataset(pyg.data.Dataset):
     def processed_file_names(self):
         return [f"data-{idx}.pt" for idx in range(self.len())]
     
-    @property
-    def grid_shape(self):
-        if not self._grid_shape:
-            with h5py.File(self.raw_paths[0], 'r') as file:
-                field_val = file['filt_8'][:]
-            x_size, y_size, z_size = field_val.shape[0], field_val.shape[1], field_val.shape[2]
-            self._grid_shape = (z_size, y_size, x_size)
-        return self._grid_shape
-
     def download(self):
         raise RuntimeError(
             'Data not found. Please download the data at {} and move all files in file.tgz/DATA in {}'.format(
@@ -40,10 +32,6 @@ class CombustionDataset(pyg.data.Dataset):
                 self.raw_dir))
 
     def process(self):
-        graph = pyg.utils.convert.from_networkx(
-            nx.grid_graph(dim=self.grid_shape)
-        )
-        undirected_index = graph.edge_index
         
         i = 0
         for raw_path in self.raw_paths:
@@ -52,9 +40,19 @@ class CombustionDataset(pyg.data.Dataset):
                 c = file["/filt_8"][:]
                 sigma = file["/filt_grad_8"][:]
                 
+            x_size, y_size, z_size = c.shape
+            grid_shape = (z_size, y_size, x_size)
+            
+            g0 = nx.grid_graph(dim=grid_shape)
+            graph = pyg.utils.convert.from_networkx(g0)
+            undirected_index = graph.edge_index
+            coordinates = list(g0.nodes())
+            coordinates.reverse()
+                
             data = pyg.data.Data(
                 x=torch.tensor(c.reshape(-1,1), dtype=torch.float), 
                 edge_index=torch.tensor(undirected_index, dtype=torch.long),
+                pos=torch.tensor(np.stack(coordinates)),
                 y=torch.tensor(sigma.reshape(-1,1), dtype=torch.float)
             )
 
@@ -74,33 +72,29 @@ class CombustionDataset(pyg.data.Dataset):
     def len(self):
         return len(self.raw_file_names)
     
-    
+@DATAMODULE_REGISTRY
 class LitCombustionDataModule(pl.LightningDataModule):
     
-    def __init__(self, args):
-        self.args = args
+    def __init__(self, batch_size: int, num_workers: int):
+        self.batch_size = batch_size
+        self.num_workers = num_workers
         super().__init__()
         
-    # TODO: change this so that the dataset is only built and loaded once
-    @property
-    def grid_shape(self):
-        return CombustionDataset(config.data_path).grid_shape
-        
     def prepare_data(self):
-        CombustionDataset(config.data_path)
+        CombustionDataset(cfg.data_path)
     
     def setup(self, stage):
-        dataset = CombustionDataset(config.data_path).shuffle()
+        dataset = CombustionDataset(cfg.data_path).shuffle()
         
         self.test_dataset = dataset[119:]
         self.val_dataset = dataset[111:119]
         self.train_dataset = dataset[:111]
     
     def train_dataloader(self):
-        return pyg.loader.DataLoader(self.train_dataset, batch_size=args.batch_size, shuffle=True)
+        return pyg.loader.DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)
     
     def val_dataloader(self):
-        return pyg.loader.DataLoader(self.val_dataset, batch_size=args.batch_size)
+        return pyg.loader.DataLoader(self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers)
     
     def test_dataloader(self):
-        return pyg.loader.DataLoader(self.test_dataset, batch_size=args.batch_size)
+        return pyg.loader.DataLoader(self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers)

@@ -16,7 +16,3 @@ plots_path = os.path.join(experiment_path, 'plots')
 paths = [experiment_path, logs_path, artifacts_path, plots_path]
 for path in paths:
     os.makedirs(path, exist_ok=True)
-
-config = {
-    "lr": 
-}

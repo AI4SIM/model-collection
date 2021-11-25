@@ -6,17 +6,19 @@ from matplotlib.lines import Line2D
 from matplotlib.colors import LogNorm
 from plotly.subplots import make_subplots
 
+import config
+import data
+
 plt.style.use('bmh')
 plt.rcParams.update({'font.size': 22})
 
-class PlotMetrics:
-    def __init__(self, path_plot, y, y_hat, zslice, model_type, dataset):
-        self.path_plot = path_plot
+class Plotter:
+    def __init__(self, y, y_hat, model_type, grid_shape, zslice=16):
         self.y = y
         self.y_hat = y_hat
-        self.zslice = zslice
         self.model_type = model_type
-        self.dataset = dataset
+        self.grid_shape = grid_shape
+        self.zslice = zslice
         
         self.label_target = "$\overline{\Sigma}_{target}$"
         self.label_predicted = "$\overline{{\Sigma}}_{{{}}}$".format(self.model_type)
@@ -25,13 +27,15 @@ class PlotMetrics:
         self.histo()
         self.histo2d()
         self.boxplot()
-        self.total_flame_surface(self.dataset)
-        self.cross_section(self.zslice, self.dataset)
+        
+        dataset = data.CombustionDataset(config.data_path)
+        self.total_flame_surface(dataset)
+        self.cross_section(self.zslice, dataset)
     
     def dispersion_plot(self):
         bins = np.linspace(0, 1250, 10)
         error = np.zeros((bins.shape[0], 2))
-        err = np.sqrt((self.y-self.y_hat)**2)
+        err = np.sqrt((self.y - self.y_hat)**2)
         for i in range(len(bins)-1):
             idx = np.logical_and(self.y.flatten() >= bins[i], self.y.flatten() < bins[i+1])
             error[i, 0] = err.flatten()[idx].mean()
@@ -42,7 +46,7 @@ class PlotMetrics:
         ax.fill_between(bins[:-1], (error[:-1, 0]-error[:-1, 1]), (error[:-1, 0]+error[:-1, 1]), color='b', alpha=.1)
         ax.set_xlabel(self.label_target)
         ax.set_ylabel("$RMSE$({}, {})".format(self.label_predicted, self.label_target))
-        plt.savefig(os.path.join(self.path_plot, "dispersion-plot-{}.png".format(self.model_type)))
+        plt.savefig(os.path.join(config.plots_path, "dispersion-plot-{}.png".format(self.model_type)))
         plt.close()
         
     def histo(self):
@@ -56,7 +60,7 @@ class PlotMetrics:
         new_handles = [Line2D([], [], c=h.get_edgecolor()) for h in handles]
 
         plt.legend(handles=new_handles, labels=labels)
-        plt.savefig(os.path.join(self.path_plot, "histogram-{}.png".format(self.model_type)))
+        plt.savefig(os.path.join(config.plots_path, "histogram-{}.png".format(self.model_type)))
         plt.close()
         
     def histo2d(self):
@@ -68,25 +72,26 @@ class PlotMetrics:
         ax.set_ylim(-50, 1200)
         ax.set_xlabel(self.label_target)
         ax.set_ylabel(self.label_predicted)
-        plt.savefig(os.path.join(self.path_plot, "histogram2d-{}.png".format(self.model_type)))
+        plt.savefig(os.path.join(config.plots_path, "histogram2d-{}.png".format(self.model_type)))
         plt.close()
         
     def boxplot(self):
         flat_err = []
+        self.y = self.y.reshape((-1,) + self.grid_shape)
+        self.y_hat = self.y_hat.reshape((-1,) + self.grid_shape)
         for i in range(self.y.shape[0]):
-            flat_err.append(np.sqrt((self.y[i, :, :, :]-self.y_hat[i, :, :, :])**2).flatten())
+            flat_err.append(np.sqrt((self.y[i, :, :, :] -self.y_hat[i, :, :, :])**2).flatten())
         
         fig, ax = plt.subplots(figsize=(20, 10))
         ax.boxplot(flat_err, labels=np.arange(self.y.shape[0]), showmeans=True)
         ax.set_xlabel("Snapshot")
         ax.set_ylabel("$RMSE$({}, {})".format(self.label_predicted, self.label_target))
-        plt.savefig(os.path.join(self.path_plot, "boxplot-{}".format(self.model_type)))
+        plt.savefig(os.path.join(config.plots_path, "boxplot-{}".format(self.model_type)))
         plt.close()
     
     def total_flame_surface(self, cd_test):
         gt_total_flame_surface = np.stack(self.y, axis=0)
         gt_total_flame_surface = np.sum(gt_total_flame_surface, axis=(2, 3))
-        print(gt_total_flame_surface.shape)
         
         pred_total_flame_surface = np.stack(self.y_hat, axis=0)
         pred_total_flame_surface = np.sum(pred_total_flame_surface, axis=(2, 3))
@@ -107,7 +112,7 @@ class PlotMetrics:
             fig.update_xaxes(title_text="x position")
             fig.update_yaxes(title_text="Total flame surface")
 
-            fig.write_image(os.path.join(self.path_plot, "total-flame-surface", "total-flame-surface-{}-{}.png".format(self.model_type, dns3_time)))
+            fig.write_image(os.path.join(config.plots_path, "total-flame-surface-{}-{}.png".format(self.model_type, dns3_time)))
     
     def cross_section(self, zslice, cd_test):
         for i in range(self.y_hat.shape[0]):
@@ -146,7 +151,7 @@ class PlotMetrics:
                                   zmax=300,
                                   contours=dict(showlines=False,
                                                 showlabels=False,),
-                                  line=dict(width=0),
+                                  line=dict(width=0), 
                                   contours_coloring='heatmap',
                                   colorscale="RdBu_r",
                                   colorbar=dict(x=0.97)), row=1, col=5)
@@ -162,5 +167,5 @@ class PlotMetrics:
                               xaxis2=dict(domain=[0.35, 0.62]),
                               xaxis3=dict(domain=[0.7, 0.97])
                              )
-            fig.write_image(os.path.join(self.path_plot, "cross-sections", "cross-section-{}-{}.png".format(self.model_type, dns3_time)))
+            fig.write_image(os.path.join(config.plots_path, "cross-section-{}-{}.png".format(self.model_type, dns3_time)))
         
