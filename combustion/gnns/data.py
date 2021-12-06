@@ -71,7 +71,8 @@ class CombustionDataset(pyg.data.Dataset):
     
     def len(self):
         return len(self.raw_file_names)
-    
+
+
 @DATAMODULE_REGISTRY
 class LitCombustionDataModule(pl.LightningDataModule):
     

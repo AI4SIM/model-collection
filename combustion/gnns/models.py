@@ -7,7 +7,7 @@ import torch_optimizer as optim
 import torchmetrics.functional as F
 
 import plotters
-    
+
 class CombustionModule(pl.LightningModule):
 
     def forward(self, x, edge_index):
@@ -22,23 +22,20 @@ class CombustionModule(pl.LightningModule):
         self.log(f"{stage}_r2", r2, on_step=True, batch_size=len(batch))
 
         return y_hat, loss, r2
-    
-    
+
     def training_step(self, batch, batch_idx):
         _, loss, _ = self._common_step(batch, batch_idx, "train")
         return loss
-    
-        
+
     def validation_step(self, batch, batch_idx):
         y_hat, _, _ = self._common_step(batch, batch_idx, "val")
-        
-        
+
     def test_step(self, batch, batch_idx):
         y_hat, _, _ = self._common_step(batch, batch_idx, "test")
         pos = np.stack(batch.pos.cpu().numpy())
-        x_max = np.max(pos[:, 0:1]) 
-        y_max = np.max(pos[:, 1:2]) 
-        z_max = np.max(pos[:, 2:3]) 
+        x_max = np.max(pos[:, 0:1])
+        y_max = np.max(pos[:, 1:2])
+        z_max = np.max(pos[:, 2:3])
         grid_shape = (x_max + 1, y_max + 1, z_max + 1)
 
         _ = plotters.Plotter(batch.y.cpu().numpy(), y_hat.cpu().numpy(), self.model.__class__.__name__, grid_shape)
