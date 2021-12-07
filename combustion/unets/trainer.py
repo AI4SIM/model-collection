@@ -5,6 +5,10 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
 
+# Needed for CLI (for now).
+import data
+import models
+
 
 class Trainer(pl.Trainer):
 

@@ -1,6 +1,5 @@
 import config
 import h5py
-import networkx as nx
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
@@ -8,7 +7,7 @@ import torch
 import torch_optimizer as optim
 import yaml
 
-class CombustionDataset(torch.utils.data.Dataset):
+class CnfCombustionDataset(torch.utils.data.Dataset):
 
     def __init__(self, root):
         super().__init__()
@@ -50,18 +49,20 @@ class CombustionDataset(torch.utils.data.Dataset):
 
 
 @DATAMODULE_REGISTRY
-class LitCombustionDataModule(pl.LightningDataModule):
+class CnfCombustionDataModule(pl.LightningDataModule):
 
-    def __init__(self, batch_size: int, num_workers: int):
+    def __init__(self, batch_size: int, num_workers: int, shuffling=False):
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.shuffling = shuffling
         super().__init__()
 
     def prepare_data(self):
-        CombustionDataset(config.data_path)
+        CnfCombustionDataset(config.data_path)
 
     def setup(self, stage):
-        dataset = CombustionDataset(config.data_path)#.shuffle()
+        dataset = CnfCombustionDataset(config.data_path)
+        if self.shuffling: dataset = dataset.shuffle()
         self.train, self.val, self.test = torch.utils.data.random_split(dataset, [111, 8, 8])
 
     def train_dataloader(self):

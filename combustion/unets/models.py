@@ -2,9 +2,9 @@ import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
 import torch.nn as nn
-import torch_geometric as pyg
 import torch_optimizer as optim
 import torchmetrics.functional as F
+
 import unet
 
 

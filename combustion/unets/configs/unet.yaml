@@ -9,7 +9,7 @@ fit:
       lr: .0001
 
   data:
-    class_path: data.LitCombustionDataModule
+    class_path: data.CnfCombustionDataModule
     init_args:
       batch_size: 1
       num_workers: 0
