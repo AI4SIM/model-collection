@@ -1,7 +1,6 @@
 import os
 import matplotlib.pyplot as plt
 import numpy as np
-import plotly.graph_objects as go
 from matplotlib.lines import Line2D
 from matplotlib.colors import LogNorm
 from plotly.subplots import make_subplots
@@ -14,6 +13,7 @@ plt.rcParams.update({'font.size': 22})
 
 
 class Plotter:
+
     def __init__(self, y, y_hat, model_type, grid_shape, zslice=16):
         self.y = y
         self.y_hat = y_hat
@@ -67,7 +67,7 @@ class Plotter:
     def histo2d(self):
         fig, ax = plt.subplots(figsize=(12, 8))
         ax.plot(np.linspace(0, 1200, 100), np.linspace(0, 1200, 100), 'black')
-        h = ax.hist2d(self.y.flatten(), self.y_hat.flatten(), bins=100, norm=LogNorm(), cmap='Blues');
+        h = ax.hist2d(self.y.flatten(), self.y_hat.flatten(), bins=100, norm=LogNorm(), cmap='Blues')
         plt.colorbar(h[3])
         ax.set_xlim(-50, 1200)
         ax.set_ylim(-50, 1200)
@@ -132,8 +132,7 @@ class Plotter:
             fig.add_trace(go.Contour(z=sigma[zslice, :, :],
                                   zmin=0,
                                   zmax=950,
-                                  contours=dict(showlines=False,
-                                                showlabels=False,),
+                                  contours=dict(showlines=False, showlabels=False,),
                                   line=dict(width=0),
                                   contours_coloring='heatmap',
                                   colorscale="IceFire",
@@ -141,8 +140,7 @@ class Plotter:
             fig.add_trace(go.Contour(z=prediction[zslice, :, :],
                                   zmin=0,
                                   zmax=950,
-                                  contours=dict(showlines=False,
-                                                showlabels=False,),
+                                  contours=dict(showlines=False, showlabels=False,),
                                   line=dict(width=0),
                                   contours_coloring='heatmap',
                                   colorscale="IceFire",
@@ -150,8 +148,7 @@ class Plotter:
             fig.add_trace(go.Contour(z=sigma[zslice, :, :]-prediction[zslice, :, :],
                                   zmin=-300,
                                   zmax=300,
-                                  contours=dict(showlines=False,
-                                                showlabels=False,),
+                                  contours=dict(showlines=False, showlabels=False,),
                                   line=dict(width=0),
                                   contours_coloring='heatmap',
                                   colorscale="RdBu_r",
@@ -166,6 +163,5 @@ class Plotter:
             fig.update_yaxes(title_text="y direction", row=1, col=5)
             fig.update_layout(xaxis=dict(domain=[0, 0.27]),
                               xaxis2=dict(domain=[0.35, 0.62]),
-                              xaxis3=dict(domain=[0.7, 0.97])
-                             )
+                              xaxis3=dict(domain=[0.7, 0.97]))
             fig.write_image(os.path.join(config.plots_path, "cross-section-{}-{}.png".format(self.model_type, dns3_time)))

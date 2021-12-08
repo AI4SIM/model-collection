@@ -16,9 +16,9 @@ fit:
         init_args:
             batch_size: 1
             num_workers: 0
-    
+
     trainer:
         max_epochs: 1000
-        accelerator: "gpu"
-        devices: 
+        accelerator: "cpu"
+        devices:
             - 0
