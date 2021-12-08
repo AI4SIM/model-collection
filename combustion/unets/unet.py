@@ -5,17 +5,17 @@ import torch.nn as nn
 class UNet3D(nn.Module):
     """
     U-net with "fully" 3D convolutions (assuming isotropicity, learning 3D kernels).
+    Using float64 (double-precision) for physics.
+
+    Args:
+        inp_feat: Number of channels of the input.
+        out_feat: Number of channels of the output.
+        n_levels: Number of levels (up/down-sampler + double conv).
+        n_features_root: Number of features in the first level, squared at each level.
+        bilinear: Whether to use bilinear interpolation or transposed convolutions for upsampling.
     """
 
-    def __init__(self, inp_feat: int, out_feat: int, n_levels: int = 5, n_features_root: int = 32, bilinear: bool = False):
-        """
-        Args:
-            inp_feat: Number of channels of the input.
-            out_feat: Number of channels of the output.
-            n_levels: Number of levels (up/down-sampler + double conv).
-            n_features_root: Number of features in the first level, squared at each level.
-            bilinear: Whether to use bilinear interpolation or transposed convolutions for upsampling.
-        """
+    def __init__(self, inp_feat: int, out_feat: int, n_levels: int, n_features_root: int, bilinear: bool = False):
         super().__init__()
         self.n_levels = n_levels
 
@@ -34,9 +34,10 @@ class UNet3D(nn.Module):
             f //= 2
 
         layers.append(DoubleConv(f, out_feat))
-        self.layers = nn.ModuleList(layers)
+        self.layers = nn.ModuleList(layers).double()
 
     def forward(self, x):
+        # xi keeps the data at each level, allowing to pass it through skip-connections.
         xi = [self.layers[0](x)]
         for layer in self.layers[1:self.n_levels]:  # downward path.
             xi.append(layer(xi[-1]))

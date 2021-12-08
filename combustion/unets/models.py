@@ -1,6 +1,7 @@
 import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
+import torch
 import torch.nn as nn
 import torch_optimizer as optim
 import torchmetrics.functional as F
@@ -17,37 +18,29 @@ class CombustionModule(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.mean_squared_error(y_hat, y)
-        r2 = F.r2_score(y_hat, y)
+        r2 = F.r2_score(torch.flatten(y_hat), torch.flatten(y))  # R2 between mesh points.
 
         self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(x))
-        self.log(f"{stage}_r2", r2, on_step=True, batch_size=len(x))
+        self.log(f"{stage}_r2", r2, on_step=True, batch_size=len(batch))
 
         return y_hat, loss, r2
-
-    # TODO: data augmentation
 
     def training_step(self, batch, batch_idx):
         _, loss, _ = self._common_step(batch, batch_idx, "train")
         return loss
 
     def validation_step(self, batch, batch_idx):
-        y_hat, _, _ = self._common_step(batch, batch_idx, "val")
+        self._common_step(batch, batch_idx, "val")
 
     def test_step(self, batch, batch_idx):
         y_hat, _, _ = self._common_step(batch, batch_idx, "test")
-        pos = np.stack(batch.pos.cpu().numpy())
-        x_max = np.max(pos[:, 0:1])
-        y_max = np.max(pos[:, 1:2])
-        z_max = np.max(pos[:, 2:3])
-        grid_shape = (x_max + 1, y_max + 1, z_max + 1)
         # TODO: plotter
-        # plotters.Plotter(batch.y.cpu().numpy(), y_hat.cpu().numpy(), self.model.__class__.__name__, grid_shape)
 
 
 @MODEL_REGISTRY
 class LitUnet3D(CombustionModule):
     """
-    Lit wrapper to compile a 3D U-net.
+    Lit wrapper to compile a 3D U-net, generic volume shapes.
     """
 
     def __init__(self, in_channels, out_channels, n_levels, n_features_root, lr):

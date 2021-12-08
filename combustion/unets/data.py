@@ -1,17 +1,45 @@
 import config
 import h5py
 import os
+import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 import torch
 import torch_optimizer as optim
 import yaml
+from typing import Union
+
+
+class RandomCropper3D(object):
+    """Randomly crop a sub-block out of a 3D tensor.
+
+    Args:
+        out_shape (tuple or int): desired output shape.
+    """
+
+    def __init__(self, out_shape: Union[int, tuple]):
+        assert isinstance(out_shape, (int, tuple))
+        if isinstance(out_shape, int):
+            self.out_shape = (out_shape, out_shape, out_shape)
+        else:
+            assert len(out_shape) == 3
+            self.out_shape = out_shape
+
+    def __call__(self, sample):
+        h, w, d = sample.shape[0], sample.shape[1], sample.shape[2]
+        block_h, block_w, block_d = self.out_shape
+        tx = np.random.randint(0, h - block_h)
+        ty = np.random.randint(0, w - block_w)
+        tz = np.random.randint(0, d - block_d)
+        return sample[tx:tx+block_h, ty:ty+block_w, tz:tz+block_d]
+
 
 class CnfCombustionDataset(torch.utils.data.Dataset):
 
-    def __init__(self, root):
+    def __init__(self, root, subblock_shape: Union[int, tuple] = None):
         super().__init__()
         self.root = root
+        self.random_cropper = RandomCropper3D(subblock_shape) if subblock_shape is not None else None
         for idx, filename in enumerate(self.raw_filenames):
             raw_path = os.path.join(self.raw_dir, filename)
             processed_path = os.path.join(self.processed_dir, self.processed_filenames[idx])
@@ -32,7 +60,7 @@ class CnfCombustionDataset(torch.utils.data.Dataset):
 
     @property
     def processed_filenames(self):
-        return [f"data-{idx}.pt" for idx in range(len(self))]
+        return [f"{filename.split('.')[0]}.pt" for filename in self.raw_filenames]
 
     def __len__(self):
         return len(self.raw_filenames)
@@ -42,28 +70,47 @@ class CnfCombustionDataset(torch.utils.data.Dataset):
 
     def process(self, idx, path):
         out_path = os.path.join(self.processed_dir, self.processed_filenames[idx])
+        os.makedirs(self.processed_dir, exist_ok=True)
         with h5py.File(path, "r") as file:
             c = torch.tensor(file["/filt_8"][:])
             sigma = torch.tensor(file["/filt_grad_8"][:])
+        c = c[1:, 1:, 1:]  # Crop first boundary (equal to the opposite one).
+        sigma = sigma[1:, 1:, 1:]
+        if self.random_cropper is not None:  # Randomly crop a subblock.
+            c = self.random_cropper(c)
+            sigma = self.random_cropper(sigma)
+        c = c[None, :]  # Add a dummy axis for channels.
+        sigma = sigma[None, :]
         torch.save((c, sigma), out_path)
 
 
 @DATAMODULE_REGISTRY
 class CnfCombustionDataModule(pl.LightningDataModule):
+    """
+    Providing 3D blocks of the CNF combustion dataset.
 
-    def __init__(self, batch_size: int, num_workers: int, shuffling=False):
+    Args:
+        splitting_lengths (list): lengths of training, validation and testing sets.
+        shuffling: whether to shuffle the trainset.
+        subblock_shape (int or tuple): data augmentation by randomly cropping sub-blocks.
+    """
+
+    def __init__(self, batch_size: int, num_workers: int, splitting_lengths: list,
+            shuffling: bool = False, subblock_shape: Union[int, tuple] = None):
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.splitting_lengths = splitting_lengths
         self.shuffling = shuffling
+        self.subblock_shape = subblock_shape
         super().__init__()
 
     def prepare_data(self):
-        CnfCombustionDataset(config.data_path)
+        CnfCombustionDataset(config.data_path, self.subblock_shape)
 
     def setup(self, stage):
-        dataset = CnfCombustionDataset(config.data_path)
-        if self.shuffling: dataset = dataset.shuffle()
-        self.train, self.val, self.test = torch.utils.data.random_split(dataset, [111, 8, 8])
+        dataset = CnfCombustionDataset(config.data_path, self.subblock_shape)
+        self.train, self.val, self.test = torch.utils.data.random_split(dataset, self.splitting_lengths)
+        if self.shuffling: self.train = self.train.shuffle()
 
     def train_dataloader(self):
         return torch.utils.data.DataLoader(
