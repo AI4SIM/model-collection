@@ -1,0 +1,20 @@
+fit:
+    model:
+        class_path: models.LitMLP
+        init_args:
+            in_channels: 191
+            hidden_channels: 256
+            out_channels: 126
+            lr: .0001
+
+    data:
+        class_path: data.NOGWDDataModule
+        init_args:
+            batch_size: 256
+            num_workers: 0
+    
+    trainer:
+        max_epochs: 1000
+        accelerator: "gpu"
+        devices: 
+            - 0
