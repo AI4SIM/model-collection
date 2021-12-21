@@ -9,7 +9,6 @@ def flame_surface(batch_idx, y_hat, y, stage: str):
     def _flame_surface(tensor):
         return torch.sum(tensor, axis=(-2, -1)).cpu()
 
-
     y_hat_total_flame_surface = _flame_surface(y_hat)
     y_total_flame_surface = _flame_surface(y)
     x = np.arange(len(y_total_flame_surface))
