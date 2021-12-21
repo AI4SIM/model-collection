@@ -15,6 +15,6 @@ fit:
     
     trainer:
         max_epochs: 1000
-        accelerator: "gpu"
+        accelerator: "cpu"
         devices: 
             - 0

@@ -14,6 +14,9 @@ class Trainer(pl.Trainer):
     def __init__(self, accelerator, devices, max_epochs, fast_dev_run=False, callbacks=None):
         logger = pl.loggers.TensorBoardLogger(cfg.logs_path, name=None)
         
+        if accelerator == 'cpu':
+            devices = None
+        
         super().__init__(
             default_root_dir=cfg.logs_path,
             logger=logger,

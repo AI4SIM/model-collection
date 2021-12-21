@@ -8,7 +8,7 @@ import torchmetrics.functional as F
     
 class NOGWDModule(pl.LightningModule):
 
-    def forward(self, batch):
+    def forward(self, x):
         return self.model(x)
 
     def _common_step(self, batch, batch_idx, stage):
