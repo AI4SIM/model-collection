@@ -62,6 +62,28 @@ class LitMLP(NOGWDModule):
     def configure_optimizers(self):
         return optim.AdamP(self.parameters(), lr=self.lr)
 
+    
+# class Model(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.model = nn.ModuleList([
+#             Reshape(),
+#             nn.Conv1d(5, 16, 3, padding=1),
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool1d(2),
+#             nn.Conv1d(16, 32, 3),
+#             nn.ReLU(inplace=True),
+#             nn.MaxPool1d(2),
+#             nn.Flatten(),
+#             nn.Linear((32 - 3) // 2 * 32, 126),
+#             nn.Linear(126, 126)
+#         ])
+        
+#     def forward(self, x):
+#         for module in self.model:
+#             x = module(x)
+#             # print(x.shape)
+#         return x
 
 @MODEL_REGISTRY
 class LitCNN(NOGWDModule):
@@ -74,10 +96,10 @@ class LitCNN(NOGWDModule):
             t0 = torch.reshape(x[:, :3 * 63], [-1, 3, 63])
             t1 = torch.tile(x[:, 3 * 63:].unsqueeze(2), (1, 1, 63))
             
-            return torch.cat((
-                torch.transpose(t0, -2, -1),
-                torch.transpose(t1, -2, -1)
-            ), dim=2)
+            return torch.cat((t0, t1), dim=1)
+                # torch.transpose(t0, -2, -1),
+                # torch.transpose(t1, -2, -1)
+            # ), dim=2)
     
     def __init__(self, in_channels, init_feat, conv_size, pool_size, out_channels, lr):
         super().__init__()
@@ -86,15 +108,15 @@ class LitCNN(NOGWDModule):
         self.lr = lr
         self.model = nn.Sequential(
             self.Reshape(),
-            nn.Conv1d(in_channels=in_channels, out_channels=2 * init_feat, kernel_size=conv_size),
+            nn.Conv1d(5, 16, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.MaxPool1d(kernel_size=pool_size),
-            nn.Conv1d(in_channels=2 * init_feat, out_channels=4 * init_feat, kernel_size=conv_size),
+            nn.MaxPool1d(2),
+            nn.Conv1d(16, 32, 3),
             nn.ReLU(inplace=True),
-            nn.MaxPool1d(kernel_size=pool_size),
+            nn.MaxPool1d(2),
             nn.Flatten(),
-            nn.Linear(4 * init_feat, out_channels),
-            nn.Linear(out_channels, out_channels)
+            nn.Linear((32 - 3) // 2 * 32, 126),
+            nn.Linear(126, 126)
         )
         
     
