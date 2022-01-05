@@ -17,7 +17,7 @@ fit:
       subblock_shape: [32, 16, 16]  # keeping power 2 dimensions for the U-net.
 
   trainer:
-    max_epochs: 1
+    max_epochs: 10
     accelerator: "cpu"
     devices:
       - 0
