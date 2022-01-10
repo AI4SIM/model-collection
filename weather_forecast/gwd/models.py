@@ -6,7 +6,8 @@ import torch.nn as nn
 import torch_geometric as pyg
 import torch_optimizer as optim
 import torchmetrics.functional as F
-    
+
+
 class NOGWDModule(pl.LightningModule):
 
     def forward(self, x):
@@ -15,7 +16,7 @@ class NOGWDModule(pl.LightningModule):
     def _common_step(self, batch, batch_idx, stage):
         x, y = batch
         y_hat = self(x)
-        
+
         loss = F.mean_squared_error(y_hat, y)
         r2 = F.r2_score(y_hat, y)
 
@@ -23,28 +24,25 @@ class NOGWDModule(pl.LightningModule):
         self.log(f"{stage}_r2", r2, on_step=True, batch_size=len(batch))
 
         return y_hat, loss, r2
-    
-    
+
     def training_step(self, batch, batch_idx):
         _, loss, _ = self._common_step(batch, batch_idx, "train")
         return loss
-    
-        
+
     def validation_step(self, batch, batch_idx):
         y_hat, _, _ = self._common_step(batch, batch_idx, "val")
-        
-        
+
     def test_step(self, batch, batch_idx):
         y_hat, _, _ = self._common_step(batch, batch_idx, "test")
 
 
 @MODEL_REGISTRY
 class LitMLP(NOGWDModule):
-    
+
     def __init__(self, in_channels, hidden_channels, out_channels, lr):
         super().__init__()
         self.save_hyperparameters()
-        
+
         self.lr = lr
         self.model = nn.Sequential(
             nn.Linear(in_channels, hidden_channels),
@@ -55,14 +53,11 @@ class LitMLP(NOGWDModule):
             nn.ReLU(inplace=True),
             nn.Linear(hidden_channels, hidden_channels),
             nn.ReLU(inplace=True),
-            nn.Linear(hidden_channels, out_channels),
-        )
-        
-    
+            nn.Linear(hidden_channels, out_channels),)
+
     def configure_optimizers(self):
         return optim.AdamP(self.parameters(), lr=self.lr)
 
-    
 # class Model(nn.Module):
 #     def __init__(self):
 #         super().__init__()
@@ -78,7 +73,7 @@ class LitMLP(NOGWDModule):
 #             nn.Linear((32 - 3) // 2 * 32, 126),
 #             nn.Linear(126, 126)
 #         ])
-        
+
 #     def forward(self, x):
 #         for module in self.model:
 #             x = module(x)
@@ -87,24 +82,24 @@ class LitMLP(NOGWDModule):
 
 @MODEL_REGISTRY
 class LitCNN(NOGWDModule):
-    
+
     class Reshape(nn.Module):
         def __init__(self):
             super().__init__()
-            
+
         def forward(self, x):
             t0 = torch.reshape(x[:, :3 * 63], [-1, 3, 63])
             t1 = torch.tile(x[:, 3 * 63:].unsqueeze(2), (1, 1, 63))
-            
+
             return torch.cat((t0, t1), dim=1)
                 # torch.transpose(t0, -2, -1),
                 # torch.transpose(t1, -2, -1)
             # ), dim=2)
-    
+
     def __init__(self, in_channels, init_feat, conv_size, pool_size, out_channels, lr):
         super().__init__()
         self.save_hyperparameters()
-        
+
         self.lr = lr
         self.model = nn.Sequential(
             self.Reshape(),
@@ -116,9 +111,7 @@ class LitCNN(NOGWDModule):
             nn.MaxPool1d(2),
             nn.Flatten(),
             nn.Linear((32 - 3) // 2 * 32, 126),
-            nn.Linear(126, 126)
-        )
-        
-    
+            nn.Linear(126, 126))
+
     def configure_optimizers(self):
         return optim.AdamP(self.parameters(), lr=self.lr)
