@@ -1,4 +1,18 @@
-import config
+'''
+    Licensed under the Apache License, Version 2.0 (the "License");
+    * you may not use this file except in compliance with the License.
+    * You may obtain a copy of the License at
+    *
+    *     http://www.apache.org/licenses/LICENSE-2.0
+    *
+    * Unless required by applicable law or agreed to in writing, software
+    * distributed under the License is distributed on an "AS IS" BASIS,
+    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    * See the License for the specific language governing permissions and
+    * limitations under the License.
+'''
+
+import config as cfg
 import h5py
 import os
 import numpy as np
@@ -105,10 +119,10 @@ class CnfCombustionDataModule(pl.LightningDataModule):
         super().__init__()
 
     def prepare_data(self):
-        CnfCombustionDataset(config.data_path, self.subblock_shape)
+        CnfCombustionDataset(cfg.data_path, self.subblock_shape)
 
     def setup(self, stage):
-        dataset = CnfCombustionDataset(config.data_path, self.subblock_shape)
+        dataset = CnfCombustionDataset(cfg.data_path, self.subblock_shape)
         self.train, self.val, self.test = torch.utils.data.random_split(dataset, self.splitting_lengths)
         if self.shuffling: self.train = self.train.shuffle()
 

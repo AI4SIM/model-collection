@@ -1,3 +1,17 @@
+'''
+    Licensed under the Apache License, Version 2.0 (the "License");
+    * you may not use this file except in compliance with the License.
+    * You may obtain a copy of the License at
+    *
+    *     http://www.apache.org/licenses/LICENSE-2.0
+    *
+    * Unless required by applicable law or agreed to in writing, software
+    * distributed under the License is distributed on an "AS IS" BASIS,
+    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    * See the License for the specific language governing permissions and
+    * limitations under the License.
+'''
+
 import os
 import matplotlib.pyplot as plt
 import numpy as np
@@ -5,7 +19,7 @@ from matplotlib.lines import Line2D
 from matplotlib.colors import LogNorm
 from plotly.subplots import make_subplots
 
-import config
+import config as cfg
 import data
 
 plt.style.use('bmh')
@@ -29,7 +43,7 @@ class Plotter:
         self.histo2d()
         self.boxplot()
 
-        dataset = data.CombustionDataset(config.data_path)
+        dataset = data.CombustionDataset(cfg.data_path)
         self.total_flame_surface(dataset)
         self.cross_section(self.zslice, dataset)
 
@@ -47,7 +61,7 @@ class Plotter:
         ax.fill_between(bins[:-1], (error[:-1, 0]-error[:-1, 1]), (error[:-1, 0]+error[:-1, 1]), color='b', alpha=.1)
         ax.set_xlabel(self.label_target)
         ax.set_ylabel("$RMSE$({}, {})".format(self.label_predicted, self.label_target))
-        plt.savefig(os.path.join(config.plots_path, "dispersion-plot-{}.png".format(self.model_type)))
+        plt.savefig(os.path.join(cfg.plots_path, "dispersion-plot-{}.png".format(self.model_type)))
         plt.close()
 
     def histo(self):
@@ -61,7 +75,7 @@ class Plotter:
         new_handles = [Line2D([], [], c=h.get_edgecolor()) for h in handles]
 
         plt.legend(handles=new_handles, labels=labels)
-        plt.savefig(os.path.join(config.plots_path, "histogram-{}.png".format(self.model_type)))
+        plt.savefig(os.path.join(cfg.plots_path, "histogram-{}.png".format(self.model_type)))
         plt.close()
 
     def histo2d(self):
@@ -73,7 +87,7 @@ class Plotter:
         ax.set_ylim(-50, 1200)
         ax.set_xlabel(self.label_target)
         ax.set_ylabel(self.label_predicted)
-        plt.savefig(os.path.join(config.plots_path, "histogram2d-{}.png".format(self.model_type)))
+        plt.savefig(os.path.join(cfg.plots_path, "histogram2d-{}.png".format(self.model_type)))
         plt.close()
 
     def boxplot(self):
@@ -87,7 +101,7 @@ class Plotter:
         ax.boxplot(flat_err, labels=np.arange(self.y.shape[0]), showmeans=True)
         ax.set_xlabel("Snapshot")
         ax.set_ylabel("$RMSE$({}, {})".format(self.label_predicted, self.label_target))
-        plt.savefig(os.path.join(config.plots_path, "boxplot-{}".format(self.model_type)))
+        plt.savefig(os.path.join(cfg.plots_path, "boxplot-{}".format(self.model_type)))
         plt.close()
 
     def total_flame_surface(self, cd_test):
@@ -113,7 +127,7 @@ class Plotter:
             fig.update_xaxes(title_text="x position")
             fig.update_yaxes(title_text="Total flame surface")
 
-            fig.write_image(os.path.join(config.plots_path, "total-flame-surface-{}-{}.png".format(self.model_type, dns3_time)))
+            fig.write_image(os.path.join(cfg.plots_path, "total-flame-surface-{}-{}.png".format(self.model_type, dns3_time)))
 
     def cross_section(self, zslice, cd_test):
         for i in range(self.y_hat.shape[0]):
@@ -164,4 +178,4 @@ class Plotter:
             fig.update_layout(xaxis=dict(domain=[0, 0.27]),
                               xaxis2=dict(domain=[0.35, 0.62]),
                               xaxis3=dict(domain=[0.7, 0.97]))
-            fig.write_image(os.path.join(config.plots_path, "cross-section-{}-{}.png".format(self.model_type, dns3_time)))
+            fig.write_image(os.path.join(cfg.plots_path, "cross-section-{}-{}.png".format(self.model_type, dns3_time)))
