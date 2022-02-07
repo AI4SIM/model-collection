@@ -9,26 +9,3 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-fit:
-    model:
-        class_path: models.LitCNN
-        init_args:
-            in_channels: 63
-            init_feat: 8
-            out_channels: 126
-            conv_size: 1
-            pool_size: 2
-            lr: .0001
-
-    data:
-        class_path: data.NOGWDDataModule
-        init_args:
-            batch_size: 256
-            num_workers: 0
-    
-    trainer:
-        max_epochs: 10
-        accelerator: "cpu"
-        devices: 
-            - 0
