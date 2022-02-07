@@ -11,8 +11,10 @@
 # limitations under the License.
 
 import importlib
+import logging
 import os
 import pytorch_lightning as pl
+import shutil
 from typing import Tuple
 import unittest
 import yaml
@@ -73,9 +75,9 @@ class TestTraining(unittest.TestCase):
         self.assertTrue(True)
         
     def tearDown(self) -> None:
-        # TODO: fix 'Directory not empty...' bug 
-        import shutil
-        shutil.rmtree(config.experiment_path, ignore_errors=True)
+        
+        logging.shutdown()
+        shutil.rmtree(config.experiment_path, ignore_errors=False)
 
 if __name__ == '__main__':
     
