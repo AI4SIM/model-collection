@@ -1,3 +1,4 @@
+#!/usr/bin/bash
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -10,26 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-fit:
-    model:
-        class_path: models.LitGCN
-        init_args:
-            in_channels: 1
-            hidden_channels: 32
-            out_channels: 1
-            num_layers: 4
-            dropout: .5
-            jk: "last"
-            lr: .0001
+# Launch a training
+python trainer.py --configs configs/default.yaml
 
-    data:
-        class_path: data.LitCombustionDataModule
-        init_args:
-            batch_size: 1
-            num_workers: 0
-    
-    trainer:
-        max_epochs: 1000
-        accelerator: "gpu"
-        devices: 
-            - 0
+# TODO: Create a script to launch inference
+# TODO: Experiment with TorchScript

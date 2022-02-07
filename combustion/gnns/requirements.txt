@@ -10,26 +10,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-fit:
-    model:
-        class_path: models.LitGCN
-        init_args:
-            in_channels: 1
-            hidden_channels: 32
-            out_channels: 1
-            num_layers: 4
-            dropout: .5
-            jk: "last"
-            lr: .0001
-
-    data:
-        class_path: data.LitCombustionDataModule
-        init_args:
-            batch_size: 1
-            num_workers: 0
-    
-    trainer:
-        max_epochs: 1000
-        accelerator: "gpu"
-        devices: 
-            - 0
+h5py=='3.4.0'
+matplotlib=='3.4.3'
+networkx=='2.6.3'
+numpy=='1.21.2'
+plotly=='5.3.1'
+pytorch-lightning=='1.5.7'
+PyYAML=='0.5.4'
+randomname=='0.1.5'
+torch=='1.9.0+cu111'
+torchmetrics=='0.5.1'
+torch_optimizer=='0.1.0'

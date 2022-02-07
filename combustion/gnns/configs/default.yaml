@@ -12,13 +12,14 @@
 
 fit:
     model:
-        class_path: models.LitGCN
+        class_path: models.LitGAT
         init_args:
             in_channels: 1
             hidden_channels: 32
             out_channels: 1
             num_layers: 4
             dropout: .5
+            heads: 8
             jk: "last"
             lr: .0001
 
@@ -29,7 +30,7 @@ fit:
             num_workers: 0
     
     trainer:
-        max_epochs: 1000
+        max_epochs: 1
         accelerator: "gpu"
         devices: 
             - 0
