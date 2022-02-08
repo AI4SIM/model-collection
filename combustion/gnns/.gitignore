@@ -1,6 +1,7 @@
 !data
 data/*
 !data/filenames.yaml
+experiments/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

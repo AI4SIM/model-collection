@@ -18,7 +18,7 @@ import torch.nn as nn
 import torch_geometric as pyg
 import torch_optimizer as optim
 import torchmetrics.functional as F
-from typing import List
+from typing import List, Tuple
 
 import plotters
 
@@ -27,6 +27,10 @@ class CombustionModule(pl.LightningModule):
     Contains the basic logic meant for all GNN-like models experiments. Loss is MSE and the metric of interest is R2 determination score.
     """
 
+    def __init__(self):
+        super().__init__()
+        self.grid_shape = None
+        
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         """
         Computes the forward pass.
@@ -45,12 +49,13 @@ class CombustionModule(pl.LightningModule):
                      batch_idx: int, 
                      stage: str) -> List[torch.Tensor]:
         
+        batch_size = batch.ptr[0]-1
         y_hat = self(batch.x, batch.edge_index)
         loss = F.mean_squared_error(y_hat, batch.y)
         r2 = F.r2_score(y_hat, batch.y)
 
-        self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(batch))
-        self.log(f"{stage}_r2", r2, on_step=True, batch_size=len(batch))
+        self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=batch_size)
+        self.log(f"{stage}_r2", r2, on_step=True, batch_size=batch_size)
 
         return y_hat, loss, r2
 
@@ -78,22 +83,52 @@ class CombustionModule(pl.LightningModule):
         """
         y_hat, _, _ = self._common_step(batch, batch_idx, "val")
 
-    def test_step(self, batch: torch.Tensor, batch_idx: int) -> None:
+    def test_step(self, batch: torch.Tensor, batch_idx: int) -> Tuple[torch.Tensor]:
         """
-        Computes one testing step. Additionally, also generates plots for the test Dataset.
+        Computes one testing step. Additionally, also generates outputs to plots for the test Dataset
         
         Args:
             batch (torch.Tensor): Batch containing nodes features and connectivity matrix.
             batch_idx (int): Batch index.
+            
+        Returns:
+            (Tuple[torch.Tensor]): (Ground truth, Predictions)
         """
         y_hat, _, _ = self._common_step(batch, batch_idx, "test")
         pos = np.stack(batch.pos.cpu().numpy())
         x_max = np.max(pos[:, 0:1])
         y_max = np.max(pos[:, 1:2])
         z_max = np.max(pos[:, 2:3])
-        grid_shape = (x_max + 1, y_max + 1, z_max + 1)
 
-        _ = plotters.Plotter(batch.y.cpu().numpy(), y_hat.cpu().numpy(), self.model.__class__.__name__, grid_shape)
+        if not self.grid_shape:
+            self.grid_shape = (x_max + 1, y_max + 1, z_max + 1)
+            
+        return batch.y, y_hat
+        
+    def test_epoch_end(self, outputs: list) -> None:
+        """
+        Gather all the outputs from the test_step to plot the test Dataset
+        
+        Args:
+            outputs (List[Tuple[torch.Tensor]]): all batches containing a pair of (ground truth, prediction)
+        """
+        ys = list()
+        y_hats = list()
+        
+        for out in outputs:
+            ys.append(out[0])
+            y_hats.append(out[1])
+            
+        self.ys = np.asarray([t.cpu().numpy().reshape((-1,) + self.grid_shape) for t in ys])
+        self.y_hats = np.asarray([t.cpu().numpy().reshape((-1,) + self.grid_shape) for t in y_hats])
+        
+        self.plotter = plotters.Plotter(self.model.__class__.__name__, self.grid_shape)
+        
+        self.plotter.cross_section(self.plotter.zslice, self.ys, self.y_hats)
+        self.plotter.dispersion_plot(self.ys, self.y_hats)
+        self.plotter.histo(self.ys, self.y_hats)
+        self.plotter.histo2d(self.ys, self.y_hats)
+        self.plotter.boxplot(self.ys, self.y_hats)
         
     def configure_optimizers(self) -> optim.Optimizer:
         """
