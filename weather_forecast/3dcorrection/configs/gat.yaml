@@ -1,0 +1,27 @@
+fit:
+    model:
+        class_path: models.LitGAT
+        init_args:
+            in_channels: 20
+            hidden_channels: 8
+            out_channels: 4
+            num_layers: 4
+            dropout: .3
+            heads: 8
+            jk: "last"
+            lr: .0001
+            timestep: 1000
+            norm: True
+
+    data:
+        class_path: data.LitThreeDCorrectionDataModule
+        init_args:
+            timestep: 1000
+            batch_size: 256
+            num_workers: 0
+    
+    trainer:
+        max_epochs: 50
+        accelerator: "gpu"
+        devices: 
+            - 0
