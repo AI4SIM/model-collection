@@ -18,7 +18,6 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 import torch
 import torch_geometric as pyg
-import torch_optimizer as optim
 from typing import List
 import yaml
 
@@ -29,13 +28,14 @@ class CombustionDataset(pyg.data.Dataset):
     Creates graphs usable for GNNs using the standard PyG data structure. Each graph is built with x = c and y = sigma, and is a regular cartesian grid with uniform connexions. Each graph is serialized on disk using standard PyTorch API. Please refer to https://pytorch-geometric.readthedocs.io/en/latest for more information about the Dataset creation.
     """
     
-    def __init__(self, root: str) -> None:
+    def __init__(self, root: str, y_normalizer: float = None) -> None:
         """
         Creates the Dataset.
         
         Args:
             root (str): Path to the root data folder.
         """
+        self.y_normalizer = y_normalizer
         super().__init__(root)
 
     @property
@@ -79,7 +79,11 @@ class CombustionDataset(pyg.data.Dataset):
             
             with h5py.File(raw_path, 'r') as file:
                 c = file["/filt_8"][:]
-                sigma = file["/filt_grad_8"][:]
+                
+                if self.y_normalizer is not None :
+                    sigma = file["/filt_grad_8"][:] / self.y_normalizer
+                else :
+                    sigma = file["/filt_grad_8"][:]
                 
             x_size, y_size, z_size = c.shape
             grid_shape = (z_size, y_size, x_size)
@@ -126,7 +130,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
     Creates train, val, and test splits for the CNF Combustion UC—current setup being (111, 8, 8). Training set is randomized.
     """
     
-    def __init__(self, batch_size: int, num_workers: int) -> None:
+    def __init__(self, batch_size: int, num_workers: int, y_normalizer: float) -> None:
         """
         Args:
             batch_size (int): Batch size.
@@ -135,13 +139,14 @@ class LitCombustionDataModule(pl.LightningDataModule):
         
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.y_normalizer = y_normalizer
         super().__init__()
         
     def prepare_data(self) -> None:
         """
         Not used.
         """
-        CombustionDataset(config.data_path)
+        CombustionDataset(config.data_path, self.y_normalizer)
     
     def setup(self, stage: str) -> None:
         """
@@ -150,7 +155,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
         Args:
             stage (str): Unsed.
         """
-        dataset = CombustionDataset(config.data_path).shuffle()
+        dataset = CombustionDataset(config.data_path, self.y_normalizer).shuffle()
         
         self.test_dataset = dataset[119:]
         self.val_dataset = dataset[111:119]
