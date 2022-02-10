@@ -3,7 +3,7 @@ name: ai4sim-ci-cd
 on: [push]
 
 jobs:
-  check-bats-version:
+  ai4sim-ci-cd:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
