@@ -1,3 +1,15 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
@@ -15,10 +27,17 @@ class ThreeDCorrectionModule(pl.LightningModule):
     def forward(self, x, edge_index):
         return self.net(x, edge_index)
 
-    def histograms_adder(self):
+    def weight_histograms_adder(self):
         for name, params in self.named_parameters():
             self.logger.experiment.add_histogram(name, params, self.current_epoch)
     
+    def gradient_histograms_adder(self):
+        global_step = self.global_step
+        if global_step % 50 == 0: # do not make the tb file huge
+            for name, param in self.named_parameters():
+                if param.requires_grad:
+                    self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
+        
     def _normalize(self, batch, batch_size):
         stats = torch.load(os.path.join(config.data_path, f"stats-{self.step}.pt"))
         device = self.device
@@ -30,10 +49,10 @@ class ThreeDCorrectionModule(pl.LightningModule):
         num_output_features = batch.y.size()[-1]
         
         x = (batch.x.reshape((batch_size, -1, batch.num_features)) - x_mean) / (x_std + torch.tensor(1.e-8))
-        # y = (batch.y.reshape((batch_size, -1, num_output_features)) - y_mean) / (y_std + torch.tensor(1.e-8))
+        y = (batch.y.reshape((batch_size, -1, num_output_features)) - y_mean) / (y_std + torch.tensor(1.e-8))
         
         x = x.reshape(-1, batch.num_features)
-        # y = y.reshape(-1, num_output_features)
+        y = y.reshape(-1, num_output_features)
         
         return x, batch.y, batch.edge_index
     
@@ -61,9 +80,11 @@ class ThreeDCorrectionModule(pl.LightningModule):
                                        normalize=self.norm)
         return loss
     
+    def on_after_backward(self):
+        self.gradient_histograms_adder()
+    
     def training_epoch_end(self, outputs):
-        #  the function is called after every epoch is completed
-        self.histograms_adder()
+        self.weight_histograms_adder()
 
     def validation_step(self, batch, batch_idx):
         y_hat, _, _ = self._common_step(batch, batch_idx, "val")
