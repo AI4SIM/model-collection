@@ -1,21 +1,17 @@
 name: ai4sim-ci-cd
 
 on: [push, pull_request]
-#  push:
-#    branches:
-#      - '*'
-#  pull_request:
-#    branches: 
-#      - '*'
 
 jobs:
-  run-check-combustion:
+  run-checks:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: [3.8, 3.9]
         test-path: 
           - combustion/gnns/
+#          - combustion/unets/
+#          - weather_forecast/gwd/
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
