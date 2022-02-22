@@ -1,5 +1,4 @@
 import h5py
-from memory_profiler import profile
 import networkx as nx
 import numpy as np
 import os
@@ -36,7 +35,6 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
     def processed_file_names(self):
         return [f"data-{self.step}.pt"]
     
-    @profile
     def download(self):
         import climetlab as cml
 
@@ -55,7 +53,6 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
         array = cmlds.to_xarray()
         array.to_netcdf(self.raw_paths[0])
 
-    @profile
     def process(self):
         
         def broadcast_features(tensor):
@@ -82,7 +79,10 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
                 flux_dn_lw = torch.tensor(file['flux_dn_lw'][:])
                 flux_up_lw = torch.tensor(file['flux_up_lw'][:])
                 
-            inter_inputs_ = pad_tensor(inter_inputs)
+                hr_sw = torch.tensor(file["hr_sw"][:])
+                hr_lw = torch.tensor(file["hr_lw"][:])
+                
+            # inter_inputs_ = pad_tensor(inter_inputs)
             sca_inputs_ = broadcast_features(sca_inputs)
 
             x = torch.cat([
@@ -156,10 +156,11 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
     
     def setup(self, stage):
         dataset = ThreeDCorrectionDataset(config.data_path, self.step, self.force).shuffle()
+        length = dataset.len()
         
-        self.test_dataset = dataset[1000000:]
-        self.val_dataset = dataset[900000:1000000]
-        self.train_dataset = dataset[:900000]
+        self.test_dataset = dataset[int(0.9*length):]
+        self.val_dataset = dataset[int(0.8*length):int(0.9*length)]
+        self.train_dataset = dataset[:int(0.8*length)]
     
     def train_dataloader(self):
         return pyg.loader.DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=self.num_workers)

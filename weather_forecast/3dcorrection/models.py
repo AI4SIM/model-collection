@@ -102,6 +102,7 @@ class LitGAT(ThreeDCorrectionModule):
                  out_channels,
                  num_layers,
                  dropout,
+                 act=nn.SiLU(inplace=True)
                  heads,
                  jk,
                  lr,
@@ -114,13 +115,13 @@ class LitGAT(ThreeDCorrectionModule):
         self.step = timestep
         self.norm = norm
         self.net = pyg.nn.GAT(in_channels=in_channels, 
-                                hidden_channels=hidden_channels,
-                                out_channels=out_channels,
-                                num_layers=num_layers,
-                                dropout=dropout,
-                                act=nn.SiLU(inplace=True),
-                                heads=heads,
-                                jk=jk)
+                              hidden_channels=hidden_channels,
+                              out_channels=out_channels,
+                              num_layers=num_layers,
+                              dropout=dropout,
+                              act=nn.SiLU(inplace=True),
+                              heads=heads,
+                              jk=jk)
         
     
     def configure_optimizers(self):
