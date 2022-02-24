@@ -150,21 +150,25 @@ class LitCombustionDataModule(pl.LightningDataModule):
     
     def setup(self, stage: str) -> None:
         """
-        Creates the main Dataset and splits the train, val, and test Datasets from the main Dataset. Current split takes first 111 elements in the train.
-        
+        Creates the main Dataset and splits the train, test and validation Datasets from the main
+        Dataset. Currently the repartition is respectively, 60%, 20% and 20% from the main Dataset
+        size.
+
         Args:
             stage (str): Unsed.
         """
-        dataset = CombustionDataset(config.data_path, self.y_normalizer).shuffle()
-        
-        self.test_dataset = dataset[119:]
-        self.val_dataset = dataset[111:119]
-        self.train_dataset = dataset[:111]
-    
+        dataset_instance = CombustionDataset(config.data_path, self.y_normalizer)
+        dataset_size = len(dataset_instance)
+        dataset = dataset_instance.shuffle()
+
+        self.test_dataset = dataset[int(dataset_size*0.8):]
+        self.val_dataset = dataset[int(dataset_size*0.6):int(dataset_size*0.8)]
+        self.train_dataset = dataset[:int(dataset_size*0.6)]
+
     def train_dataloader(self) -> pyg.loader.DataLoader:
         """
         Returns the train DataLoader.
-        
+
         Retuns:
             (torch.utils.data.DataLoader): Train DataLoader.
         """

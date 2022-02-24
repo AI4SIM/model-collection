@@ -25,7 +25,7 @@ jobs:
     - name: Install requirements
       run: |
         # workaround the need of torch to install torch_scatter
-        if [ grep -q torch_scatter ${{ matrix.test-path }}/requirements.txt ]; then
+        if grep -q torch_scatter ${{ matrix.test-path }}/requirements.txt; then
           python -m pip install torch
         fi
         if [ -f ${{ matrix.test-path }}/requirements.txt ]; then
