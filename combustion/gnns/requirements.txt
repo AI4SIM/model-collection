@@ -11,5 +11,5 @@ randomname==0.1.5
 torch==1.9.0
 torchmetrics==0.5.1
 torch-geometric==2.0.3
-torch_scatter==2.0.9
-torch_sparse==0.6.12
+torch-scatter==2.0.9
+torch-sparse==0.6.12
