@@ -75,7 +75,7 @@ class DoubleConv(nn.Module):
             nn.Conv3d(out_ch, out_ch, kernel_size=3, padding=1),
             nn.BatchNorm3d(out_ch),
             nn.ReLU(inplace=True))
-        if residual: self.additive_residual = Conv3d(inp_ch, out_ch, kernel_size=1, bias=False)
+        if residual: self.additive_residual = nn.Conv3d(inp_ch, out_ch, kernel_size=1, bias=False)
         else: self.additive_residual = None
 
     def forward(self, x):
