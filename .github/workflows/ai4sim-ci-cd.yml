@@ -22,10 +22,14 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install pylint
+    - name: Extract the required torch version
+      run: |
+        echo "TORCH_VERS=$(sed -nE 's/^torch==()/\1/p' ${{ matrix.test-path }}/requirements.txt)" >> $GITHUB_ENV
     - name: Install requirements
       run: |
         if [ -f ${{ matrix.test-path }}/requirements.txt ]; then
-          python -m pip install -r ${{ matrix.test-path }}/requirements.txt
+          # for now, no cuda is installed on the build container so the cpu version of torch-linked libraries are used
+          python -m pip install -r ${{ matrix.test-path }}/requirements.txt -f https://data.pyg.org/whl/torch-${TORCH_VERS}+cpu.html
         fi
     - name: Analysing the code with pylint
       run: |

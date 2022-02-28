@@ -28,7 +28,8 @@ fit:
         init_args:
             batch_size: 1
             num_workers: 0
-    
+            y_normalizer : 342.553
+
     trainer:
         max_epochs: 1
         accelerator: "gpu"

@@ -150,21 +150,31 @@ class LitCombustionDataModule(pl.LightningDataModule):
     
     def setup(self, stage: str) -> None:
         """
-        Creates the main Dataset and splits the train, val, and test Datasets from the main Dataset. Current split takes first 111 elements in the train.
-        
+        Creates the main Dataset and splits the train, test and validation Datasets from the main
+        Dataset. Currently the repartition is respectively, 80%, 10% and 10% from the main Dataset
+        size.
+
         Args:
             stage (str): Unsed.
+
+        Raises:
+            ValueError: if the main dataset is too small and leads to have an empty dataset.
         """
         dataset = CombustionDataset(config.data_path, self.y_normalizer).shuffle()
-        
-        self.test_dataset = dataset[119:]
-        self.val_dataset = dataset[111:119]
-        self.train_dataset = dataset[:111]
-    
+        dataset_size = len(dataset)
+
+        self.val_dataset = dataset[int(dataset_size*0.9):]
+        self.test_dataset = dataset[int(dataset_size*0.8):int(dataset_size*0.9)]
+        self.train_dataset = dataset[:int(dataset_size*0.8)]
+
+        if not (self.val_dataset and self.test_dataset and self.train_dataset):
+            raise ValueError("The dataset is too small to be split properly. "
+                             f"Current length is : {dataset_size}.")
+
     def train_dataloader(self) -> pyg.loader.DataLoader:
         """
         Returns the train DataLoader.
-        
+
         Retuns:
             (torch.utils.data.DataLoader): Train DataLoader.
         """
