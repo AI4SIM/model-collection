@@ -16,8 +16,10 @@ import config as cfg
 import json
 import os
 import pytorch_lightning as pl
+from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
+from typing import List, Union
 
 # Needed for CLI (for now).
 import data
@@ -25,15 +27,29 @@ import models
 
 class Trainer(pl.Trainer):
 
-    def __init__(self, accelerator, devices, max_epochs, fast_dev_run=False, callbacks=None):
-        if accelerator=='cpu': devices = None
+    def __init__(self,
+                 accelerator: Union[str, pl.accelerators.Accelerator, None],
+                 devices: Union[List[int], str, int, None],
+                 max_epochs: int,
+                 fast_dev_run: Union[int, bool] = False,
+                 callbacks: Union[List[Callback], Callback, None] = None) -> None:
+        """
+        Args:
+            max_epochs (int): Maximum number of epochs if no early stopping logic is implemented.
+        """
+
+        self._accelerator = accelerator
+        self._devices     = devices
+        self._max_epochs  = max_epochs
+        if self._accelerator == 'cpu': self._devices = None
+
         logger = pl.loggers.TensorBoardLogger(cfg.logs_path, name=None)
         super().__init__(
             default_root_dir=cfg.logs_path,
             logger=logger,
-            accelerator=accelerator,
-            devices=devices,
-            max_epochs=max_epochs,)
+            accelerator=self._accelerator,
+            devices=self._devices,
+            max_epochs=self._max_epochs,)
 
     def test(self, **kwargs):
         results = super().test(**kwargs)[0]

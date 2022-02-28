@@ -83,7 +83,7 @@ class CnfCombustionDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         return torch.load(os.path.join(self.processed_dir, self.processed_filenames[idx]))
 
-    def process(self, idx, path):
+    def process(self, idx, path) -> None:
         out_path = os.path.join(self.processed_dir, self.processed_filenames[idx])
         os.makedirs(self.processed_dir, exist_ok=True)
         with h5py.File(path, "r") as file:
@@ -124,7 +124,7 @@ class CnfCombustionDataModule(pl.LightningDataModule):
     def prepare_data(self):
         CnfCombustionDataset(cfg.data_path,  self.y_normalizer, self.subblock_shape)
 
-    def setup(self, stage):
+    def setup(self, stage = None):
         dataset = CnfCombustionDataset(cfg.data_path,  self.y_normalizer, self.subblock_shape)
         self.train, self.val, self.test = torch.utils.data.random_split(dataset, self.splitting_lengths)
         if self.shuffling: self.train = self.train.shuffle()
