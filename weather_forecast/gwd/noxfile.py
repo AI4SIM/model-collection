@@ -1,12 +1,27 @@
 """
 This module proposes the list of Nox build targets for the gwf use case.
 """
+from pathlib import Path
 import nox
 
-REPORTS_DIR = ".ci-reports"
+REPORTS_DIR = ".ci-reports/"
 
 # The list of the default target executed with the simple command "nox".
 nox.options.sessions = ["lint", "test"]
+
+
+def _create_file(file_path: str) -> Path:
+    """Create the report directory if it does not exists.
+
+    Args:
+        file_path (str): the path of the file to be created.
+
+    Returns:
+        (pathlib.Path): the created file path.
+    """
+    path = Path(file_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    return path
 
 
 def _torch_version(req_file: str = 'requirements.txt') -> str:
@@ -30,7 +45,7 @@ def _torch_version(req_file: str = 'requirements.txt') -> str:
 @nox.session
 def dev_dependencies(session):
     """Target to install all requirements of the use-case code."""
-    torch_vers= _torch_version()
+    torch_vers = _torch_version()
     additional_url = ''
     if torch_vers:
         additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}+cpu.html"
@@ -43,22 +58,19 @@ def dev_dependencies(session):
 
 
 @nox.session
-def test(session, ):
+def tests(session):
     """Target to run unit tests on the code with pytest, and generate coverage report."""
     dev_dependencies(session)
-    session.install("pytest")
-    session.install("coverage")
-    # FIXME: activate unit tests when test were written
-    session.run("coverage", "run", "-m", "pytest")
+    session.install("pytest-cov")
+    session.run("python", "-m", "pytest", "--cache-clear", "--cov=./")
     session.notify("coverage_report")
 
 
 @nox.session
 def coverage_report(session):
-    """Target to generate coverage report from test reports."""
+    """Target to generate coverage report from test results."""
     session.install("coverage")
-    session.run("coverage", "report")
-    session.run("coverage", "xml", "-o", f"{REPORTS_DIR}/pycoverage-gwd.xml")
+    session.run("coverage", "xml", "-o", f"{REPORTS_DIR}/pycoverage.xml")
 
 
 @nox.session
@@ -69,7 +81,7 @@ def lint(session):
 
 
 @nox.session
-def doc(session):
+def docs(session):
     """Target to build the documentation."""
     raise NotImplementedError("This target is not yet implemented.")
 
