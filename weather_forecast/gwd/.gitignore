@@ -6,12 +6,15 @@ data/*
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
-# Unit test / coverage reports
+# Build tool
 .nox/
+.ci-reports/
+
+# Unit test / coverage reports
+.pytest_cache/
 .coverage
 .coverage.*
 coverage.xml
-.ci-reports
 
 # Jupyter Notebook
 .ipynb_checkpoints

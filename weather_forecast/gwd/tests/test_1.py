@@ -1,3 +1,6 @@
+"""
+Fake test module to initiate the build tool targets.
+"""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -15,9 +18,12 @@ import unittest
 
 
 class Test(unittest.TestCase):
+    """Fake test class."""
 
     def test_1(self) -> None:
+        """Fake test."""
         self.assertTrue(True)
+
 
 if __name__ == '__main__':
     unittest.main()

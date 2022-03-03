@@ -1,6 +1,6 @@
 """
-This module simply load all tha nox targets defined in the reference noxfile and make them available
-for the weather_forcast/gwd use case.
+This module simply load all the nox targets defined in the reference noxfile and make them available
+for the combustion/unets use case.
 This file can be enriched by use case specific targets.
 """
 
