@@ -10,7 +10,7 @@ import nox
 REPORTS_DIR = ".ci-reports/"
 
 # The list of the default targets executed with the simple command "nox".
-nox.options.sessions = ["lint", "test"]
+nox.options.sessions = ["lint", "tests"]
 
 
 def _create_file(file_path: str) -> Path:
@@ -85,17 +85,17 @@ def lint(session):
 
 @nox.session
 def docs(session):
-    """Target to build the documentation."""
+    """Target to build the documentation (not yet implemented)."""
     raise NotImplementedError("This target is not yet implemented.")
 
 
 @nox.session
 def download_data(session):
-    """Target to download the data required to train the use-case models."""
+    """Target to download the data required to train the use-case models (not yet implemented)."""
     raise NotImplementedError("This target is not yet implemented.")
 
 
 @nox.session
 def train(session):
-    """Target to launch a basic training of the use-case."""
+    """Target to launch a basic training of the use-case (not yet implemented)."""
     raise NotImplementedError("This target is not yet implemented.")
