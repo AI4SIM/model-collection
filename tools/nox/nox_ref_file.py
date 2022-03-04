@@ -80,7 +80,12 @@ def coverage_report(session):
 def lint(session):
     """Target to lint the code with flake8."""
     session.install("flake8")
-    session.run("flake8", "--exclude", ".nox,tests/", "--exit-zero")
+    session.install("flake8-docstrings")
+    session.install("flake8-bugbear")
+    session.install("flake8-use-fstring")
+    session.install("flake8-variables-names")
+    session.install("pep8-naming")
+    session.run("flake8", "--exclude", ".nox", "--max-line-length=100", "--exit-zero")
 
 
 @nox.session
