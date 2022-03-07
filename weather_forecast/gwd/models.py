@@ -32,12 +32,15 @@ class NOGWDModule(pl.LightningModule):
         Loads previously computed stats for model-level normalization purposes.
         """
         super().__init__()
-        
-        stats = torch.load(os.path.join(config.data_path, 'stats.pt'))
-        
-        self.x_mean = stats['x_mean'].to(self.device)
-        self.x_std = stats['x_std'].to(self.device)
-        self.y_std = stats['y_std'].max().to(self.device)
+        self.x_mean = None
+        self.x_std = None
+        self.y_std = None
+
+        if os.path.exists(os.path.join(config.data_path, 'stats.pt')):
+            stats = torch.load(os.path.join(config.data_path, 'stats.pt'))
+            self.x_mean = stats['x_mean']
+            self.x_std = stats['x_std']
+            self.y_std = stats['y_std'].max()
 
     def forward(self, x: torch.Tensor):
         """
