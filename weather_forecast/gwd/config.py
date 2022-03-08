@@ -20,6 +20,7 @@ data_path = os.path.join(root_path, 'data')
 
 # Create all path for the current experiment
 experiments_path = os.path.join(root_path, 'experiments')
+os.makedirs(experiments_path, exist_ok=True)
 _existing_xps = os.listdir(experiments_path)
 
 # Generate experiment name
