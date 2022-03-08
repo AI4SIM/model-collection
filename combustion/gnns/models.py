@@ -42,6 +42,7 @@ class CombustionModule(pl.LightningModule):
         Returns:
             (torch.Tensor): Resulting model forward pass.
         """
+        
         return self.model(x, edge_index)
 
     def _common_step(self, 

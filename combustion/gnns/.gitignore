@@ -3,3 +3,5 @@ data/*
 !data/filenames.yaml
 experiments/
 _/
+*.ipynb_checkpoints
+*__pycache__

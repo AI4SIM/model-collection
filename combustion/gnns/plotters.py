@@ -39,7 +39,7 @@ class Plotter:
         self.label_target = "$\overline{\Sigma}_{target}$"
         self.label_predicted = "$\overline{{\Sigma}}_{{{}}}$".format(self.model_type)
     
-    def dispersion_plot(self, y: np.ndarray, y_hat: np.ndarray) -> None:
+    def dispersion_plot(self, y: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path) -> None:
         
         bins = np.linspace(0, 1250, 10)
         error = np.zeros((bins.shape[0], 2))
@@ -55,10 +55,10 @@ class Plotter:
         ax.fill_between(bins[:-1], (error[:-1, 0]-error[:-1, 1]), (error[:-1, 0]+error[:-1, 1]), color='b', alpha=.1)
         ax.set_xlabel(self.label_target)
         ax.set_ylabel("$RMSE$({}, {})".format(self.label_predicted, self.label_target))
-        plt.savefig(os.path.join(config.plots_path, "dispersion-plot-{}.png".format(self.model_type)))
+        plt.savefig(os.path.join(plot_path, "dispersion-plot-{}.png".format(self.model_type)))
         plt.close()
         
-    def histo(self, y: np.ndarray, y_hat: np.ndarray) -> None:
+    def histo(self, y: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path) -> None:
         
         fig, ax = plt.subplots(figsize=(15, 7))
         ax.hist(y.flatten(), bins=50, density=False, histtype="step", lw=3, label=self.label_target)
@@ -70,10 +70,10 @@ class Plotter:
         new_handles = [Line2D([], [], c=h.get_edgecolor()) for h in handles]
 
         plt.legend(handles=new_handles, labels=labels)
-        plt.savefig(os.path.join(config.plots_path, "histogram-{}.png".format(self.model_type)))
+        plt.savefig(os.path.join(plot_path, "histogram-{}.png".format(self.model_type)))
         plt.close()
         
-    def histo2d(self, y: np.ndarray, y_hat: np.ndarray) -> None:
+    def histo2d(self, y: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path) -> None:
         
         fig, ax = plt.subplots(figsize=(12, 8))
         ax.plot(np.linspace(0, 1200, 100), np.linspace(0, 1200, 100), 'black')
@@ -83,10 +83,10 @@ class Plotter:
         ax.set_ylim(-50, 1200)
         ax.set_xlabel(self.label_target)
         ax.set_ylabel(self.label_predicted)
-        plt.savefig(os.path.join(config.plots_path, "histogram2d-{}.png".format(self.model_type)))
+        plt.savefig(os.path.join(plot_path, "histogram2d-{}.png".format(self.model_type)))
         plt.close()
         
-    def boxplot(self, y: np.ndarray, y_hat: np.ndarray) -> None:
+    def boxplot(self, y: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path) -> None:
         
         flat_err = []
         y = y.reshape((-1,) + self.grid_shape)
@@ -98,10 +98,10 @@ class Plotter:
         ax.boxplot(flat_err, labels=np.arange(y.shape[0]), showmeans=True)
         ax.set_xlabel("Snapshot")
         ax.set_ylabel("$RMSE$({}, {})".format(self.label_predicted, self.label_target))
-        plt.savefig(os.path.join(config.plots_path, "boxplot-{}".format(self.model_type)))
+        plt.savefig(os.path.join(plot_path, "boxplot-{}".format(self.model_type)))
         plt.close()
     
-    def total_flame_surface(self, y: np.ndarray, y_hat: np.ndarray) -> None:
+    def total_flame_surface(self, y: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path) -> None:
         
         gt_total_flame_surface = np.stack(y, axis=0)
         gt_total_flame_surface = np.sum(gt_total_flame_surface, axis=(2, 3))
@@ -123,9 +123,9 @@ class Plotter:
             fig.update_xaxes(title_text="x position")
             fig.update_yaxes(title_text="Total flame surface")
 
-            fig.write_image(os.path.join(config.plots_path, "total-flame-surface-{}-{}.png".format(self.model_type, i)))
+            fig.write_image(os.path.join(plot_path, "total-flame-surface-{}-{}.png".format(self.model_type, i)))
     
-    def cross_section(self, zslice: int, y: np.ndarray, y_hat: np.ndarray) -> None:
+    def cross_section(self, zslice: int, y: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path) -> None:
         for i in range(y_hat.shape[0]):
             y = y.reshape((-1,) + self.grid_shape)
             y_hat = y_hat.reshape((-1,) + self.grid_shape)
@@ -178,5 +178,5 @@ class Plotter:
                               xaxis2=dict(domain=[0.35, 0.62]),
                               xaxis3=dict(domain=[0.7, 0.97])
                              )
-            fig.write_image(os.path.join(config.plots_path, "cross-section-{}-{}.png".format(self.model_type, i)))
+            fig.write_image(os.path.join(plot_path, "cross-section-{}-{}.png".format(self.model_type, i)))
         
