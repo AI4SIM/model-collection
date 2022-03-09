@@ -12,16 +12,16 @@
     * limitations under the License.
 '''
 
-import pytorch_lightning as pl
+from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
-import torch
-import torch_optimizer as optim
+from torch import flatten
+from torch_optimizer import AdamP
 import torchmetrics.functional as F
 
-import unet
+from unet import UNet3D
 
 
-class CombustionModule(pl.LightningModule):
+class CombustionModule(LightningModule):
 
     def forward(self, x):
         return self.model(x)
@@ -30,7 +30,7 @@ class CombustionModule(pl.LightningModule):
         x, y = batch
         y_hat = self(x)
         loss = F.mean_squared_error(y_hat, y)
-        r2 = F.r2_score(torch.flatten(y_hat), torch.flatten(y))  # R2 between mesh points.
+        r2 = F.r2_score(flatten(y_hat), flatten(y))  # R2 between mesh points.
 
         self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(x))
         self.log(f"{stage}_r2", r2, on_step=True, batch_size=len(batch))
@@ -45,8 +45,7 @@ class CombustionModule(pl.LightningModule):
         self._common_step(batch, batch_idx, "val")
 
     def test_step(self, batch, batch_idx):
-        y_hat, _, _ = self._common_step(batch, batch_idx, "test")
-        # TODO: plotter
+        self._common_step(batch, batch_idx, "test")
 
 
 @MODEL_REGISTRY
@@ -60,11 +59,11 @@ class LitUnet3D(CombustionModule):
         self.save_hyperparameters()
 
         self.lr = lr
-        self.model = unet.UNet3D(
+        self.model = UNet3D(
             inp_feat=in_channels,
             out_feat=out_channels,
             n_levels=n_levels,
             n_features_root=n_features_root)
 
     def configure_optimizers(self):
-        return optim.AdamP(self.parameters(), lr=self.lr)
+        return AdamP(self.parameters(), lr=self.lr)

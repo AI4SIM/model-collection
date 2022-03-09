@@ -12,13 +12,13 @@
     * limitations under the License.
 '''
 
-import unittest
-import warnings
-import torch
-
+from unittest import TestCase, main
+from warnings import catch_warnings, simplefilter
+from torch import cuda
 from trainer import Trainer
 
-class TestTrainer(unittest.TestCase):
+
+class TestTrainer(TestCase):
 
     def setUp(self) -> None:
         self.args_cpu = {"max_epochs" : 1,
@@ -29,16 +29,14 @@ class TestTrainer(unittest.TestCase):
                          "devices" : [0]}
 
     def test_trainer(self) -> None:
-        if torch.cuda.is_available():
-            Trainer(**self.args_gpu)
+        if cuda.is_available(): Trainer(**self.args_gpu)
 
-        # avoids GPU warning when testing CPU usage.
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-
+        # Avoids GPU warning when testing CPU usage.
+        with catch_warnings():
+            simplefilter("ignore")
             test_trainer_cpu = Trainer(**self.args_cpu)
             self.assertEqual(test_trainer_cpu._devices, None)
 
 
 if __name__ == '__main__':
-    unittest.main()
+    main()

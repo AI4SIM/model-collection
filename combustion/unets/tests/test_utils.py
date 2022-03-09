@@ -12,20 +12,24 @@
     * limitations under the License.
 '''
 
-from names import get_last_name
-from os.path import dirname, join, realpath
-from os import makedirs
+from unittest import TestCase, main
+from utils import RandomCropper3D
+from numpy import copy
+from numpy.random import rand
 
-name = get_last_name().lower()
 
-root_path = dirname(realpath(__file__))
+class TestData(TestCase):
 
-data_path = join(root_path, 'data')
-experiments_path = join(root_path, 'experiments')
-experiment_path = join(experiments_path, name)
-logs_path = join(experiment_path, 'logs')
-artifacts_path = join(experiment_path, 'artifacts')
-plots_path = join(experiment_path, 'plots')
+    def test_random_cropper(self):
+        n, n_ = 64, 32
+        x = rand(n,n,n)
+        y = copy(x)
+        random_cropper = RandomCropper3D(n_)
+        x_, y_ = random_cropper(x, y)
+        self.assertEqual(x_.shape, (n_,n_,n_))
+        self.assertEqual(y_.shape, (n_,n_,n_))
+        self.assertEqual(x_[0,0,0], y_[0,0,0])
 
-paths = [experiment_path, logs_path, artifacts_path, plots_path]
-for path in paths: makedirs(path, exist_ok=True)
+
+if __name__ == '__main__':
+    main()

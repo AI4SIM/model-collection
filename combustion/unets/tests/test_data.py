@@ -12,133 +12,89 @@
     * limitations under the License.
 '''
 
-import unittest
-import os
-
-import h5py
-import data
-import yaml
-import tempfile
-import numpy as np
-import torch
-
-import warnings
-
-SPLITTING_LENGTHS = [111, 8, 8]
+from unittest import TestCase, main
+from os.path import join, exists
+from os import mkdir, listdir
+from h5py import File
+from data import CnfCombustionDataset, CnfCombustionDataModule
+from yaml import dump
+from tempfile import mkdtemp
+from shutil import rmtree
+from numpy import zeros
+from torch.utils.data import DataLoader
+from warnings import catch_warnings, simplefilter
 
 
-class TestData(unittest.TestCase):
-    """
-    Data test file
-    """
-
-    def test_random_cropper(self):
-        n, n_ = 64, 32
-        x = np.random.rand(n,n,n)
-        y = np.copy(x)
-        random_cropper = data.RandomCropper3D(n_)
-        x_, y_ = random_cropper(x, y)
-        self.assertEqual(x_.shape, (n_,n_,n_))
-        self.assertEqual(y_.shape, (n_,n_,n_))
-        self.assertEqual(x_[0,0,0], y_[0,0,0])
+class TestData(TestCase):
 
     def setUp(self) -> None:
-        """
-        Define default parameters.
-        """
         self.filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
-        self.initParam = {
+        self.data_module_params = {
             'batch_size': 1,
             'num_workers': 0,
             'y_normalizer': 342.553,
-            'splitting_lengths': [111, 8, 8],
-            'subblock_shape': [32, 16, 16]}
+            'splitting_lengths': [1, 1, 1],
+            'subblock_shape': (32, 16, 16)}
+
+        # Creates a temporary environment.
+        self.dir = mkdtemp()
+        self.create_env(self.dir)
+
+        # Creates dataset and data module.
+        with catch_warnings():
+            simplefilter("ignore")
+            data_path = join(self.dir, "data")
+            self.dataset = CnfCombustionDataset(data_path)
+            self.data_module = CnfCombustionDataModule(**self.data_module_params)
+            self.data_module.prepare_data(data_path)
+
+    def tearDown(self) -> None:
+        rmtree(self.dir)
 
     def create_env(self, tempdir):
-        os.mkdir(os.path.join(tempdir, "data"))
-        os.mkdir(os.path.join(tempdir, "data", "raw"))
+        mkdir(join(tempdir, "data"))
+        mkdir(join(tempdir, "data", "raw"))
 
         for file_h5 in self.filenames:
-            with h5py.File(os.path.join(tempdir, "data", "raw", file_h5), 'w') as f:
-                f['filt_8']      = np.zeros((10, 10, 10))
-                f['filt_grad_8'] = np.zeros((10, 10, 10))
-                f['grad_filt_8'] = np.zeros((10, 10, 10))
+            with File(join(tempdir, "data", "raw", file_h5), 'w') as f:
+                f['filt_8']      = zeros((10, 10, 10))
+                f['filt_grad_8'] = zeros((10, 10, 10))
+                f['grad_filt_8'] = zeros((10, 10, 10))
 
-        temp_file_path = os.path.join(tempdir, 'data', 'filenames.yaml')
-        with open(temp_file_path, 'w') as tmpfile:
-            yaml.dump(self.filenames, tmpfile)
-
-    def create_obj_rm_warning(self, path):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            return data.CnfCombustionDataset(path)
+        temp_file_path = join(tempdir, 'data', 'filenames.yaml')
+        with open(temp_file_path, 'w') as tmpfile: dump(self.filenames, tmpfile)
 
     def test_process(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            self.create_env(tempdir)
-            data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
-            data_test.process(0, os.path.join(tempdir, "data", "DNS1_00116000.h5"))
-            self.assertTrue(os.path.exists(os.path.join(tempdir, "data", "processed")))
+        self.dataset.process(0, join(self.dir, "data", "raw", "DNS1_00116000.h5"))
+        self.assertTrue(exists(join(self.dir, "data", "processed")))
+        self.assertEqual(
+            len(listdir(join(self.dir, "data", "processed"))),
+            len(self.filenames))
 
-            # insert +2 to have transform and filter files
-            self.assertEqual(len(os.listdir(os.path.join(tempdir, "data", "processed"))), len(self.filenames)+2)
-
-    def test_get(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            self.create_env(tempdir)
-            data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
-            data_get = data_test.get(2)
-            self.assertEqual(len(data_get.x), 10*10*10)
+    def test_len(self):
+        self.assertEqual(len(self.dataset), 3)
 
     def test_setup(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            self.create_env(tempdir)
-            dataset_test = data.CnfCombustionDataModule(**self.initParam)
-
-            with self.assertRaises(ValueError) as context:
-                dataset_test.setup()
-                self.assertTrue('The dataset is too small to be split properly.' in str(context.exception))
-
-            self.assertEqual(len(dataset_test.train_dataset),
-                             int(len(self.filenames)*0.8))
-            self.assertEqual(len(dataset_test.val_dataset),
-                             int(len(self.filenames))-int(len(self.filenames)*0.9))
-            self.assertEqual(len(dataset_test.test_dataset),
-                             int(len(self.filenames)*0.9)-int(len(self.filenames)*0.8))
+        self.data_module.setup()
+        self.assertEqual(len(self.data_module.train_dataset), 1)
+        self.assertEqual(len(self.data_module.val_dataset), 1)
+        self.assertEqual(len(self.data_module.test_dataset), 1)
 
     def test_train_dataloader(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            self.create_env(tempdir)
-            dataset_test = data.CnfCombustionDataModule(**self.initParam)
-
-            with self.assertRaises(ValueError) as context:
-                dataset_test.setup()
-
-            test_train_dl = dataset_test.train_dataloader()
-            self.assertTrue(isinstance(test_train_dl, torch.utils.data.DataLoader))
+        self.data_module.setup()
+        test_train_dl = self.data_module.train_dataloader()
+        self.assertTrue(isinstance(test_train_dl, DataLoader))
 
     def test_val_dataloader(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            self.create_env(tempdir)
-            dataset_test = data.CnfCombustionDataModule(**self.initParam)
-
-            with self.assertRaises(ValueError) as context:
-                dataset_test.setup()
-
-            test_val_dl = dataset_test.train_dataloader()
-            self.assertTrue(isinstance(test_val_dl, torch.utils.data.DataLoader))
+        self.data_module.setup()
+        test_val_dl = self.data_module.train_dataloader()
+        self.assertTrue(isinstance(test_val_dl, DataLoader))
 
     def test_test_dataloader(self):
-        with tempfile.TemporaryDirectory() as tempdir:
-            self.create_env(tempdir)
-            dataset_test = data.CnfCombustionDataModule(**self.initParam)
-
-            with self.assertRaises(ValueError) as context:
-                dataset_test.setup()
-
-            test_test_dl = dataset_test.train_dataloader()
-            self.assertTrue(isinstance(test_test_dl, torch.utils.data.DataLoader))
+        self.data_module.setup()
+        test_test_dl = self.data_module.train_dataloader()
+        self.assertTrue(isinstance(test_test_dl, DataLoader))
 
 
 if __name__ == '__main__':
-    unittest.main()
+    main()

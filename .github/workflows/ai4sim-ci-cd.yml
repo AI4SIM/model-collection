@@ -9,9 +9,9 @@ jobs:
     strategy:
       matrix:
         python-version: [3.8, 3.9]
-        test-path: 
+        test-path:
           - combustion/gnns/
-#          - combustion/unets/
+          - combustion/unets/
           - weather_forecast/gwd/
 
     steps:
