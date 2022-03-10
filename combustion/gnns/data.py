@@ -148,7 +148,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
         """
         CombustionDataset(config.data_path, self.y_normalizer)
     
-    def setup(self, stage: str) -> None:
+    def setup(self, data_path=config.data_path) -> None:
         """
         Creates the main Dataset and splits the train, test and validation Datasets from the main
         Dataset. Currently the repartition is respectively, 80%, 10% and 10% from the main Dataset
@@ -160,7 +160,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
         Raises:
             ValueError: if the main dataset is too small and leads to have an empty dataset.
         """
-        dataset = CombustionDataset(config.data_path, self.y_normalizer).shuffle()
+        dataset = CombustionDataset( data_path, self.y_normalizer).shuffle()
         dataset_size = len(dataset)
 
         self.val_dataset = dataset[int(dataset_size*0.9):]
