@@ -11,26 +11,29 @@
 # limitations under the License.
 
 import h5py
-import json
 import numpy as np
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 import torch
-import torch_optimizer as optim
 from typing import List, Tuple, Union
 import yaml
 
 import config
 
+
 class NOGWDDataset(torch.utils.data.Dataset):
     """
-    Creates the PyTorch Dataset for the Non-Orographic variant of the Gravity Wave Drag (GWD) UC. Each raw HDF5 input file contains two datasets—x and y—of 2355840 rows each. Input features: Output features: . Refer to the UC get-started.ipynb notebook for more details on the inputs.
+    Creates the PyTorch Dataset for the Non-Orographic variant of the Gravity Wave Drag (GWD) UC.
+    Each raw HDF5 input file contains two datasets—x and y—of 2355840 rows each.
+        Input features:
+        Output features: .
+    Refer to the UC get-started.ipynb notebook for more details on the inputs.
     """
     
     x_feat = 191
     y_feat = 126
-    shard_len = 2355840
+    shard_len = 2355840  # FIXME: 'shard_len' is hardcoded, but should be dynamically set.""
 
     def __init__(self, root: str, mode: Union['train', None]) -> None:
         """
@@ -44,7 +47,7 @@ class NOGWDDataset(torch.utils.data.Dataset):
         print('******************************')
         self.root = root
         self.mode = mode
-                
+
         self.x, self.y = self.load()
         
         if self.mode == "train":
@@ -52,7 +55,7 @@ class NOGWDDataset(torch.utils.data.Dataset):
     
     def _compute_stats(self) -> None:
         stats = {
-            'x_mean': torch.mean(self.x, dim=0, dtype=torch.float64),
+            'x_mean': torch.mean(self.x, dim=0, dtype=torch.float32),
             'x_std': torch.std(self.x, dim=0),
             'y_std': torch.std(self.y, dim=0)
         }
@@ -63,12 +66,13 @@ class NOGWDDataset(torch.utils.data.Dataset):
         """
         Downloads the dataset with Climetlab.
         """
-        pass
+        raise NotImplementedError("The 'download' method is not yet available.")
     
     # TODO: Download the data if raw input files are missing in data/raw/
     def load(self) -> Tuple[torch.Tensor]:
         """
-        Loads the raw data from HDF5 files into CPU memory, and concatenates the content into a single PyTorch Tensor, one for x and one for y.
+        Loads the raw data from HDF5 files into CPU memory, and concatenates the content into a
+        single PyTorch Tensor, one for x and one for y.
         
         Returns:
             (torch.Tensor): x input features.
@@ -84,10 +88,10 @@ class NOGWDDataset(torch.utils.data.Dataset):
                 
                 x_.append(np.reshape(x, (191, -1)).T)
                 y_.append(np.reshape(y, (126, -1)).T)
-        
-        x = torch.tensor(np.concatenate(x_), dtype=torch.float64)
-        y = torch.tensor(np.concatenate(y_), dtype=torch.float64)
-        
+
+        x = torch.tensor(np.concatenate(x_), dtype=torch.float32)
+        y = torch.tensor(np.concatenate(y_), dtype=torch.float32)
+
         return x, y
     
     @property
@@ -99,16 +103,6 @@ class NOGWDDataset(torch.utils.data.Dataset):
             (str): Raw data folder path.
         """
         return os.path.join(self.root, "raw")
-
-    @property
-    def processed_dir(self) -> str:
-        """
-        Returns the processed data folder.
-        
-        Returns:
-            (str): Processed data folder path.
-        """
-        return os.path.join(self.root, "processed")
 
     @property
     def raw_filenames(self) -> List[str]:
@@ -123,16 +117,6 @@ class NOGWDDataset(torch.utils.data.Dataset):
             filenames = filenames[self.mode]
         return filenames
 
-    @property
-    def processed_filenames(self) -> List[str]:
-        """
-        Returns the processed data file names.
-        
-        Returns:
-            (List[str]): Processed data file names list.
-        """
-        return self.raw_filenames
-
     def __len__(self) -> int:
         """
         Returns the total length of the dataset
@@ -142,12 +126,12 @@ class NOGWDDataset(torch.utils.data.Dataset):
         """
         return len(self.raw_filenames) * self.shard_len
 
-    def __getitem__(self, idx: int) -> torch.Tensor:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor]:
         """
         Returns the Tensor at the given index.
         
         Returns:
-            (torch.Tensor): Tensor at the given index.
+            (tuple of torch.Tensor): the x and y Tensors at the given index.
         """
         return self.x[idx, :], self.y[idx, :]
 
@@ -168,6 +152,9 @@ class NOGWDDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         super().__init__()
+        self.train = None
+        self.val = None
+        self.test = None
 
     def prepare_data(self) -> None:
         """
@@ -175,12 +162,13 @@ class NOGWDDataModule(pl.LightningDataModule):
         """
         pass
 
-    def setup(self, stage: Union['fit', 'test']) -> None:
+    def setup(self, stage: Union['fit', 'test', ]) -> None:
         """
         Args:
-            stage (Union['fit', 'test']): Stage for which to setup the DataLoader. If 'fit', it will prepare the train and val DataLoaders, otherwise, it will prepare the test DataLoader.
+            stage (Union['fit', 'test']): Stage for which to setup the DataLoader. If 'fit', it
+                will prepare the train and val DataLoaders, otherwise, it will prepare the
+                test DataLoader.
         """
-        
         if stage == 'fit':
             self.train = NOGWDDataset(config.data_path, 'train')
             self.val = NOGWDDataset(config.data_path, 'val')

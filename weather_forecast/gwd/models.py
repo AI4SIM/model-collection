@@ -32,9 +32,10 @@ class NOGWDModule(pl.LightningModule):
         Loads previously computed stats for model-level normalization purposes.
         """
         super().__init__()
-        self.x_mean = None
-        self.x_std = None
-        self.y_std = None
+        # Init attributes to fake data
+        self.x_mean = torch.tensor(0)
+        self.x_std = torch.tensor(1)
+        self.y_std = torch.tensor(1)
 
         if os.path.exists(os.path.join(config.data_path, 'stats.pt')):
             stats = torch.load(os.path.join(config.data_path, 'stats.pt'))
@@ -67,7 +68,7 @@ class NOGWDModule(pl.LightningModule):
         r2 = F.r2_score(y_hat, y)
     
         self.log(f"{stage}_loss", loss, on_step=True, prog_bar=True)
-        self.log(f"{stage}_r2", self.r2, on_step=True, prog_bar=True)
+        self.log(f"{stage}_r2", r2, on_step=True, prog_bar=True)
 
         return y_hat, loss, r2
     
