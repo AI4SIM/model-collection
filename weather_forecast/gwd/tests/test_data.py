@@ -4,49 +4,14 @@ import os
 import shutil
 import unittest
 from unittest.mock import patch
-from pathlib import Path
 import numpy as np
-import h5py
 import torch
 
-import yaml
-
+from test_utils import get_filenames, populate_test_data
 from data import NOGWDDataset, NOGWDDataModule
 
 TEST_DATA_PATH = os.path.join("test_data", "data")
 REF_FILENAMES_FILE = os.path.join("test_data", "filenames-split.yaml")
-
-
-def get_filenames(filenames_file):
-    """ Extract the list of file that are required for test, from the input file.
-
-    Args:
-        filenames_file (str): the path of filenames file
-
-    Returns:
-        filenames (list): the filenames extracted from the input file.
-    """
-    with open(filenames_file, 'r') as file:
-        yaml_content = yaml.safe_load(file)
-        filenames = []
-        for files in yaml_content.values():
-            filenames.extend(files)
-    return filenames
-
-
-def populate_test_data(filenames) -> None:
-    """ Create fake random data file.
-
-    Args:
-        filenames (list): the list of filenames to be created.
-    """
-    data_path = os.path.join(TEST_DATA_PATH, "raw")
-    Path(data_path).mkdir(parents=True, exist_ok=True)
-
-    for file_h5 in filenames:
-        with h5py.File(os.path.join(data_path, file_h5), 'w') as file:
-            file['/x'] = np.random.rand(191, 36, 10)
-            file['/y'] = np.random.rand(126, 36, 10)
 
 
 class TestNOGWDDatasetTrain(unittest.TestCase):
@@ -59,7 +24,7 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data
-        populate_test_data(filenames)
+        populate_test_data(TEST_DATA_PATH, filenames)
         # put a copy of the 'filenames-split.yaml' file in the expected place
         shutil.copy(REF_FILENAMES_FILE, TEST_DATA_PATH)
 
@@ -92,6 +57,8 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
         # 191 and 126 : nb of feature respectively for x and y
         self.assertEqual(x.size(), (3*36*10, 191))
         self.assertEqual(y.size(), (3*36*10, 126))
+        self.assertEqual(x.dtype, torch.float32)
+        self.assertEqual(y.dtype, torch.float32)
 
     def test_get(self):
         """Test the '__getitem__' method returns the proper (x, y) tuple of tensors."""
@@ -121,7 +88,7 @@ class TestNOGWDDatasetTest(unittest.TestCase):
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data
-        populate_test_data(filenames)
+        populate_test_data(TEST_DATA_PATH, filenames)
         # put a copy of the 'filenames-split.yaml' file in the expected place
         shutil.copy(REF_FILENAMES_FILE, TEST_DATA_PATH)
 
@@ -153,7 +120,7 @@ class TestNOGWDDatasetVal(unittest.TestCase):
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data
-        populate_test_data(filenames)
+        populate_test_data(TEST_DATA_PATH, filenames)
         # put a copy of the 'filenames-split.yaml' file in the expected place
         shutil.copy(REF_FILENAMES_FILE, TEST_DATA_PATH)
 
@@ -185,7 +152,7 @@ class TestNOGWDDataModule(unittest.TestCase):
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data
-        populate_test_data(filenames)
+        populate_test_data(TEST_DATA_PATH, filenames)
         # put a copy of the 'filenames-split.yaml' file in the expected place
         shutil.copy(REF_FILENAMES_FILE, TEST_DATA_PATH)
 

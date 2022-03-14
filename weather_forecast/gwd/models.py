@@ -1,9 +1,9 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -11,15 +11,14 @@
 # limitations under the License.
 
 import config
-import h5py
-import numpy as np
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
 import torch
 import torch.nn as nn
 import torch_optimizer as optim
-import torchmetrics.functional as F
+import torchmetrics.functional as tmf
+from typing import Tuple
 
 
 class NOGWDModule(pl.LightningModule):
@@ -55,24 +54,24 @@ class NOGWDModule(pl.LightningModule):
         """
         return self.net(x)
 
-    def _common_step(self, batch: torch.Tensor, batch_idx: int, stage: str):
+    def _common_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, stage: str):
         
         x, y = batch
         x = (x - self.x_mean.to(self.device)) / self.x_std.to(self.device)
         y = y / self.y_std.to(self.device)
         y_hat = self(x)
         
-        loss = F.mean_squared_error(y_hat, y)
+        loss = tmf.mean_squared_error(y_hat, y)
         # TODO: Add epsilon in TSS for R2 score computation.
         # Currently returns NaN sometimes.
-        r2 = F.r2_score(y_hat, y)
+        r2 = tmf.r2_score(y_hat, y)
     
         self.log(f"{stage}_loss", loss, on_step=True, prog_bar=True)
         self.log(f"{stage}_r2", r2, on_step=True, prog_bar=True)
 
-        return y_hat, loss, r2
+        return loss
     
-    def training_step(self, batch: torch.Tensor, batch_idx: int):
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
         """
         Computes one training step.
         
@@ -83,10 +82,10 @@ class NOGWDModule(pl.LightningModule):
         Returns:
             (torch.Tensor): Loss.
         """
-        _, loss, _ = self._common_step(batch, batch_idx, "train")
+        loss = self._common_step(batch, batch_idx, "train")
         return loss
     
-    def validation_step(self, batch: torch.Tensor, batch_idx: int):
+    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
         """
         Computes one validation step.
         
@@ -94,9 +93,9 @@ class NOGWDModule(pl.LightningModule):
             batch (torch.Tensor): Batch containing x input and y output features.
             batch_idx (int): Batch index.
         """
-        _, loss, _ = self._common_step(batch, batch_idx, "val")
+        self._common_step(batch, batch_idx, "val")
         
-    def test_step(self, batch: torch.Tensor, batch_idx: int):
+    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
         """
         Computes one testing step.
         
@@ -104,7 +103,7 @@ class NOGWDModule(pl.LightningModule):
             batch (torch.Tensor): Batch containing x input and y output features.
             batch_idx (int): Batch index.
         """
-        _, loss, _ = self._common_step(batch, batch_idx, "test")
+        self._common_step(batch, batch_idx, "test")
         
     def configure_optimizers(self):
         """
@@ -140,6 +139,7 @@ class LitMLP(NOGWDModule):
             nn.Linear(hidden_channels, out_channels),
         )
 
+
 @MODEL_REGISTRY
 class LitCNN(NOGWDModule):
     """
@@ -155,9 +155,6 @@ class LitCNN(NOGWDModule):
             t1 = torch.tile(x[:, 3 * 63:].unsqueeze(2), (1, 1, 63))
             
             return torch.cat((t0, t1), dim=1)
-                # torch.transpose(t0, -2, -1),
-                # torch.transpose(t1, -2, -1)
-            # ), dim=2)
     
     def __init__(self, 
                  in_channels: int, 
@@ -171,13 +168,13 @@ class LitCNN(NOGWDModule):
         self.lr = lr
         self.net = nn.Sequential(
             self.Reshape(),
-            nn.Conv1d(in_channels, init_feat * 2, conv_size, padding=0),
+            nn.Conv1d(in_channels, init_feat, conv_size, padding=0),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(pool_size),
-            nn.Conv1d(init_feat * 2, init_feat * 4, conv_size),
+            nn.Conv1d(init_feat, init_feat * 2, conv_size),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(pool_size),
             nn.Flatten(),
-            nn.Linear((init_feat * 4 - conv_size) // 2 * (init_feat * 2), out_channels),
+            nn.Linear(480, out_channels),
             nn.Linear(out_channels, out_channels)
         )

@@ -14,8 +14,8 @@ fit:
     model:
         class_path: models.LitCNN
         init_args:
-            in_channels: 63
-            init_feat: 8
+            in_channels: 5
+            init_feat: 16
             out_channels: 126
             conv_size: 1
             pool_size: 2

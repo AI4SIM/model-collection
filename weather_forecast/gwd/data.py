@@ -69,7 +69,7 @@ class NOGWDDataset(torch.utils.data.Dataset):
         raise NotImplementedError("The 'download' method is not yet available.")
     
     # TODO: Download the data if raw input files are missing in data/raw/
-    def load(self) -> Tuple[torch.Tensor]:
+    def load(self) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Loads the raw data from HDF5 files into CPU memory, and concatenates the content into a
         single PyTorch Tensor, one for x and one for y.
