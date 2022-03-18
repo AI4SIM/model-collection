@@ -12,11 +12,9 @@
 # limitations under the License.
 
 import os
-import shutil
 import unittest
 from unittest import skipIf
 from unittest.mock import patch
-import logging
 import torch
 
 import config
@@ -38,6 +36,15 @@ class TestTrainerGpu(unittest.TestCase):
         """Tests the '_devices' attribute is properly set if cuda is available."""
         self.assertEqual(self.test_trainer_cpu._devices, [0])
 
+    @patch('pytorch_lightning.Trainer.test')
+    def test_trainer_cpu_test(self, mock_test):
+        """Tests the 'test' method properly save the result file and model, running on GPUs."""
+        # patch the super().test() returned value
+        mock_test.return_value = [{'a': 1, 'b': 2}]
+        self.test_trainer_cpu.test()
+        self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'model.pth')))
+        self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'results.json')))
+
 
 class TestTrainerCPU(unittest.TestCase):
     """Test the Trainer class with CPUs."""
@@ -53,13 +60,14 @@ class TestTrainerCPU(unittest.TestCase):
         """Tests the '_devices' attribute is set to None if cuda is not available."""
         self.assertEqual(self.test_trainer_cpu._devices, None)
 
-
-def tearDownModule():
-    """Clean the test experiment folder"""
-    logging.shutdown()
-    shutil.rmtree(config.experiment_path, ignore_errors=True)
-    if not os.listdir(config.experiments_path):
-        shutil.rmtree(config.experiments_path)
+    @patch('pytorch_lightning.Trainer.test')
+    def test_trainer_cpu_test(self, mock_test):
+        """Tests the 'test' method properly save the result file and model, running on CPUs."""
+        # patch the super().test() returned value
+        mock_test.return_value = [{'a': 1, 'b': 2}]
+        self.test_trainer_cpu.test()
+        self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'model.pth')))
+        self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'results.json')))
 
 
 if __name__ == '__main__':
