@@ -30,18 +30,18 @@ class TestTrainerGpu(unittest.TestCase):
         args_gpu = {"max_epochs": 1,
                     "accelerator": "gpu",
                     "devices": [0]}
-        self.test_trainer_cpu = Trainer(**args_gpu)
+        self.test_trainer_gpu = Trainer(**args_gpu)
 
     def test_trainer_gpu_init(self):
         """Tests the '_devices' attribute is properly set if cuda is available."""
-        self.assertEqual(self.test_trainer_cpu._devices, [0])
+        self.assertEqual(self.test_trainer_gpu._devices, [0])
 
     @patch('pytorch_lightning.Trainer.test')
     def test_trainer_cpu_test(self, mock_test):
         """Tests the 'test' method properly save the result file and model, running on GPUs."""
         # patch the super().test() returned value
         mock_test.return_value = [{'a': 1, 'b': 2}]
-        self.test_trainer_cpu.test()
+        self.test_trainer_gpu.test()
         self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'model.pth')))
         self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'results.json')))
 
