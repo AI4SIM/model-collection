@@ -1,3 +1,4 @@
+"""This module proposes Pytorch style a Trainer class for the gwd use-case."""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -23,20 +24,20 @@ import data
 
 
 class Trainer(pl.Trainer):
-    """
-    Modified PyTorch Lightning Trainer that automatically tests, logs, and writes artifacts by the
+    """Modified PyTorch Lightning Trainer. It automatically tests, logs, and writes artifacts by the
     end of training.
     """
 
     def __init__(self,
-                 accelerator: Union[str, pl.accelerators.Accelerator, None], 
+                 accelerator: Union[str, pl.accelerators.Accelerator, None],
                  devices: Union[List[int], str, int, None],
                  max_epochs: int,
                  # TODO: delete.
                  # For some reason, those two are mandatory in current version of Lightning.
                  fast_dev_run: Union[int, bool] = False,
                  callbacks: Union[List[Callback], Callback, None] = None) -> None:
-        """
+        """Init the Trainer.
+
         Args:
             accelerator (Union[str, pl.accelerators.Accelerator, None]): Type of accelerator to use
                 for training.
@@ -55,7 +56,7 @@ class Trainer(pl.Trainer):
             max_epochs=max_epochs,
             # TODO: for some reason, a forward pass happens in the model before datamodule creation.
             num_sanity_val_steps=0)
-    
+
     def test(self, **kwargs) -> None:
         """
         Uses superclass test results, but additionally, saves raw results as a JSON file, and stores
