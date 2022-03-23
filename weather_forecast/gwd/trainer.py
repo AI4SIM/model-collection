@@ -19,6 +19,7 @@ import torch
 from typing import List, Union
 
 import config
+import data
 
 
 class Trainer(pl.Trainer):
