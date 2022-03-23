@@ -43,16 +43,15 @@ class Trainer(pl.Trainer):
             devices: (Union[List[int], str, int, None]): Devices explicit names to use for training.
             max_epochs (int): Maximum number of epochs if no early stopping logic is implemented.
         """
-        self._devices = devices
         if accelerator == 'cpu':
-            self._devices = None
+            devices = None
 
         logger = pl.loggers.TensorBoardLogger(config.logs_path, name=None)
         super().__init__(
             default_root_dir=config.logs_path,
             logger=logger,
             accelerator=accelerator,
-            devices=self._devices,
+            devices=devices,
             max_epochs=max_epochs,
             # TODO: for some reason, a forward pass happens in the model before datamodule creation.
             num_sanity_val_steps=0)

@@ -33,8 +33,8 @@ class TestTrainerGpu(unittest.TestCase):
         self.test_trainer_gpu = Trainer(**args_gpu)
 
     def test_trainer_gpu_init(self):
-        """Tests the '_devices' attribute is properly set if cuda is available."""
-        self.assertEqual(self.test_trainer_gpu._devices, [0])
+        """Tests the 'devices' mother attribute is properly set if gpu mode is activated."""
+        self.assertEqual(self.test_trainer_gpu.devices, [0])
 
     @patch('pytorch_lightning.Trainer.test')
     def test_trainer_cpu_test(self, mock_test):
@@ -57,8 +57,10 @@ class TestTrainerCPU(unittest.TestCase):
         self.test_trainer_cpu = Trainer(**args_cpu)
 
     def test_trainer_cpu_init(self):
-        """Tests the '_devices' attribute is set to None if cuda is not available."""
-        self.assertEqual(self.test_trainer_cpu._devices, None)
+        """Tests the 'devices' mother attribute is set to the default value (1) if the cpu mode is
+        activated.
+        """
+        self.assertEqual(self.test_trainer_cpu.devices, 1)
 
     @patch('pytorch_lightning.Trainer.test')
     def test_trainer_cpu_test(self, mock_test):
