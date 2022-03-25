@@ -20,7 +20,7 @@ import torch
 from typing import List, Union
 
 import config
-import data
+import data  # noqa: F401 'data' imported but unused
 
 
 class Trainer(pl.Trainer):

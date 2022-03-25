@@ -51,7 +51,7 @@ class NOGWDModule(pl.LightningModule):
         return self.net(features)
 
     def _common_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, stage: str):
-
+        """Define the common operations performed on data."""
         x_val, y_val = batch
         x_val = (x_val - self.x_mean.to(self.device)) / self.x_std.to(self.device)
         y_val = y_val / self.y_std.to(self.device)
