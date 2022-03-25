@@ -52,7 +52,7 @@ class CombustionModule(pl.LightningModule):
                      batch_idx: int,
                      stage: str) -> List[torch.Tensor]:
         """Define the common operations performed on data."""
-        batch_size = batch.ptr[0]-1
+        batch_size = batch.ptr[0] - 1
         y_hat = self(batch.x, batch.edge_index)
         loss = tmf.mean_squared_error(y_hat, batch.y)
         r2 = tmf.r2_score(y_hat, batch.y)

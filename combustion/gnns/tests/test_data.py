@@ -103,7 +103,7 @@ class TestData(unittest.TestCase):
             data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
             data_get = data_test.get(2)
 
-            self.assertEqual(len(data_get.x), 10*10*10)
+            self.assertEqual(len(data_get.x), 10 * 10 * 10)
 
     def test_setup(self):
         """Test the "setup" method."""
@@ -120,11 +120,11 @@ class TestData(unittest.TestCase):
                 )
 
             self.assertEqual(len(dataset_test.train_dataset),
-                             int(len(self.filenames)*0.8))
+                             int(len(self.filenames) * 0.8))
             self.assertEqual(len(dataset_test.val_dataset),
-                             int(len(self.filenames))-int(len(self.filenames)*0.9))
+                             int(len(self.filenames)) - int(len(self.filenames) * 0.9))
             self.assertEqual(len(dataset_test.test_dataset),
-                             int(len(self.filenames)*0.9)-int(len(self.filenames)*0.8))
+                             int(len(self.filenames) * 0.9) - int(len(self.filenames) * 0.8))
 
     def test_train_dataloader(self):
         """Test the "train_dataloader"."""

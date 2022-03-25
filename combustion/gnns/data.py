@@ -164,9 +164,9 @@ class LitCombustionDataModule(pl.LightningDataModule):
         dataset = CombustionDataset(data_path, self.y_normalizer).shuffle()
         dataset_size = len(dataset)
 
-        self.val_dataset = dataset[int(dataset_size*0.9):]
-        self.test_dataset = dataset[int(dataset_size*0.8):int(dataset_size*0.9)]
-        self.train_dataset = dataset[:int(dataset_size*0.8)]
+        self.val_dataset = dataset[int(dataset_size * 0.9):]
+        self.test_dataset = dataset[int(dataset_size * 0.8):int(dataset_size * 0.9)]
+        self.train_dataset = dataset[:int(dataset_size * 0.8)]
 
         if not (self.val_dataset and self.test_dataset and self.train_dataset):
             raise ValueError("The dataset is too small to be split properly. "

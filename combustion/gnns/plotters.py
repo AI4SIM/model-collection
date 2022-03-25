@@ -49,8 +49,8 @@ class Plotter:
         bins = np.linspace(0, 1250, 10)
         error = np.zeros((bins.shape[0], 2))
         err = np.sqrt((y_val - y_hat)**2)
-        for i in range(len(bins)-1):
-            idx = np.logical_and(y_val.flatten() >= bins[i], y_val.flatten() < bins[i+1])
+        for i in range(len(bins) - 1):
+            idx = np.logical_and(y_val.flatten() >= bins[i], y_val.flatten() < bins[i + 1])
             if np.all(idx):
                 error[i, 0] = err.flatten()[idx].mean()
                 error[i, 1] = err.flatten()[idx].std()
@@ -184,7 +184,7 @@ class Plotter:
                                      contours_coloring='heatmap',
                                      colorscale="IceFire",
                                      colorbar=dict(x=0.62)), row=1, col=3)
-            fig.add_trace(go.Contour(z=sigma[zslice, :, :]-prediction[zslice, :, :],
+            fig.add_trace(go.Contour(z=sigma[zslice, :, :] - prediction[zslice, :, :],
                                      zmin=-300,
                                      zmax=300,
                                      contours=dict(showlines=False,
