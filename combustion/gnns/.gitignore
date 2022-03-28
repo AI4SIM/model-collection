@@ -1,7 +1,4 @@
 !data
 data/*
 !data/filenames.yaml
-experiments/
-_/
-*.ipynb_checkpoints
-*__pycache__
+!data/filenames-split.yaml

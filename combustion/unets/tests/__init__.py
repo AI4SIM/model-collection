@@ -11,21 +11,3 @@
     * See the License for the specific language governing permissions and
     * limitations under the License.
 '''
-
-from names import get_last_name
-from os.path import dirname, join, realpath
-from os import makedirs
-
-name = get_last_name().lower()
-
-root_path = dirname(realpath(__file__))
-
-data_path = join(root_path, 'data')
-experiments_path = join(root_path, 'experiments')
-experiment_path = join(experiments_path, name)
-logs_path = join(experiment_path, 'logs')
-artifacts_path = join(experiment_path, 'artifacts')
-plots_path = join(experiment_path, 'plots')
-
-paths = [experiment_path, logs_path, artifacts_path, plots_path]
-for path in paths: makedirs(path, exist_ok=True)

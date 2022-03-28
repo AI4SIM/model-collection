@@ -1,2 +1,4 @@
-data/
-
+!data
+data/*
+!data/filenames.yaml
+!data/filenames-split.yaml
