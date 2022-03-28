@@ -18,7 +18,7 @@ import randomname
 
 # CAUTION : A refactoring of this file might be requiered for further development
 # raw_data_path to be adapted to your local data path.
-raw_data_path = "/wksp/data/raise/R2_flame/combustiondatabase/R2-filtered/R2-data"
+raw_data_path = "/path/to/your/local/data"
 #
 
 

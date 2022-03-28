@@ -218,7 +218,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
         super().__init__()
         
         
-    def setup(self, stage:str , data_path=config.data_path ) -> None:
+    def setup(self, stage:str , data_path=config.data_path, raw_data_path=config.data_path) -> None:
         """
         Creates the main Dataset and splits the train, test and validation Datasets from the main
         Dataset. Currently the repartition is respectively, 80%, 10% and 10% from the main Dataset
@@ -231,7 +231,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
             ValueError: if the main dataset is too small and leads to have an empty dataset.
         """
         
-        config.LinkRawData(config.raw_data_path, config.data_path)
+        config.LinkRawData(raw_data_path, data_path)
         
         dataset = R2Dataset(data_path, y_normalizer=self.y_normalizer).shuffle()
         dataset_size = len(dataset)

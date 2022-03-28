@@ -40,8 +40,6 @@ class TestData(unittest.TestCase):
                 f['filt_8']      = np.zeros((10, 10, 10))
                 f['filt_grad_8'] = np.zeros((10, 10, 10))
                 f['grad_filt_8'] = np.zeros((10, 10, 10))
-                
-        # self.initParam['origin_path'] = os.path.join(tempdir,"data", "_raw")
         
         os.symlink(os.path.join(tempdir,"data", "_raw"), os.path.join(tempdir,"data", "raw"))
         
@@ -136,7 +134,9 @@ class TestData(unittest.TestCase):
             dataset_test = data.LitCombustionDataModule(**self.initParam)
             
             with self.assertRaises(ValueError) as context:
-                size_dataset_test = dataset_test.setup(stage=None ,data_path=os.path.join(tempdir,"data"))
+                size_dataset_test = dataset_test.setup(stage=None ,
+                                                       data_path=os.path.join(tempdir,"data"),
+                                                       raw_data_path=os.path.join(tempdir,"data", "_raw"))
                 self.assertTrue('The dataset is too small to be split properly.' in str(context.exception))
                 
             self.assertEqual(len(dataset_test.train_dataset), 
@@ -155,7 +155,9 @@ class TestData(unittest.TestCase):
             dataset_test = data.LitCombustionDataModule(**self.initParam)
             
             with self.assertRaises(ValueError) as context:
-                size_dataset_test = dataset_test.setup(stage=None, data_path=os.path.join(tempdir,"data"))
+                size_dataset_test = dataset_test.setup(stage=None ,
+                                                       data_path=os.path.join(tempdir,"data"),
+                                                       raw_data_path=os.path.join(tempdir,"data", "_raw"))
             
             test_train_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_train_dl, torch.utils.data.DataLoader))
@@ -169,7 +171,9 @@ class TestData(unittest.TestCase):
             dataset_test = data.LitCombustionDataModule(**self.initParam)
             
             with self.assertRaises(ValueError) as context:
-                size_dataset_test = dataset_test.setup(stage=None, data_path=os.path.join(tempdir,"data"))
+                size_dataset_test = dataset_test.setup(stage=None ,
+                                                       data_path=os.path.join(tempdir,"data"),
+                                                       raw_data_path=os.path.join(tempdir,"data", "_raw"))
             
             test_val_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_val_dl, torch.utils.data.DataLoader))
@@ -182,7 +186,9 @@ class TestData(unittest.TestCase):
             dataset_test = data.LitCombustionDataModule(**self.initParam)
             
             with self.assertRaises(ValueError) as context:
-                size_dataset_test = dataset_test.setup(stage=None, data_path=os.path.join(tempdir,"data"))
+                size_dataset_test = dataset_test.setup(stage=None ,
+                                                       data_path=os.path.join(tempdir,"data"),
+                                                       raw_data_path=os.path.join(tempdir,"data", "_raw"))
             
             test_test_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_test_dl, torch.utils.data.DataLoader))
