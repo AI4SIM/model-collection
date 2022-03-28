@@ -17,7 +17,6 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
 from typing import List, Union
-
 import config
 import data
 import models
@@ -30,7 +29,7 @@ class Trainer(pl.Trainer):
     def __init__(self, 
                  accelerator: Union[str, pl.accelerators.Accelerator, None], 
                  devices: Union[List[int], str, int, None], 
-                 max_epochs: int, 
+                 max_epochs: int,
                  # TODO: delete. 
                  # For some reason, those two are mandatory in current version of Lightning.
                  fast_dev_run: Union[int, bool] = False, 

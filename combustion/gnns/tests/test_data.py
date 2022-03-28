@@ -33,24 +33,29 @@ class TestData(unittest.TestCase):
     def create_env(self, tempdir):
         
         os.mkdir(os.path.join(tempdir,"data"))
-        os.mkdir(os.path.join(tempdir,"data", "raw"))
+        os.mkdir(os.path.join(tempdir,"data", "_raw"))
 
         for file_h5 in self.filenames:
-            with h5py.File(os.path.join(tempdir,"data", "raw",file_h5), 'w') as f:
+            with h5py.File(os.path.join(tempdir,"data", "_raw",file_h5), 'w') as f:
                 f['filt_8']      = np.zeros((10, 10, 10))
                 f['filt_grad_8'] = np.zeros((10, 10, 10))
                 f['grad_filt_8'] = np.zeros((10, 10, 10))
-
+                
+        # self.initParam['origin_path'] = os.path.join(tempdir,"data", "_raw")
+        
+        os.symlink(os.path.join(tempdir,"data", "_raw"), os.path.join(tempdir,"data", "raw"))
+        
         temp_file_path = os.path.join(tempdir, 'data', 'filenames.yaml')
         with open(temp_file_path, 'w') as tmpfile:
             documents = yaml.dump(self.filenames, tmpfile)
             
             
+
     def create_obj_rm_warning(self, path):
         
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            return data.CombustionDataset(path)
+            return data.CnfDataset(path)
                 
     def test_raw_file_names(self):
         """
@@ -131,7 +136,7 @@ class TestData(unittest.TestCase):
             dataset_test = data.LitCombustionDataModule(**self.initParam)
             
             with self.assertRaises(ValueError) as context:
-                size_dataset_test = dataset_test.setup(data_path=os.path.join(tempdir,"data"))
+                size_dataset_test = dataset_test.setup(stage=None ,data_path=os.path.join(tempdir,"data"))
                 self.assertTrue('The dataset is too small to be split properly.' in str(context.exception))
                 
             self.assertEqual(len(dataset_test.train_dataset), 
@@ -150,7 +155,7 @@ class TestData(unittest.TestCase):
             dataset_test = data.LitCombustionDataModule(**self.initParam)
             
             with self.assertRaises(ValueError) as context:
-                size_dataset_test = dataset_test.setup(data_path=os.path.join(tempdir,"data"))
+                size_dataset_test = dataset_test.setup(stage=None, data_path=os.path.join(tempdir,"data"))
             
             test_train_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_train_dl, torch.utils.data.DataLoader))
@@ -164,7 +169,7 @@ class TestData(unittest.TestCase):
             dataset_test = data.LitCombustionDataModule(**self.initParam)
             
             with self.assertRaises(ValueError) as context:
-                size_dataset_test = dataset_test.setup(data_path=os.path.join(tempdir,"data"))
+                size_dataset_test = dataset_test.setup(stage=None, data_path=os.path.join(tempdir,"data"))
             
             test_val_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_val_dl, torch.utils.data.DataLoader))
@@ -177,7 +182,7 @@ class TestData(unittest.TestCase):
             dataset_test = data.LitCombustionDataModule(**self.initParam)
             
             with self.assertRaises(ValueError) as context:
-                size_dataset_test = dataset_test.setup(data_path=os.path.join(tempdir,"data"))
+                size_dataset_test = dataset_test.setup(stage=None, data_path=os.path.join(tempdir,"data"))
             
             test_test_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_test_dl, torch.utils.data.DataLoader))

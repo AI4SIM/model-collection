@@ -26,10 +26,17 @@ fit:
         init_args:
             batch_size: 1
             num_workers: 0
-            y_normalizer : 342.553
+            y_normalizer: 3295.4
 
     trainer:
         max_epochs: 1000
         accelerator: "gpu"
-        devices:
-            - 0
+        callbacks:
+          - class_path: pytorch_lightning.callbacks.EarlyStopping
+            init_args:
+              monitor: val_loss
+              patience: 30
+              mode: min
+              min_delta: 0.0
+        devices: 
+            - 3
