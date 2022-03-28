@@ -43,7 +43,7 @@ _paths = [
 ]
 for path in _paths:
     os.makedirs(path, exist_ok=True)
-    
+
 logging.basicConfig(filename=os.path.join(logs_path, f'{_experiment_name}.log'), 
                     filemode='w', 
                     format='%(name)s - %(levelname)s - %(message)s')

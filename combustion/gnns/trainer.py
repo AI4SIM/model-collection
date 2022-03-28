@@ -42,17 +42,22 @@ class Trainer(pl.Trainer):
             max_epochs (int): Maximum number of epochs if no early stopping logic is implemented.
         """
         
-        if accelerator == 'cpu': 
-            devices = None
+        self._accelerator = accelerator
+        self._devices     = devices
+        self._max_epochs  = max_epochs
+        
+        if self._accelerator == 'cpu': 
+            self._devices = None
             
         logger = pl.loggers.TensorBoardLogger(config.logs_path, name=None)
         super().__init__(
             default_root_dir=config.logs_path,
             logger=logger,
-            accelerator=accelerator,
-            devices=devices,
-            max_epochs=max_epochs,
+            accelerator=self._accelerator,
+            devices=self._devices,
+            max_epochs=self._max_epochs,
             num_sanity_val_steps=0)
+        
     
     def test(self, **kwargs) -> None:
         """
@@ -67,14 +72,8 @@ class Trainer(pl.Trainer):
             json.dump(results, f)
         
         torch.save(self.model, os.path.join(config.artifacts_path, 'model.pth'))
-        
-        
-def main():
-    
-    cli = LightningCLI(trainer_class=Trainer)
-    cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
     
     
 if __name__ == '__main__':
-    
-    main()
+    cli = LightningCLI(trainer_class=Trainer)
+    cli.trainer.test(model=cli.model, datamodule=cli.datamodule)

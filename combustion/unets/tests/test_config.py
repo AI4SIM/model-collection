@@ -12,20 +12,19 @@
     * limitations under the License.
 '''
 
-from names import get_last_name
-from os.path import dirname, join, realpath
-from os import makedirs
+from unittest import TestCase, main
+from os.path import exists
 
-name = get_last_name().lower()
+import config
 
-root_path = dirname(realpath(__file__))
+class TestConfig(TestCase):
 
-data_path = join(root_path, 'data')
-experiments_path = join(root_path, 'experiments')
-experiment_path = join(experiments_path, name)
-logs_path = join(experiment_path, 'logs')
-artifacts_path = join(experiment_path, 'artifacts')
-plots_path = join(experiment_path, 'plots')
+    def test_paths(self):
+        self.assertTrue(exists(config.experiment_path))
+        self.assertTrue(exists(config.logs_path))
+        self.assertTrue(exists(config.artifacts_path))
+        self.assertTrue(exists(config.plots_path))
 
-paths = [experiment_path, logs_path, artifacts_path, plots_path]
-for path in paths: makedirs(path, exist_ok=True)
+
+if __name__ == '__main__':
+    main()

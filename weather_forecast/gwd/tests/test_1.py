@@ -1,35 +1,27 @@
+"""Fake test module to initiate the build tool targets."""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-fit:
-    model:
-        class_path: models.LitGIN
-        init_args:
-            in_channels: 1
-            hidden_channels: 32
-            out_channels: 1
-            num_layers: 4
-            dropout: .5
-            lr: .0001
 
-    data:
-        class_path: data.LitCombustionDataModule
-        init_args:
-            batch_size: 1
-            num_workers: 0
-            y_normalizer : 342.553
+import unittest
 
-    trainer:
-        max_epochs: 1000
-        accelerator: "gpu"
-        devices:
-            - 0
+
+class Test(unittest.TestCase):
+    """Fake test class."""
+
+    def test_1(self) -> None:
+        """Fake test."""
+        self.assertTrue(True)
+
+
+if __name__ == '__main__':
+    unittest.main()

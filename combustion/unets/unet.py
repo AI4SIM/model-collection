@@ -12,7 +12,7 @@
     * limitations under the License.
 '''
 
-import torch
+from torch import cat
 import torch.nn as nn
 
 
@@ -75,7 +75,7 @@ class DoubleConv(nn.Module):
             nn.Conv3d(out_ch, out_ch, kernel_size=3, padding=1),
             nn.BatchNorm3d(out_ch),
             nn.ReLU(inplace=True))
-        if residual: self.additive_residual = Conv3d(inp_ch, out_ch, kernel_size=1, bias=False)
+        if residual: self.additive_residual = nn.Conv3d(inp_ch, out_ch, kernel_size=1, bias=False)
         else: self.additive_residual = None
 
     def forward(self, x):
@@ -119,8 +119,8 @@ class Upsampler(nn.Module):
         # Pad x1 to the size of x2.
         diff_h = x2.shape[2] - x1.shape[2]
         diff_w = x2.shape[3] - x1.shape[3]
-        x1 = torch.nn.functional.pad(x1, [diff_w // 2, diff_w - diff_w // 2, diff_h // 2, diff_h - diff_h // 2])
+        x1 = nn.functional.pad(x1, [diff_w // 2, diff_w - diff_w // 2, diff_h // 2, diff_h - diff_h // 2])
 
         # Concatenate along the channels axis.
-        x = torch.cat([x2, x1], dim=1)
+        x = cat([x2, x1], dim=1)
         return self.conv(x)
