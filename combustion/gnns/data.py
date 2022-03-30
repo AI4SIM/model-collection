@@ -19,7 +19,7 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 import torch
 import torch_geometric as pyg
-from typing import List
+from typing import List, Optional
 import yaml
 
 import config
