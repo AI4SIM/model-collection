@@ -8,9 +8,9 @@ plotly==5.3.1
 pytorch-lightning==1.5.7
 pyyaml==6.0
 randomname==0.1.5
-torch==1.9.0
+torch==1.11.0+cu113
 torchmetrics==0.5.1
 torch-geometric==2.0.3
 torch-scatter==2.0.9
-torch-sparse==0.6.12
+torch-sparse==0.6.13
 torch-optimizer==0.1.0
