@@ -47,7 +47,7 @@ class inference_pth_gnn:
     
     def prediction(self):
         
-        data = self.create_graph(self.c )
+        data = self.create_graph(self.c)
         
         gin = pyg.data.Batch().from_data_list(data_list=[data]) 
         
