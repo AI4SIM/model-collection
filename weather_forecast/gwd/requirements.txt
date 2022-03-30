@@ -4,6 +4,6 @@ numpy==1.21.2
 pytorch-lightning==1.5.7
 pyyaml
 randomname==0.1.5
-torch==1.9.0
+torch==1.11.0+cu113
 torchmetrics==0.5.1
 torch_optimizer==0.1.0
