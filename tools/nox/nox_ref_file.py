@@ -45,6 +45,8 @@ def _torch_version(req_file: str = 'requirements.txt') -> str:
         for line in file.readlines():
             if "torch==" in line:
                 version = line.rstrip().split('==')[1]
+                if "+" not in version:
+                    version += "+cpu"
     return version
 
 
@@ -54,13 +56,14 @@ def dev_dependencies(session):
     torch_vers = _torch_version()
     additional_url = ''
     if torch_vers:
-        additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}+cpu.html"
+        additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}.html"
+    extra_url = ''
+    if "cpu" not in torch_vers:
+        extra_url = f"https://download.pytorch.org/whl/{torch_vers.split('+')[1]}"
     session.install("--upgrade", "pip")
     session.install("-r", "requirements.txt",
-                    "-f", additional_url)
-    # FIXME: workaround because of incompatibility between setuptools >= 60 and torch < 1.11
-    # cf. https://github.com/pytorch/pytorch/pull/69904#issuecomment-1024338333
-    session.install("setuptools==59.5.0")
+                    "-f", additional_url,
+                    "--extra-index-url", extra_url)
 
 
 @nox.session
