@@ -13,6 +13,7 @@ jobs:
           - combustion/gnns/
           - combustion/unets/
           - weather_forecast/gwd/
+      fail-fast: false
 
     steps:
     - name: Checkout sources
@@ -28,11 +29,11 @@ jobs:
 
     - name: Analysing the code with flake8
       working-directory: ${{ matrix.test-path }}
-      run: nox -s lint
+      run: nox -s lint -v
 
     - name: Run unit tests with coverage report
       working-directory: ${{ matrix.test-path }}
-      run: nox -s tests
+      run: nox -s tests -v
 
     - name: Coverage Commentator
       uses: 5monkeys/cobertura-action@master
