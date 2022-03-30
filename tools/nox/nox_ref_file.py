@@ -5,7 +5,10 @@ This file is generic and aims at:
     - defining a model of the different targets each use case should propose.
 """
 import os
+import subprocess
 from pathlib import Path
+import tempfile
+import warnings
 import nox
 
 REPORTS_DIR = ".ci-reports/"
@@ -41,27 +44,64 @@ def _torch_version(req_file: str = 'requirements.txt') -> str:
             an empty string otherwise.
     """
     version = ''
+    cuda = ''
     with open(req_file, encoding='utf-8') as file:
         for line in file.readlines():
             if "torch==" in line:
                 version = line.rstrip().split('==')[1]
                 if "+" not in version:
-                    version += "+cpu"
-    return version
+                    cuda = "cpu"
+                else:
+                    version, cuda = version.split('+')
+    return version, cuda
+
+
+def _is_cuda_available() -> bool:
+    """Execute the nvidia-smi command to test if cuda is available.
+
+    Returns:
+        (bool): True if cuda is available.
+    """
+    try:
+        out = subprocess.run("nvidia-smi", stdout=subprocess.DEVNULL)
+        if out.returncode == 0:
+            return True
+        return False
+    except FileNotFoundError:
+        return False
 
 
 @nox.session
 def dev_dependencies(session):
     """Target to install all requirements of the use-case code."""
-    torch_vers = _torch_version()
+    torch_vers, cuda_vers = _torch_version()
+    req_file = "requirements.txt"
+
     additional_url = ''
-    if torch_vers:
-        additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}.html"
     extra_url = ''
-    if "cpu" not in torch_vers:
-        extra_url = f"https://download.pytorch.org/whl/{torch_vers.split('+')[1]}"
+    if torch_vers:
+        # If cuda is not available force the CPU mode of torch
+        if not _is_cuda_available():
+            warnings.warn("Cuda not available, torch version forced to CPU mode.")
+            with open(req_file, "r+") as file:
+                req = file.read()
+                req = req.replace(f"torch=={torch_vers}+{cuda_vers}", f"torch=={torch_vers}")
+
+                # Create a temporary requirement file updated with cpu forced torch version
+                req_file = tempfile.NamedTemporaryFile().name
+                with open(req_file, "w+") as new_req:
+                    new_req.writelines(req)
+            cuda_vers = 'cpu'
+
+        # Set the url of precompiled torch version depending on CUDA version
+        if cuda_vers is not "cpu":
+            extra_url = f"https://download.pytorch.org/whl/{cuda_vers}"
+
+        # Set the url of precompiled torch-geometric dependencies depending on torch version
+        additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}+{cuda_vers}.html"
+
     session.install("--upgrade", "pip")
-    session.install("-r", "requirements.txt",
+    session.install("-r", req_file,
                     "-f", additional_url,
                     "--extra-index-url", extra_url)
 
