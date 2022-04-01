@@ -79,14 +79,14 @@ class CombustionDataset(pyg.data.Dataset):
         i = 0
         for raw_path in self.raw_paths:
             with h5py.File(raw_path, 'r') as file:
-                col = file["/filt_8"][:]
+                feat = file["/filt_8"][:]
 
                 if self.y_normalizer is not None:
                     sigma = file["/filt_grad_8"][:] / self.y_normalizer
                 else:
                     sigma = file["/filt_grad_8"][:]
 
-            x_size, y_size, z_size = col.shape
+            x_size, y_size, z_size = feat.shape
             grid_shape = (z_size, y_size, x_size)
 
             g0 = nx.grid_graph(dim=grid_shape)
@@ -96,7 +96,7 @@ class CombustionDataset(pyg.data.Dataset):
             coordinates.reverse()
 
             data = pyg.data.Data(
-                x=torch.tensor(col.reshape(-1, 1), dtype=torch.float),
+                x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
                 edge_index=torch.tensor(undirected_index, dtype=torch.long),
                 pos=torch.tensor(np.stack(coordinates)),
                 y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float)

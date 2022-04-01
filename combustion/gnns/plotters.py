@@ -198,9 +198,9 @@ class Plotter:
             fig.update_xaxes(title_text="x direction", row=1, col=1)
             fig.update_xaxes(title_text="x direction", row=1, col=3)
             fig.update_xaxes(title_text="x direction", row=1, col=5)
-            fig.update_yaxes(title_text="y_valdirection", row=1, col=1)
-            fig.update_yaxes(title_text="y_valdirection", row=1, col=3)
-            fig.update_yaxes(title_text="y_valdirection", row=1, col=5)
+            fig.update_yaxes(title_text="y direction", row=1, col=1)
+            fig.update_yaxes(title_text="y direction", row=1, col=3)
+            fig.update_yaxes(title_text="y direction", row=1, col=5)
             fig.update_layout(xaxis=dict(domain=[0, 0.27]),
                               xaxis2=dict(domain=[0.35, 0.62]),
                               xaxis3=dict(domain=[0.7, 0.97])
