@@ -1,6 +1,6 @@
 """
-This module simply load all tha nox targets defined in the reference noxfile and make them available
-for the weather_forcast/gwd use case.
+This module simply loads all the nox targets defined in the reference noxfile and make them
+available for the weather_forcast/gwd use case.
 This file can be enriched by use case specific targets.
 """
 
@@ -14,6 +14,6 @@ build_ref_dir = os.path.join(os.path.dirname(os.path.dirname(current_dir)), "too
 sys.path.insert(0, build_ref_dir)
 
 # Fetch the nox_ref_file.py content
-from  nox_ref_file import *
+import nox_ref_file
 
 # Insert below the use case specific targets

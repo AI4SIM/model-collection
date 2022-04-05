@@ -32,7 +32,7 @@ class TestLitMLP(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Set-up the test environment to get the data input files."""
+        """Set up the test environment to get the data input files."""
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data
@@ -58,7 +58,7 @@ class TestLitMLP(unittest.TestCase):
         # 3 : nb of train .h5 files
         # 36 and 10 : dimension of input data
         # 126 : nb of feature for y
-        self.assertEqual(test_forward.size(), torch.Size([3*36*10, 126]))
+        self.assertEqual(test_forward.size(), torch.Size([3 * 36 * 10, 126]))
 
     def test_compute_stats(self):
         """Test the '_compute_stats' method returns a scalar tensor as the loss."""
@@ -89,7 +89,7 @@ class TestLitCNN(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Set-up the test environment to get the data input files."""
+        """Set up the test environment to get the data input files."""
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data

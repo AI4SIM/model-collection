@@ -32,8 +32,9 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Set-up the test environment to get the data files required to test the NOGWDDataset
-        class."""
+        """Set up the test environment to get the data files required to test the NOGWDDataset
+        class.
+        """
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data
@@ -68,8 +69,8 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
         # 3 : nb of train .h5 files
         # 36 and 10 : dimension of input data
         # 191 and 126 : nb of feature respectively for x and y
-        self.assertEqual(x.size(), (3*36*10, 191))
-        self.assertEqual(y.size(), (3*36*10, 126))
+        self.assertEqual(x.size(), (3 * 36 * 10, 191))
+        self.assertEqual(y.size(), (3 * 36 * 10, 126))
         self.assertEqual(x.dtype, torch.float32)
         self.assertEqual(y.dtype, torch.float32)
 
@@ -81,10 +82,11 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
 
     def test_len(self):
         """Test the '__len__' method returns the proper value.
-        FIXME: note for now the 'shard_len' is hardcoded, but should be dynamically set."""
+        FIXME: note for now the 'shard_len' is hardcoded, but should be dynamically set.
+        """
         data_len = len(self.data_test)
         # 3 : nb of train .h5 files
-        self.assertEqual(data_len, 3*self.data_test.shard_len)
+        self.assertEqual(data_len, 3 * self.data_test.shard_len)
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -97,8 +99,9 @@ class TestNOGWDDatasetTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Set-up the test environment to get the data files required to test the NOGWDDataset
-        class."""
+        """Set up the test environment to get the data files required to test the NOGWDDataset
+        class.
+        """
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data
@@ -130,8 +133,9 @@ class TestNOGWDDatasetVal(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Set-up the test environment to get the data files required to test the NOGWDDataset
-        class."""
+        """Set up the test environment to get the data files required to test the NOGWDDataset
+        class.
+        """
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data
@@ -164,8 +168,9 @@ class TestNOGWDDataModule(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        """Set-up the test environment to get the data files required to test the NOGWDDataset
-        class."""
+        """Set up the test environment to get the data files required to test the NOGWDDataset
+        class.
+        """
         # get the list of filename that should be created
         filenames = get_filenames(REF_FILENAMES_FILE)
         # create the required files with fake data

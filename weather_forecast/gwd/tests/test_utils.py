@@ -19,7 +19,7 @@ import yaml
 
 
 def get_filenames(filenames_file):
-    """ Extract the list of file that are required for test, from the input file.
+    """Extract the list of file that are required for test, from the input file.
 
     Args:
         filenames_file (str): the path of filenames file
@@ -36,7 +36,7 @@ def get_filenames(filenames_file):
 
 
 def populate_test_data(root_data_path, filenames) -> None:
-    """ Create fake random data file.
+    """Create fake random data file.
 
     Args:
         root_data_path (str): the path of the 'data' folder.
