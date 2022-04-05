@@ -21,7 +21,7 @@ class TestUnet(TestCase):
 
     def test_architecture(self):
 
-        def n_conv3d(n_levels):
+        def n_Conv3D(n_levels):
             return 2 * 2 * n_levels + (n_levels - 1)  # 2 per DoubleConv + 1 per upsampler.
 
         n_levels = 1
@@ -29,14 +29,14 @@ class TestUnet(TestCase):
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
         self.assertEqual(summary.count("Upsampler"), n_levels - 1)
-        self.assertEqual(summary.count("Conv3d"), n_conv3d(n_levels))
+        self.assertEqual(summary.count("Conv3d"), n_Conv3D(n_levels))
 
         n_levels = 5
         net = UNet3D(inp_feat=1, out_feat=1, n_levels=n_levels, n_features_root=4, bilinear=True)
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
         self.assertEqual(summary.count("Upsampler"), n_levels - 1)
-        self.assertEqual(summary.count("Conv3d"), n_conv3d(n_levels))
+        self.assertEqual(summary.count("Conv3d"), n_Conv3D(n_levels))
 
     def test_inference(self):
         net = UNet3D(inp_feat=1, out_feat=1, n_levels=3, n_features_root=4)

@@ -128,13 +128,12 @@ class Upsampler(nn.Module):
         x1 = self.upsample(x1)
 
         # Pad x1 to the size of x2.
-        d2 = x2.shape[2] - x1.shape[2]
-        d3 = x2.shape[3] - x1.shape[3]
-        d4 = x2.shape[4] - x1.shape[4]
-        pad = [d4 // 2, d4 - d4 // 2,  # from last to first.
-            d3 // 2, d3 - d3 // 2,
-            d2 // 2, d2 - d2 // 2]
-        x1 = nn.functional.pad(x1, pad)
+        diff_h = x2.shape[2] - x1.shape[2]
+        diff_w = x2.shape[3] - x1.shape[3]
+        x1 = nn.functional.pad(
+            x1,
+            [diff_w // 2, diff_w - diff_w // 2, diff_h // 2, diff_h - diff_h // 2])
 
-        x = cat([x2, x1], dim=1)  # concatenate along the channels axis.
+        # Concatenate along the channels axis.
+        x = cat([x2, x1], dim=1)
         return self.conv(x)
