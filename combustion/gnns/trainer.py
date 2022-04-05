@@ -12,14 +12,17 @@
 # limitations under the License.
 
 import json
+import logging
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
 from typing import List, Union
+
 import config
 import data  # noqa: F401 'data' imported but unused
+
 
 
 class Trainer(pl.Trainer):
@@ -60,6 +63,14 @@ class Trainer(pl.Trainer):
             max_epochs=self._max_epochs,
             num_sanity_val_steps=0)
 
+    def save(self, results, path=config.artifacts_path):
+        result_file = os.path.join(config.artifacts_path, "results.json")
+        with open(result_file, "w") as f:
+            json.dump(results, f)
+
+        torch.save(self.model, os.path.join(path, 'model.pth'))
+        logging.info(f"Torch model saved in {os.path.join(path, 'model.pth')}")
+
     def test(self, **kwargs) -> None:
         """Use superclass test results, but additionally, saves raw results as a JSON file,
         and stores the model weights for future use in inference mode.
@@ -69,12 +80,10 @@ class Trainer(pl.Trainer):
         """
         results = super().test(**kwargs)[0]
 
-        with open(os.path.join(config.artifacts_path, "results.json"), "w") as file:
-            json.dump(results, file)
-
-        torch.save(self.model, os.path.join(config.artifacts_path, 'model.pth'))
+        self.save(results)
 
 
 if __name__ == '__main__':
-    cli = LightningCLI(trainer_class=Trainer)
+    cli = LightningCLI(trainer_class=Trainer, run=False)
+    cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)

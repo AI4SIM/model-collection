@@ -10,34 +10,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-fit:
-    model:
-        class_path: models.LitGCN
-        init_args:
-            in_channels: 1
-            hidden_channels: 32
-            out_channels: 1
-            num_layers: 4
-            dropout: .5
-            jk: "last"
-            lr: .0001
+model:
+    class_path: models.LitGCN
+    init_args:
+        in_channels: 1
+        hidden_channels: 32
+        out_channels: 1
+        num_layers: 4
+        dropout: .5
+        jk: "last"
+        lr: .0001
 
-    data:
-        class_path: data.LitCombustionDataModule
-        init_args:
-            batch_size: 1
-            num_workers: 0
-            y_normalizer: 3295.4
+data:
+    class_path: data.LitCombustionDataModule
+    init_args:
+        batch_size: 1
+        num_workers: 0
+        y_normalizer: 3295.4
 
-    trainer:
-        max_epochs: 1000
-        accelerator: "gpu"
-        callbacks:
-          - class_path: pytorch_lightning.callbacks.EarlyStopping
-            init_args:
-              monitor: val_loss
-              patience: 31
-              mode: min
-              min_delta: 0.0
-        devices: 
-            - 3
+trainer:
+    max_epochs: 10
+    accelerator: "gpu"
+    callbacks:
+      - class_path: pytorch_lightning.callbacks.EarlyStopping
+        init_args:
+          monitor: val_loss
+          patience: 31
+          mode: min
+          min_delta: 0.0
+    devices:
+        - 3
+    with_mlflow: False

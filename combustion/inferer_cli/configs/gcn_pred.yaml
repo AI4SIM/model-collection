@@ -1,5 +1,0 @@
-trainer:
-    limit_train_batches: 100
-    max_epochs: 10
-# the argument passed to `trainer.test(ckpt_path=...)`
-ckpt_path: "/wksp/salemr/github_ai4sim/model-collection/combustion/inferer_cli/gnn_model/logs/version_0/checkpoints/epoch=999-step=70999.ckpt"
