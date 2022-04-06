@@ -1,4 +1,4 @@
-"""This module provides a test suite for the config.py file."""
+"""This module provides a unit tests suite for the config.py module."""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -11,29 +11,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import os
+import unittest
 
 import config
 
 
-class TestConfig(unittest.TestCase):
-    """Config test file."""
+class TestConfigPath(unittest.TestCase):
+    """Test the config.py folders creation."""
 
     def test_experiment_path(self):
-        """Test if config creates the correct experiment path."""
+        """Test if config creates the correct experiment paths."""
         self.assertTrue(os.path.exists(config.experiment_path))
 
     def test_logs_path(self):
-        """Test if config creates the correct logs path."""
+        """Test if config creates the correct log paths and file."""
         self.assertTrue(os.path.exists(config.logs_path))
+        self.assertTrue(
+            os.path.exists(os.path.join(config.logs_path, f'{config._experiment_name}.log')))
 
     def test_artifacts_path(self):
-        """Test if config creates the correct artifacts path."""
+        """Test if config creates the correct artifacts paths."""
         self.assertTrue(os.path.exists(config.artifacts_path))
 
     def test_plots_path(self):
-        """Test if config creates the correct plots path."""
+        """Test if config creats the correct paths."""
         self.assertTrue(os.path.exists(config.plots_path))
 
 

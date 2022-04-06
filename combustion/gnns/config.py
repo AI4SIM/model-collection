@@ -1,9 +1,10 @@
+"""This module configure the experiment environment."""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #     http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -43,13 +44,14 @@ artifacts_path = os.path.join(experiment_path, 'artifacts')
 plots_path = os.path.join(experiment_path, 'plots')
 
 _paths = [
-    experiment_path, 
-    logs_path, 
-    artifacts_path, 
+    experiment_path,
+    logs_path,
+    artifacts_path,
     plots_path
 ]
 for path in _paths:
     os.makedirs(path, exist_ok=True)
+
 
 logging.basicConfig(filename=os.path.join(logs_path, f'{_experiment_name}.log'), 
                     filemode='w', 
@@ -101,4 +103,3 @@ class LinkRawData():
             else :
                 pass
 
-        

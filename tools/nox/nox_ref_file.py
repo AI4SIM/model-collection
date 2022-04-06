@@ -4,10 +4,13 @@ This file is generic and aims at:
     - providing the common targets that can be used in all use cases,
     - defining a model of the different targets each use case should propose.
 """
+import os
 from pathlib import Path
 import nox
 
 REPORTS_DIR = ".ci-reports/"
+ROOT_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+FLAKE8_CFG = os.path.join(ROOT_PATH, 'tools', 'flake8', 'flake8.cfg')
 
 # The list of the default targets executed with the simple command "nox".
 nox.options.sessions = ["lint", "tests"]
@@ -65,7 +68,7 @@ def tests(session):
     """Target to run unit tests on the code with pytest, and generate coverage report."""
     dev_dependencies(session)
     session.install("pytest-cov")
-    session.run("python", "-m", "pytest", "--cache-clear", "--cov=./")
+    session.run("python", "-m", "pytest", "--cache-clear", "--cov=./", "-v")
     session.notify("coverage_report")
 
 
@@ -85,7 +88,7 @@ def lint(session):
     session.install("flake8-use-fstring")
     session.install("flake8-variables-names")
     session.install("pep8-naming")
-    session.run("flake8", "--exclude", ".nox", "--max-line-length=100", "--exit-zero")
+    session.run("flake8", "--config", FLAKE8_CFG, "--exit-zero")
 
 
 @nox.session
