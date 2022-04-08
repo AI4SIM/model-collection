@@ -228,34 +228,31 @@ class LitCombustionDataModule(pl.LightningDataModule):
         """Not used."""
         CombustionDataset(config.data_path, self.y_normalizer)
 
-    def setup(self, data_path=config.data_path) -> None:
-        """Create the main Dataset and splits the train, test and validation Datasets from the main
-
+    def setup(self, stage:str , data_path=config.data_path, raw_data_path=config.data_path) -> None:
+        """
+        Creates the main Dataset and splits the train, test and validation Datasets from the main
         Dataset. Currently the repartition is respectively, 80%, 10% and 10% from the main Dataset
         size. Creates symbolic links from origin data.
 
         Args:
-            data_path (str): Path of the data.
+            stage (str): Unsed.
 
         Raises:
             ValueError: if the main dataset is too small and leads to have an empty dataset.
         """
-
+        
         config.LinkRawData(raw_data_path, data_path)
         
         dataset = R2Dataset(data_path, y_normalizer=self.y_normalizer).shuffle()
-
-
         dataset_size = len(dataset)
 
-        self.val_dataset = dataset[int(dataset_size * 0.9):]
-        self.test_dataset = dataset[int(dataset_size * 0.8):int(dataset_size * 0.9)]
-        self.train_dataset = dataset[:int(dataset_size * 0.8)]
+        self.val_dataset = dataset[int(dataset_size*0.9):]
+        self.test_dataset = dataset[int(dataset_size*0.8):int(dataset_size*0.9)]
+        self.train_dataset = dataset[:int(dataset_size*0.8)]
 
         if not (self.val_dataset and self.test_dataset and self.train_dataset):
             raise ValueError("The dataset is too small to be split properly. "
                              f"Current length is : {dataset_size}.")
-        
         
 
     def train_dataloader(self) -> pyg.loader.DataLoader:
