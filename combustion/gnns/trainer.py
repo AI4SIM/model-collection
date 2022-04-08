@@ -18,7 +18,6 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
 from typing import List, Union
-
 import config
 import data  # noqa: F401 'data' imported but unused
 
@@ -28,12 +27,12 @@ class Trainer(pl.Trainer):
     Modified PyTorch Lightning Trainer that automatically tests, logs, and writes artifacts by
     the end of training.
     """
-
-    def __init__(self,
-                 accelerator: Union[str, pl.accelerators.Accelerator, None],
-                 devices: Union[List[int], str, int, None],
+    
+    def __init__(self, 
+                 accelerator: Union[str, pl.accelerators.Accelerator, None], 
+                 devices: Union[List[int], str, int, None], 
                  max_epochs: int,
-                 # TODO: delete.
+                 # TODO: delete. 
                  # For some reason, those two are mandatory in current version of Lightning.
                  fast_dev_run: Union[int, bool] = False,
                  callbacks: Union[List[Callback], Callback, None] = None) -> None:

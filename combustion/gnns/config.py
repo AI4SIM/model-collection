@@ -13,10 +13,17 @@
 
 import os
 import logging
+import yaml
 import randomname
 
-root_path = os.path.dirname(os.path.realpath(__file__))
 
+# CAUTION : A refactoring of this file might be requiered for further development
+# raw_data_path to be adapted to your local data path.
+raw_data_path = "/path/to/your/local/data"
+#
+
+
+root_path = os.path.dirname(os.path.realpath(__file__))
 data_path = os.path.join(root_path, 'data')
 
 # Create all path for the current experiment
@@ -45,6 +52,54 @@ _paths = [
 for path in _paths:
     os.makedirs(path, exist_ok=True)
 
-logging.basicConfig(filename=os.path.join(logs_path, f'{_experiment_name}.log'),
-                    filemode='w',
+
+logging.basicConfig(filename=os.path.join(logs_path, f'{_experiment_name}.log'), 
+                    filemode='w', 
                     format='%(name)s - %(levelname)s - %(message)s')
+
+
+
+class LinkRawData():
+    """ Link dataset to the use case"""
+    
+    def __init__(self, raw_data_path, data_path):
+        
+        self.raw_data_path = raw_data_path
+        self.local_data_path = data_path
+        self.local_raw_data = os.path.join(self.local_data_path, 'raw')
+        
+        if os.path.exists(self.local_raw_data):
+            try :
+                if len(os.listdir(self.local_raw_data)) == 0 or os.readlink(self.local_raw_data) != self.raw_data_path :
+                    self.rm_old_dataset()
+                    self.symlink_dataset()
+                else :
+                    pass
+            except OSError:
+                pass
+
+        else :
+            self.symlink_dataset()
+
+
+
+    def symlink_dataset(self):
+        filenames = os.listdir(self.raw_data_path)
+        temp_file_path = os.path.join(self.local_data_path, 'filenames.yaml')
+        with open(temp_file_path, 'w') as file:
+            yaml.dump(filenames, file)
+
+        os.symlink(self.raw_data_path, self.local_raw_data)
+
+
+    def rm_old_dataset(self):
+        
+        for f in ['raw','filenames.yaml', 'processed'] :
+            file_location = os.path.join(self.local_data_path, f)
+            try:
+                os.remove(file_location)
+            except IsADirectoryError:
+                os.rmdir(file_location)
+            else :
+                pass
+
