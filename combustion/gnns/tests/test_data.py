@@ -11,26 +11,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
+"""
+Test Data file
+"""
+
 import unittest
+import os
+
 import h5py
+import data
 import yaml
 import tempfile
 import numpy as np
 import torch
-import warnings
 
-from data import CombustionDataset, LitCombustionDataModule
+import warnings
 
 
 class TestData(unittest.TestCase):
-    """Data test suite."""
-
+    """
+    Data test file
+    """
+    
+    
     def setUp(self) -> None:
-        """Define default parameters."""
+        """
+        define default parameters
+        """
+        
         self.filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
-        self.initParam = {'batch_size': 1, 'num_workers': 0, 'y_normalizer': 342.553}
-
+        self.initParam = {'batch_size': 1, 'num_workers' : 0, 'y_normalizer' : 342.553}
+        
+        
     def create_env(self, tempdir):
         
         os.mkdir(os.path.join(tempdir,"data"))
@@ -50,74 +62,90 @@ class TestData(unittest.TestCase):
             
             
 
-
     def create_obj_rm_warning(self, path):
-        """Instantiante the CombustionDataset object with a warning filtering."""
+        
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             return data.CnfDataset(path)
-
+                
     def test_raw_file_names(self):
-        """Test raw file name."""
+        """
+        test raw file name
+        """
+        
         with tempfile.TemporaryDirectory() as tempdir:
+            
             self.create_env(tempdir)
-            data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
-
+            data_test = self.create_obj_rm_warning(os.path.join(tempdir,"data"))
+            
             raw_test = data_test.raw_file_names
             self.assertEqual(len(self.filenames), len(raw_test))
-
+        
+    
     def test_processed_file_names(self):
-        """Test processed file name."""
+        """
+        test processed file name
+        """
+        
         with tempfile.TemporaryDirectory() as tempdir:
+            
             self.create_env(tempdir)
-
-            data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
+            
+            data_test = self.create_obj_rm_warning(os.path.join(tempdir,"data"))
             processed_test = data_test.processed_file_names
-
+            
             self.assertEqual(len(self.filenames), len(processed_test))
-
+            
+            
     def test_download(self):
-        """Test download raise error."""
+        """
+        test download raise error
+        """
+        
         with tempfile.TemporaryDirectory() as tempdir:
+            
             self.create_env(tempdir)
-            data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
-
+            data_test = self.create_obj_rm_warning(os.path.join(tempdir,"data"))
+            
             with self.assertRaises(RuntimeError) as context:
-                _ = data_test.download()
+                download_test = data_test.download()
                 self.assertTrue('Data not found.' in str(context.exception))
-
+                
     def test_process(self):
-        """Test download raise error."""
+        """
+        test download raise error
+        """
+        
         with tempfile.TemporaryDirectory() as tempdir:
+            
             self.create_env(tempdir)
-            data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
+            data_test = self.create_obj_rm_warning(os.path.join(tempdir,"data"))
             data_test.process()
-
-            self.assertTrue(os.path.exists(os.path.join(tempdir, "data", "processed")))
-
+            
+            self.assertTrue(os.path.exists(os.path.join(tempdir,"data","processed")))
+            
             # insert +2 to have transform and filter files
-            self.assertEqual(
-                len(os.listdir(os.path.join(tempdir, "data", "processed"))),
-                len(self.filenames) + 2
-            )
-
+            self.assertEqual(len(os.listdir(os.path.join(tempdir,"data","processed"))), len(self.filenames)+2)
+            
     def test_get(self):
-        """Test download raise error."""
+        """
+        test download raise error
+        """
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
-            data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
+            data_test = self.create_obj_rm_warning(os.path.join(tempdir,"data"))
             data_get = data_test.get(2)
-
-            self.assertEqual(len(data_get.x), 10 * 10 * 10)
-
+            
+            self.assertEqual(len(data_get.x), 10*10*10)
+            
     def test_setup(self):
-        """Test the "setup" method."""
+        
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
-            _ = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
-
-            dataset_test = LitCombustionDataModule(**self.initParam)
-
+            data_test = self.create_obj_rm_warning(os.path.join(tempdir,"data"))
+            
+            dataset_test = data.LitCombustionDataModule(**self.initParam)
+            
             with self.assertRaises(ValueError) as context:
                 size_dataset_test = dataset_test.setup(stage=None ,
                                                        data_path=os.path.join(tempdir,"data"),
@@ -133,7 +161,6 @@ class TestData(unittest.TestCase):
 
         
     def test_train_dataloader(self):
-        """Test the "train_dataloader"."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             data_test = self.create_obj_rm_warning(os.path.join(tempdir,"data"))
@@ -147,9 +174,9 @@ class TestData(unittest.TestCase):
             
             test_train_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_train_dl, torch.utils.data.DataLoader))
-
+            
+            
     def test_val_dataloader(self):
-        """Test the "val_dataloader"."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             data_test = self.create_obj_rm_warning(os.path.join(tempdir,"data"))
@@ -162,11 +189,9 @@ class TestData(unittest.TestCase):
                                                        raw_data_path=os.path.join(tempdir,"data", "_raw"))
             
             test_val_dl = dataset_test.train_dataloader()
-
             self.assertTrue(isinstance(test_val_dl, torch.utils.data.DataLoader))
-
+            
     def test_test_dataloader(self):
-        """Test the "test_dataloader"."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             data_test = self.create_obj_rm_warning(os.path.join(tempdir,"data"))
@@ -180,7 +205,7 @@ class TestData(unittest.TestCase):
             
             test_test_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_test_dl, torch.utils.data.DataLoader))
-
-
+            
+    
 if __name__ == '__main__':
     unittest.main()
