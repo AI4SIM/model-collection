@@ -90,7 +90,7 @@ class InferencePthGnn:
         path_name = os.path.splitext(os.path.basename(self.data_path))[0] + '.data'
         return os.path.join(self.wkd, path_name)
 
-    def _create_graph(self, feat: torch.Tensor, save: bool=False):
+    def _create_graph(self, feat: torch.Tensor, save: bool = False):
         """Format the input data as a graph to be provided to the GNN. The processed data can be
         saved in a pickle file, if "save" is True.
 

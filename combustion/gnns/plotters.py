@@ -177,7 +177,7 @@ class Plotter:
 
     def cross_section(self,
                       zslice: int,
-                      y: np.ndarray,
+                      y_val: np.ndarray,
                       y_hat: np.ndarray,
                       y_title: str = 'Ground Truth',
                       y_hat_title: str = 'Prediction',
@@ -237,6 +237,6 @@ class Plotter:
                               xaxis3=dict(domain=[0.7, 0.97])
                              )
 
-            fig.show()
+            # fig.show()
             if save:
                 fig.write_image(os.path.join(plot_path, f"cross-section-{self.model_type}-{i}.png"))
