@@ -88,7 +88,7 @@ def lint(session):
     session.install("flake8-use-fstring")
     session.install("flake8-variables-names")
     session.install("pep8-naming")
-    session.run("flake8", "--config", FLAKE8_CFG, "--exit-zero")
+    session.run("flake8", "--config", FLAKE8_CFG)
 
 
 @nox.session
