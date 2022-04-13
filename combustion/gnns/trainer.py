@@ -24,7 +24,6 @@ import config
 import data  # noqa: F401 'data' imported but unused
 
 
-
 class Trainer(pl.Trainer):
     """
     Modified PyTorch Lightning Trainer that automatically tests, logs, and writes artifacts by
@@ -64,6 +63,7 @@ class Trainer(pl.Trainer):
             num_sanity_val_steps=0)
 
     def save(self, results, path=config.artifacts_path):
+        """Save the results of the training and the learned model."""
         result_file = os.path.join(config.artifacts_path, "results.json")
         with open(result_file, "w") as f:
             json.dump(results, f)

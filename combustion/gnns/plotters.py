@@ -119,7 +119,7 @@ class Plotter:
         ax.set_ylabel(f"$RMSE$({self.label_predicted}, {self.label_target})")
         plt.savefig(os.path.join(plot_path, f"boxplot-{self.model_type}"))
         plt.close()
-    
+
     def total_flame_surface(self,
                             y_target: np.ndarray,
                             y_hat: np.ndarray,
@@ -184,6 +184,7 @@ class Plotter:
                       norm_val: float = 1,
                       save: bool = False,
                       plot_path=config.plots_path) -> None:
+        """Plot the cross_section and save it in image."""
         for i in range(y_hat.shape[0]):
             y_val = y_val.reshape((-1,) + self.grid_shape)
             y_hat = y_hat.reshape((-1,) + self.grid_shape)
@@ -198,32 +199,32 @@ class Plotter:
                                 subplot_titles=[y_title, y_hat_title, "Difference"],
                                 specs=[[{}, None, {}, None, {}, None]])
             fig.add_trace(go.Contour(z=sigma[zslice, :, :],
-                                  zmin=0,
-                                  zmax=950 / norm_val,
-                                  contours=dict(showlines=False,
-                                                showlabels=False,),
-                                  line=dict(width=0),
-                                  contours_coloring='heatmap',
-                                  colorscale="IceFire",
-                                  colorbar = dict(x=0.27)), row=1, col=1)
+                                     zmin=0,
+                                     zmax=950 / norm_val,
+                                     contours=dict(showlines=False,
+                                                   showlabels=False,),
+                                     line=dict(width=0),
+                                     contours_coloring='heatmap',
+                                     colorscale="IceFire",
+                                     colorbar=dict(x=0.27)), row=1, col=1)
             fig.add_trace(go.Contour(z=prediction[zslice, :, :],
-                                  zmin=0,
-                                  zmax=950 / norm_val,
-                                  contours=dict(showlines=False,
-                                                showlabels=False,),
-                                  line=dict(width=0),
-                                  contours_coloring='heatmap',
-                                  colorscale="IceFire",
-                                  colorbar = dict(x=0.62)), row=1, col=3)
-            fig.add_trace(go.Contour(z=sigma[zslice, :, :]-prediction[zslice, :, :],
-                                  zmin=-300 / norm_val,
-                                  zmax=300 / norm_val,
-                                  contours=dict(showlines=False,
-                                                showlabels=False,),
-                                  line=dict(width=0), 
-                                  contours_coloring='heatmap',
-                                  colorscale="RdBu_r",
-                                  colorbar=dict(x=0.97)), row=1, col=5)
+                                     zmin=0,
+                                     zmax=950 / norm_val,
+                                     contours=dict(showlines=False,
+                                                   showlabels=False,),
+                                     line=dict(width=0),
+                                     contours_coloring='heatmap',
+                                     colorscale="IceFire",
+                                     colorbar=dict(x=0.62)), row=1, col=3)
+            fig.add_trace(go.Contour(z=sigma[zslice, :, :] - prediction[zslice, :, :],
+                                     zmin=-300 / norm_val,
+                                     zmax=300 / norm_val,
+                                     contours=dict(showlines=False,
+                                                   showlabels=False,),
+                                     line=dict(width=0),
+                                     contours_coloring='heatmap',
+                                     colorscale="RdBu_r",
+                                     colorbar=dict(x=0.97)), row=1, col=5)
 
             fig.update_layout(width=1756, height=450)
             fig.update_xaxes(title_text="x direction", row=1, col=1)
@@ -235,8 +236,8 @@ class Plotter:
             fig.update_layout(xaxis=dict(domain=[0, 0.27]),
                               xaxis2=dict(domain=[0.35, 0.62]),
                               xaxis3=dict(domain=[0.7, 0.97])
-                             )
+                              )
 
-            # fig.show()
+            fig.show()
             if save:
                 fig.write_image(os.path.join(plot_path, f"cross-section-{self.model_type}-{i}.png"))

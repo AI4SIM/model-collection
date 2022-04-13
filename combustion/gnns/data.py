@@ -26,8 +26,7 @@ import config
 
 
 class CombustionDataset(pyg.data.Dataset):
-    """
-    Creates graphs usable for GNNs using the standard PyG data structure. Each graph is built with
+    """Create graphs usable for GNNs using the standard PyG data structure. Each graph is built with
     x = c and y = sigma, and is a regular cartesian grid with uniform connexions. Each graph is
     serialized on disk using standard PyTorch API.
 

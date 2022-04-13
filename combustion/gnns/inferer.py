@@ -1,3 +1,4 @@
+"""This module proposes classes for inference in the gnn use-case"""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -20,29 +21,28 @@ import torch_geometric as pyg
 from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.cli import LightningCLI
 
+CWD = os.getcwd()
 
-class InferencePthGnn:
-    """The inference class used to infer the data provided through a file with the model provided
-    through a checkpoint save.
+
+class Inferer:
+    """The inference mother class used to infer the data provided through a file with the model
+    provided saved file.
     """
+
     def __init__(self,
                  model_path: str,
                  data_path: str,
-                 model_class: LightningModule = None,
-                 wkd: str = os.getcwd()):
-        """Init the InferencePthGnn class with additional args required (y_normalizer, model_class).
-        The model is automatically loaded from the checkpoint during the initialization.
+                 wkd: str = CWD):
+        """Init the Inferer class.
+        The model is automatically loaded from the input file during the initialization.
 
         Args:
             model_path (str): the path of the model checkpoint.
             data_path (str): the path of the input data to be infered.
-            model_class (LightningModule): the class that as generated the saved model.
             wkd (str): the path of the inference working directory were the data could be saved.
         """
         self.model_path = model_path
         self.data_path = data_path
-        self.model_class = model_class
-
         self.wkd = wkd
 
         # init the additional attributes to None
@@ -55,8 +55,64 @@ class InferencePthGnn:
         logging.info("NN model loaded")
 
     def load_nn(self):
+        """Load the NN model from a .pt model saved with torch.save. That requires to restore the
+        model in the same environment that the one that generated the model (all external and
+        internal dependencies).
+        """
+        self.model = torch.load(self.model_path)
+        self.model.eval()
+
+    def _load_data(self):
+        """Load the input data that will be injected in the model to process the inference."""
+        raise NotImplementedError
+
+    @property
+    def data_processed_path(self):
+        """Provide a path to store the preprocessed data, in order to save time between successive
+        inference runs on the same data.
+        """
+        path_name = os.path.splitext(os.path.basename(self.data_path))[0] + '.data'
+        return os.path.join(self.wkd, path_name)
+
+    def preprocess(self, save: bool = False):
+        """Preprocess the input data to provide the self.data.
+
+        Args:
+            save (bool): If the preprocessed data will be saved in a file or not. Default, False.
+        """
+        self.data = self._load_data()
+
+    def predict(self):
+        """Run the inference of self.data on the restored model."""
+        return self.model(self.data)
+
+
+class InferencePthGnn(Inferer):
+    """The inference class used to infer the R3 data provided through a file with the GNN model
+    learned on R2 data and provided through a checkpoint save file.
+    """
+
+    def __init__(self,
+                 model_path: str,
+                 data_path: str,
+                 model_class: LightningModule = None,
+                 wkd: str = CWD):
+        """Init the InferencePthGnn class with additional args required (model_class).
+        The model is automatically loaded from the checkpoint during the initialization.
+
+        Args:
+            model_path (str): the path of the model checkpoint.
+            data_path (str): the path of the input data to be infered.
+            model_class (LightningModule): the class that as generated the saved model.
+            wkd (str): the path of the inference working directory were the data could be saved.
+        """
+        self.model_class = model_class
+        super().__init__(model_path, data_path, wkd)
+
+    def load_nn(self):
         """Load the NN model from a checkpoint. That requires to restores the model states in the
-        class that generated the model (provided as input of the class, "model_class")."""
+        class that generated the model (provided as input of the class, "model_class").
+        """
         self.model = self.model_class.load_from_checkpoint(self.model_path)
         self.model.eval()
 
@@ -69,7 +125,8 @@ class InferencePthGnn:
 
     def _load_y_dns(self):
         """Load the ground truth data provided in the input file, to be used in a post inference
-        validation step. These data corresponds to the DNS ones."""
+        validation step. These data corresponds to the DNS ones.
+        """
         with h5py.File(self.data_path, 'r') as file:
             y_gt = file["/c_grad_filt"][:]
             logging.info("Data ground truth R3 loaded")
@@ -77,18 +134,12 @@ class InferencePthGnn:
 
     def _load_y_les(self):
         """Load additional data provided in the input file, to be used in a post inference
-        validation step. These data corresponds to the LES ones."""
+        validation step. These data corresponds to the LES ones.
+        """
         with h5py.File(self.data_path, 'r') as file:
             y_les = file["/c_filt_grad"][:]
             logging.info("Data ground truth LES loaded")
             return y_les
-
-    @property
-    def data_processed_path(self):
-        """Provide a path to store the preprocessed data, inorder to save time between successive
-        inference runs on the same data."""
-        path_name = os.path.splitext(os.path.basename(self.data_path))[0] + '.data'
-        return os.path.join(self.wkd, path_name)
 
     def _create_graph(self, feat: torch.Tensor, save: bool = False):
         """Format the input data as a graph to be provided to the GNN. The processed data can be
@@ -120,7 +171,7 @@ class InferencePthGnn:
 
     def preprocess(self, save: bool = False):
         """Preprocess the input data to provide the self.data.
-        
+
         Args:
             save (bool): If the preprocessed data will be saved in a file or not. Default, False.
         """
@@ -137,9 +188,10 @@ if __name__ == "__main__":
     cli = LightningCLI(run=False)
 
     inferer = InferencePthGnn(
-        model_path="exp_save/gin_1000epoch_0.96r2/offline-burrito/logs/version_0/checkpoints/epoch=999-step=35999.ckpt",  # noqa:
-        data_path='/net/172.16.118.188/data/raise/R2_flame/combustiondatabase/R2-filtered/R3-data/smaller_new_filt_15_F_4_cropped_progvar_R3.h5',
-        model_class=cli.model.__class__
+        model_path="/scratch/vincentl/ai4sim/gnn_r2_r2_exp/exp_save/gin_1000epoch_0.96r2/offline-burrito/logs/version_0/checkpoints/epoch=999-step=35999.ckpt",  # noqa: E501 line too long
+        data_path='/net/172.16.118.188/data/raise/R2_flame/combustiondatabase/R2-filtered/R3-data/smaller_new_filt_15_F_4_cropped_progvar_R3.h5',  # noqa: E501 line too long
+        model_class=cli.model.__class__,
+        wkd='/scratch/vincentl/ai4sim/gnn_r2_r2_exp/'
     )
 
     logging.info("Start creating data from input data ...")
