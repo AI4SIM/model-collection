@@ -49,19 +49,20 @@ Please note, some of them are experimentation oriented, while other ones are CI/
 You can launch a demo training on the model use case with:
 ```shell
 nox -s train
+```
 
 ## Development mode
 The nox target are also very useful to launch generic command during development phase.
 
 ### Run unit tests
 You can run the whole unit test suite of a use case, using ``pytest``, with:
-````shell
+```shell
 nox -s tests
-````
+```
 This target also prints out the coverage report and save a xml version in ``.ci-reports/``.
 
 ### Run linting
 You can run the python linting of the code use case, using ``flake8``, with:
-````shell
+```shell
 nox -s lint
-````
+```
