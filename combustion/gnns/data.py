@@ -73,41 +73,35 @@ class CombustionDataset(pyg.data.Dataset):
         )
 
     def get(self, idx: int) -> pyg.data.Data:
-        """
-        Returns the graph at the given index.
-        
+        """Return the graph at the given index.
+
         Returns:
             (pyg.data.Data): Graph at the given index.
         """
-        data = torch.load(os.path.join(self.processed_dir, 'data-{}.pt'.format(idx)))
+        data = torch.load(os.path.join(self.processed_dir, f'data-{idx}.pt'))
         return data
-    
+
     def len(self) -> int:
-        """
-        Returns the total length of the dataset
-        
+        """Return the total length of the dataset
+
         Returns:
             (int): Dataset length.
         """
         return len(self.raw_file_names)
 
-    
 
-class R2Dataset(CombustionDataset) :
-    
+class R2Dataset(CombustionDataset):
+    """Class to process data for the R2 Use case."""
+
     def __init__(self, root: str, y_normalizer: float = None):
-        """
-        Creates the Dataset.
-        
+        """Create the Dataset.
+
         Args:
             root (str): Path to the root data folder.
             y_normalizer (str): normalizing value
         """
-        
         super().__init__(root, y_normalizer)
-        
-        
-    
+
     def process(self) -> None:
         """
         Create a graph for each volume of data, and saves each graph in a separate file index by
@@ -116,13 +110,13 @@ class R2Dataset(CombustionDataset) :
         i = 0
         for raw_path in self.raw_paths:
             with h5py.File(raw_path, 'r') as file:
-                c = file["/c_filt"][:]
-                
+                feat = file["/c_filt"][:]
+
                 sigma = file["/c_grad_filt"][:]
                 if self.y_normalizer:
                     sigma /= self.y_normalizer
-                
-            x_size, y_size, z_size = c.shape
+
+            x_size, y_size, z_size = feat.shape
 
             grid_shape = (z_size, y_size, x_size)
 
@@ -141,70 +135,64 @@ class R2Dataset(CombustionDataset) :
 
             torch.save(data, os.path.join(self.processed_dir, f'data-{i}.pt'))
             i += 1
-            
-            
-class CnfDataset(CombustionDataset) :
-    
+
+
+class CnfDataset(CombustionDataset):
+    """Class to process data for the CNF Use case."""
+
     def __init__(self, root: str, y_normalizer: float = None):
-        """
-        Creates the Dataset.
-        
+        """Create the Dataset.
+
         Args:
             root (str): Path to the root data folder.
-            y_normalizer (str): normalizing value
+            y_normalizer (str): normalizing value.
         """
-        
         super().__init__(root, y_normalizer)
-        
-        
-    
+
     def process(self) -> None:
         """
-        Creates a graph for each volume of data, and saves each graph in a separate file index by the order in the raw file names list.
+        Create a graph for each volume of data, and saves each graph in a separate file index by
+        the order in the raw file names list.
         """
-        
         i = 0
         for raw_path in self.raw_paths:
-            
             with h5py.File(raw_path, 'r') as file:
-                c = file["/filt_8"][:]
-                
-                sigma = file["/filt_grad_8"][:]
-                if self.y_normalizer:
-                    sigma /= self.y_normalizer
-                        
-            x_size, y_size, z_size = c.shape
+                feat = file["/filt_8"][:]
+
+                if self.y_normalizer is not None:
+                    sigma = file["/filt_grad_8"][:] / self.y_normalizer
+                else:
+                    sigma = file["/filt_grad_8"][:]
+
+            x_size, y_size, z_size = feat.shape
             grid_shape = (z_size, y_size, x_size)
-            
+
             g0 = nx.grid_graph(dim=grid_shape)
             graph = pyg.utils.convert.from_networkx(g0)
             undirected_index = graph.edge_index
             coordinates = list(g0.nodes())
             coordinates.reverse()
-                
+
             data = pyg.data.Data(
-                x=torch.tensor(c.reshape(-1,1), dtype=torch.float), 
+                x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
                 edge_index=torch.tensor(undirected_index, dtype=torch.long),
                 pos=torch.tensor(np.stack(coordinates)),
-                y=torch.tensor(sigma.reshape(-1,1), dtype=torch.float)
+                y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float)
             )
 
-            torch.save(data, os.path.join(self.processed_dir, 'data-{}.pt'.format(i)))
+            torch.save(data, os.path.join(self.processed_dir, f'data-{i}.pt'))
             i += 1
 
 
 @DATAMODULE_REGISTRY
 class LitCombustionDataModule(pl.LightningDataModule):
     """
-    Creates train, val, and test splits for the CNF Combustion UC—current setup being (111, 8, 8).
+    Create train, val, and test splits for the CNF Combustion UC—current setup being (111, 8, 8).
     Training set is randomized.
     """
-    
-    def __init__(self, 
-                 batch_size: int, 
-                 num_workers: int, 
-                 y_normalizer: float) -> None:
-        """
+
+    def __init__(self, batch_size: int, num_workers: int, y_normalizer: float) -> None:
+        """Init the LitCombustionDataModule class.
 
         Args:
             batch_size (int): Batch size.
@@ -215,8 +203,8 @@ class LitCombustionDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.y_normalizer = y_normalizer
-        self.local_raw_data = os.path.join(config.data_path , 'raw')
-        
+        self.local_raw_data = os.path.join(config.data_path, 'raw')
+
         super().__init__()
 
         # init the attribute
@@ -228,32 +216,29 @@ class LitCombustionDataModule(pl.LightningDataModule):
         """Not used."""
         CombustionDataset(config.data_path, self.y_normalizer)
 
-    def setup(self, stage:str , data_path=config.data_path, raw_data_path=config.data_path) -> None:
-        """
-        Creates the main Dataset and splits the train, test and validation Datasets from the main
+    def setup(self, stage: str, data_path=config.data_path, raw_data_path=config.data_path) -> None:
+        """Create the main Dataset and splits the train, test and validation Datasets from the main
         Dataset. Currently the repartition is respectively, 80%, 10% and 10% from the main Dataset
         size. Creates symbolic links from origin data.
 
         Args:
-            stage (str): Unsed.
+            data_path (str): Path of the data.
 
         Raises:
             ValueError: if the main dataset is too small and leads to have an empty dataset.
         """
-        
         config.LinkRawData(raw_data_path, data_path)
-        
+
         dataset = R2Dataset(data_path, y_normalizer=self.y_normalizer).shuffle()
         dataset_size = len(dataset)
 
-        self.val_dataset = dataset[int(dataset_size*0.9):]
-        self.test_dataset = dataset[int(dataset_size*0.8):int(dataset_size*0.9)]
-        self.train_dataset = dataset[:int(dataset_size*0.8)]
+        self.val_dataset = dataset[int(dataset_size * 0.9):]
+        self.test_dataset = dataset[int(dataset_size * 0.8):int(dataset_size * 0.9)]
+        self.train_dataset = dataset[:int(dataset_size * 0.8)]
 
         if not (self.val_dataset and self.test_dataset and self.train_dataset):
             raise ValueError("The dataset is too small to be split properly. "
                              f"Current length is : {dataset_size}.")
-        
 
     def train_dataloader(self) -> pyg.loader.DataLoader:
         """Return the train DataLoader.

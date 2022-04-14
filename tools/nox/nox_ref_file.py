@@ -81,7 +81,7 @@ def tests(session):
     """Target to run unit tests on the code with pytest, and generate coverage report."""
     dev_dependencies(session)
     session.install("pytest-cov")
-    session.run("python", "-m", "pytest", "--cache-clear", "--cov=./", "-v")
+    session.run("python", "-m", "pytest", "--cache-clear", "--cov=./", "--cov-fail-under=80", "-v")
     session.notify("coverage_report")
 
 
@@ -101,7 +101,7 @@ def lint(session):
     session.install("flake8-use-fstring")
     session.install("flake8-variables-names")
     session.install("pep8-naming")
-    session.run("flake8", "--config", FLAKE8_CFG, "--exit-zero")
+    session.run("flake8", "--config", FLAKE8_CFG)
 
 
 @nox.session

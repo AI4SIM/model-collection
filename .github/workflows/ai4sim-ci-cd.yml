@@ -13,6 +13,7 @@ jobs:
           - combustion/gnns/
           - combustion/unets/
           - weather_forecast/gwd/
+      fail-fast: false
 
     steps:
     - name: Checkout sources
