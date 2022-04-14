@@ -4,6 +4,19 @@ This file is generic and aims at:
     - providing the common targets that can be used in all use cases,
     - defining a model of the different targets each use case should propose.
 """
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import subprocess
 from pathlib import Path
@@ -111,7 +124,7 @@ def tests(session):
     """Target to run unit tests on the code with pytest, and generate coverage report."""
     dev_dependencies(session)
     session.install("pytest-cov")
-    session.run("python", "-m", "pytest", "--cache-clear", "--cov=./", "-v")
+    session.run("python", "-m", "pytest", "--cache-clear", "--cov=./", "--cov-fail-under=80", "-v")
     session.notify("coverage_report")
 
 
@@ -131,7 +144,7 @@ def lint(session):
     session.install("flake8-use-fstring")
     session.install("flake8-variables-names")
     session.install("pep8-naming")
-    session.run("flake8", "--config", FLAKE8_CFG, "--exit-zero")
+    session.run("flake8", "--config", FLAKE8_CFG)
 
 
 @nox.session

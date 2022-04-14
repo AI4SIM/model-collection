@@ -18,7 +18,6 @@ from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
 from typing import List, Union
-
 import config
 import data  # noqa: F401 'data' imported but unused
 
