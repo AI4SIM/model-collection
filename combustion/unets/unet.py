@@ -1,16 +1,14 @@
-'''
-    Licensed under the Apache License, Version 2.0 (the "License");
-    * you may not use this file except in compliance with the License.
-    * You may obtain a copy of the License at
-    *
-    *     http://www.apache.org/licenses/LICENSE-2.0
-    *
-    * Unless required by applicable law or agreed to in writing, software
-    * distributed under the License is distributed on an "AS IS" BASIS,
-    * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    * See the License for the specific language governing permissions and
-    * limitations under the License.
-'''
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from torch import cat
 import torch.nn as nn
@@ -29,7 +27,12 @@ class UNet3D(nn.Module):
         bilinear: Whether to use bilinear interpolation or transposed convolutions for upsampling.
     """
 
-    def __init__(self, inp_feat: int, out_feat: int, n_levels: int, n_features_root: int, bilinear: bool = False):
+    def __init__(self,
+                 inp_feat: int,
+                 out_feat: int,
+                 n_levels: int,
+                 n_features_root: int,
+                 bilinear: bool = False):
         super().__init__()
         self.n_levels = n_levels
 
@@ -63,7 +66,8 @@ class UNet3D(nn.Module):
 class DoubleConv(nn.Module):
     """
     DoubleConv block (3x3x3 conv -> BN -> ReLU) ** 2.
-    The residual option allows to short-circuit the convolutions with an additive residual (ResNet-like).
+    The residual option allows to short-circuit the convolutions
+    with an additive residual (ResNet-like).
     """
 
     def __init__(self, inp_ch: int, out_ch: int, residual: bool = False):
@@ -75,22 +79,26 @@ class DoubleConv(nn.Module):
             nn.Conv3d(out_ch, out_ch, kernel_size=3, padding=1),
             nn.BatchNorm3d(out_ch),
             nn.ReLU(inplace=True))
-        if residual: self.additive_residual = nn.Conv3d(inp_ch, out_ch, kernel_size=1, bias=False)
-        else: self.additive_residual = None
+        if residual:
+            self.additive_residual = nn.Conv3d(inp_ch, out_ch, kernel_size=1, bias=False)
+        else:
+            self.additive_residual = None
 
     def forward(self, x):
-        if self.additive_residual is not None: return self.net(x) + self.additive_residual(x)
-        else: return self.net(x)
+        if self.additive_residual is not None:
+            return self.net(x) + self.additive_residual(x)
+        else:
+            return self.net(x)
 
 
 class Downsampler(nn.Module):
-    """
-    Combination of MaxPool3d and DoubleConv in series.
-    """
+    """Combination of MaxPool3d and DoubleConv in series."""
 
     def __init__(self, inp_ch: int, out_ch: int):
         super().__init__()
-        self.net = nn.Sequential(nn.MaxPool3d(kernel_size=2, stride=2), DoubleConv(inp_ch, out_ch))
+        self.net = nn.Sequential(
+            nn.MaxPool3d(kernel_size=2, stride=2),
+            DoubleConv(inp_ch, out_ch))
 
     def forward(self, x):
         return self.net(x)
@@ -98,8 +106,9 @@ class Downsampler(nn.Module):
 
 class Upsampler(nn.Module):
     """
-    Upsampling (by either bilinear interpolation or transpose convolutions) followed by concatenation of feature
-    map from contracting path, followed by double 3x3x3 convolution.
+    Upsampling (by either bilinear interpolation or transpose convolutions)
+    followed by concatenation of feature map from contracting path,
+    followed by double 3x3x3 convolution.
     """
 
     def __init__(self, inp_ch: int, out_ch: int, bilinear: bool = False):
@@ -119,7 +128,9 @@ class Upsampler(nn.Module):
         # Pad x1 to the size of x2.
         diff_h = x2.shape[2] - x1.shape[2]
         diff_w = x2.shape[3] - x1.shape[3]
-        x1 = nn.functional.pad(x1, [diff_w // 2, diff_w - diff_w // 2, diff_h // 2, diff_h - diff_h // 2])
+        x1 = nn.functional.pad(
+            x1,
+            [diff_w // 2, diff_w - diff_w // 2, diff_h // 2, diff_h - diff_h // 2])
 
         # Concatenate along the channels axis.
         x = cat([x2, x1], dim=1)
