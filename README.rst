@@ -46,6 +46,11 @@ A docker file is provided to get started. To build the image, run the following 
 To install the corresponding python requirements for a use-case an entrypoint is implemented. It can be selected by one of the folling [combustion_gnns, combustion_unets, wf_gwd]:
 ::
     docker run -it --rm ai4sim ./script.sh combustion_gnns
+    
+To get inside the container:
+::
+    docker run -it --rm -e bash ai4sim
+    
 
 Requirements
 -----------------
