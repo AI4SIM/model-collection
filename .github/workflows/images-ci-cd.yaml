@@ -44,10 +44,18 @@ jobs:
       
       - name: Split version code
         uses: xom9ikk/split@v1
-        id: split
+        id: split_path
         with:
           string: ${{ matrix.docker-path }}
           separator: /
+          limit: -1
+
+      - name: Split version code
+        uses: xom9ikk/split@v1
+        id: split_tag
+        with:
+          string: ${{ steps.meta.outputs.tags }}
+          separator: ":"
           limit: -1
 
       - name: Build and push Docker images
@@ -55,5 +63,5 @@ jobs:
         with:
           context: ${{ matrix.docker-path }}
           push: true
-          tags: ${{ steps.split.outputs._1 }}_${{ steps.meta.outputs.tags }}
+          tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._1 }}"
           labels: ${{ steps.meta.outputs.labels }}
