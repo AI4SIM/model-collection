@@ -26,7 +26,7 @@ WORKDIR /home/ai4sim
 # clone ai4sim code
 RUN git clone https://github.com/AI4SIM/model-collection.git
 
-ARG USE_CASE_PATH=model-collection/weather_forecast
+ARG USE_CASE_PATH=model-collection/weather_forecast/gwd
 WORKDIR $USE_CASE_PATH
 
 RUN python3 -m nox -s dev_dependencies --no-venv
