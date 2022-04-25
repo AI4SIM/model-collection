@@ -39,11 +39,21 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
+          tag : |
+            type=semver,pattern={{version}}
+      
+      - name: Split version code
+        uses: xom9ikk/split@v1
+        id: split
+        with:
+          string: ${{ matrix.docker-path }}
+          separator: /
+          limit: -1
 
       - name: Build and push Docker images
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: ${{ matrix.docker-path }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.split.outputs._1 }}_${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
