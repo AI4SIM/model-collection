@@ -14,16 +14,6 @@ jobs:
       packages: write
       contents: read
 
-    strategy:
-      matrix:
-        docker-path:
-          - combustion/gnns/
-          - combustion/unets/
-          - weather_forecast/gwd/
-      fail-fast: false
-    
-    working-directory: ${{ matrix.test-path }}
-
     steps:
       - name: Check out the repo
         uses: actions/checkout@v3
