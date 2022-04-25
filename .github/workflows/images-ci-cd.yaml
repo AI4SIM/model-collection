@@ -4,11 +4,9 @@ on:
   push:
     branches: 
       - main
-      - SBRA-357-image-ci-cd
   pull_request:
     branches:
       - main
-
 
 jobs:
   push_to_registries:
@@ -43,8 +41,6 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
-          tags : |
-            type=semver,pattern={{version}}
       
       - name: Split version code
         uses: xom9ikk/split@v1
