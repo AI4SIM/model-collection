@@ -33,7 +33,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Extract metadata (tags, labels)
-        working-directory: ${{ matrix.docker-path }}
         id: meta
         uses: docker/metadata-action@v3
         with:
