@@ -10,6 +10,14 @@ jobs:
   push_to_registries:
     name: Push Docker image to ghcr
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        docker-path:
+          - combustion/gnns/
+          - combustion/unets/
+          - weather_forecast/gwd/
+      fail-fast: false
+
     permissions:
       packages: write
       contents: read
@@ -25,13 +33,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Extract metadata (tags, labels)
+        working-directory: ${{ matrix.docker-path }}
         id: meta
-        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        uses: docker/metadata-action@v3
         with:
           images: |
             ghcr.io/${{ github.repository }}
       
       - name: Build and push Docker images
+        working-directory: ${{ matrix.docker-path }}
         uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
         with:
           context: .
