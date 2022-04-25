@@ -2,9 +2,13 @@ name: Publish Docker image
 
 on:
   push:
-    branch: 
+    branches: 
       - main
       - SBRA-357-image-ci-cd
+  pull_request:
+    branches:
+      - main
+
 
 jobs:
   push_to_registries:
@@ -39,7 +43,7 @@ jobs:
         with:
           images: |
             ghcr.io/${{ github.repository }}
-          tag : |
+          tags : |
             type=semver,pattern={{version}}
       
       - name: Split version code
