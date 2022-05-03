@@ -82,9 +82,9 @@ class TestPlotters(unittest.TestCase):
         """Test the "total_flame_surface" produces the result files."""
         with tempfile.TemporaryDirectory() as tempdir:
             tt = plotters.Plotter(self.model_type, self.grid)
-            tt.total_flame_surface(self.y, self.y_hat, tempdir)
+            tt.total_flame_surface(self.y, self.y_hat, plot_path=tempdir, save=True)
 
-            self.assertTrue(len(os.listdir(tempdir)) == self.f_num)
+            self.assertEqual(len(os.listdir(tempdir)), self.f_num)
             self.assertTrue(os.path.exists(os.path.join(
                 tempdir,
                 f"total-flame-surface-{self.model_type}-0.png"))
@@ -102,7 +102,7 @@ class TestPlotters(unittest.TestCase):
         """Test the "cross_section" produces the result files."""
         with tempfile.TemporaryDirectory() as tempdir:
             tt = plotters.Plotter(self.model_type, self.grid)
-            tt.cross_section(1, self.y, self.y_hat, tempdir)
+            tt.cross_section(1, self.y, self.y_hat, plot_path=tempdir, save=True)
 
             self.assertEqual(len(os.listdir(tempdir)), self.f_num)
             self.assertTrue(os.path.exists(os.path.join(tempdir,
