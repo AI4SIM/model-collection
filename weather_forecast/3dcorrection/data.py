@@ -1,3 +1,15 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import h5py
 import networkx as nx
 import numpy as np
@@ -15,8 +27,21 @@ from tqdm import tqdm
 import config
 
 class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
+    """
+    Creates a PyG InMeMoryDataset for the 3DCorrection UC.
+    The data are downloaded using the Climetlab library developped by ECMWF.
+    Normalization parameters are computed at this point and are used later in the model.
+    """
     
-    def __init__(self, root, step, force=False):
+    def __init__(self, root: str, step: int, force: bool=False): -> None
+        """
+        Creates the dataset.
+        
+        Args:
+            root (str): Path to the root data folder.
+            step (int): Increment between two outputs (time increment is 12 minutes so step 125 corresponds to an output every 25 hours.).
+            force (bool): Either to remove the processed files or not.
+        """
         self.step = step
         
         super().__init__(root)
@@ -28,14 +53,29 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
         self.data, self.slices = torch.load(path)
 
     @property
-    def raw_file_names(self):
+    def raw_file_names(self) -> List[str]:
+        """
+        Returns the raw data file names.
+        
+        Returns:
+            (List[str]): Raw data file names list.
+        """
         return [f"data-{self.step}.nc"]
 
     @property
-    def processed_file_names(self):
+    def processed_file_names(self) -> List[str]:
+        """
+        Returns the processed data file names.
+        
+        Returns:
+            (List[str]): Processed data file names list.
+        """
         return [f"data-{self.step}.pt"]
     
-    def download(self):
+    def download(self): -> None
+        """
+        Downloads the dataset using Climetlab and stores it in a unique NetCDF file.
+        """
         import climetlab as cml
 
         cml.settings.set("cache-directory", os.path.join(self.root, "raw"))
@@ -53,7 +93,10 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
         array = cmlds.to_xarray()
         array.to_netcdf(self.raw_paths[0])
 
-    def process(self):
+    def process(self): -> None
+    """
+    Processes the data, creates a graph for each sample, and saves each graph in a separate file index by the order in the raw file names list.
+    """
         
         def broadcast_features(tensor):
             t = torch.unsqueeze(tensor, -1)
