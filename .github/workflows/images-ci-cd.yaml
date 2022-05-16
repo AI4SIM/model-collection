@@ -1,0 +1,67 @@
+name: Publish Docker image
+
+on:
+  push:
+    branches: 
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  push_to_registries:
+    name: Push Docker image to multiple registries
+    runs-on: ubuntu-latest   
+    permissions:
+      packages: write
+      contents: read
+
+    strategy:
+      matrix:
+        docker-path:
+          - combustion/gnns/
+          - combustion/unets/
+          - weather_forecast/gwd/
+      fail-fast: false
+    
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      
+      - name: Log in to the Container registry
+        uses: docker/login-action@f054a8b539a109f9f41c372932f1ae047eff08c9
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
+        with:
+          images: |
+            ghcr.io/${{ github.repository }}
+      
+      - name: Split version code
+        uses: xom9ikk/split@v1
+        id: split_path
+        with:
+          string: ${{ matrix.docker-path }}
+          separator: /
+          limit: -1
+
+      - name: Split version code
+        uses: xom9ikk/split@v1
+        id: split_tag
+        with:
+          string: ${{ steps.meta.outputs.tags }}
+          separator: ":"
+          limit: -1
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        with:
+          context: ${{ matrix.docker-path }}
+          push: true
+          tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._1 }}"
+          labels: ${{ steps.meta.outputs.labels }}
