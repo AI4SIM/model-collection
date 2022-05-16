@@ -37,6 +37,21 @@ Quick Start
 ===============
 Each UC can be experimented in an easy and quick way using predifined command exposed through the Nox tool.
 
+Docker
+-----------------
+A docker file is provided to get started. To build the image, run the following command:
+::
+    docker build -t ai4sim .
+
+To install the corresponding python requirements for a use-case an entrypoint is implemented. It can be selected by one of the folling [combustion_gnns, combustion_unets, wf_gwd]:
+::
+    docker run -it --rm ai4sim ./script.sh combustion_gnns
+    
+To get inside the container:
+::
+    docker run -it --rm -e bash ai4sim
+    
+
 Requirements
 -----------------
 The following procedures only require [Nox](https://nox.thea.codes/en/stable/) is a python build tool, that allows to define targets (in a similar way that Make does), to simplify command execution in development and CI/CD pipeline. By default, each nox target is executed, in a specific virtualenv that ensure code partitioning and experiments reproducibility.
