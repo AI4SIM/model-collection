@@ -51,7 +51,7 @@ class UNet3D(nn.Module):
             f //= 2
 
         layers.append(DoubleConv(f, out_feat))
-        self.layers = nn.ModuleList(layers).double()
+        self.layers = nn.ModuleList(layers).double()  # forces double precision for the whole model.
 
     def forward(self, x):
         # xi keeps the data at each level, allowing to pass it through skip-connections.
@@ -114,6 +114,8 @@ class Upsampler(nn.Module):
     def __init__(self, inp_ch: int, out_ch: int, bilinear: bool = False):
         super().__init__()
         self.upsample = None
+        if inp_ch < 2:
+            raise ValueError('Input channel ({}) too low.'.format(inp_ch))
         if bilinear:
             self.upsample = nn.Sequential(
                 nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
@@ -126,12 +128,13 @@ class Upsampler(nn.Module):
         x1 = self.upsample(x1)
 
         # Pad x1 to the size of x2.
-        diff_h = x2.shape[2] - x1.shape[2]
-        diff_w = x2.shape[3] - x1.shape[3]
-        x1 = nn.functional.pad(
-            x1,
-            [diff_w // 2, diff_w - diff_w // 2, diff_h // 2, diff_h - diff_h // 2])
+        d2 = x2.shape[2] - x1.shape[2]
+        d3 = x2.shape[3] - x1.shape[3]
+        d4 = x2.shape[4] - x1.shape[4]
+        pad = [d4 // 2, d4 - d4 // 2,  # from last to first.
+            d3 // 2, d3 - d3 // 2,
+            d2 // 2, d2 - d2 // 2]
+        x1 = nn.functional.pad(x1, pad)
 
-        # Concatenate along the channels axis.
-        x = cat([x2, x1], dim=1)
+        x = cat([x2, x1], dim=1)  # concatenate along the channels axis.
         return self.conv(x)
