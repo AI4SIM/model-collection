@@ -102,9 +102,11 @@ class CnfCombustionDataModule(LightningDataModule):
         super().__init__()
 
     def prepare_data(self, data_path: str = config.data_path):
+        """Initialize dataset."""
         self.dataset = CnfCombustionDataset(data_path, self.y_normalizer, self.subblock_shape)
 
     def setup(self, stage: Optional[str] = None):
+        """Preprocessing: splitting and shuffling."""
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(
             self.dataset, self.splitting_lengths)
         if self.shuffling:

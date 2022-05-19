@@ -10,28 +10,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-fit:
-    model:
-        class_path: models.LitGAT
-        init_args:
-            in_channels: 1
-            hidden_channels: 32
-            out_channels: 1
-            num_layers: 4
-            dropout: .5
-            heads: 8
-            jk: "last"
-            lr: .0001
+model:
+    class_path: models.LitGAT
+    init_args:
+        in_channels: 1
+        hidden_channels: 32
+        out_channels: 1
+        num_layers: 4
+        dropout: .5
+        heads: 8
+        jk: "last"
+        lr: .0001
 
-    data:
-        class_path: data.LitCombustionDataModule
-        init_args:
-            batch_size: 1
-            num_workers: 0
-            y_normalizer : 342.553
+data:
+    class_path: data.LitCombustionDataModule
+    init_args:
+        batch_size: 1
+        num_workers: 0
+        y_normalizer: 3295.4
 
-    trainer:
-        max_epochs: 1000
-        accelerator: "gpu"
-        devices: 
-            - 0
+trainer:
+    max_epochs: 100
+    accelerator: "gpu"
+    devices:
+        - 2

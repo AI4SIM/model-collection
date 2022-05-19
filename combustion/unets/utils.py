@@ -26,7 +26,6 @@ class RandomCropper3D():
         Args:
             out_shape (int | tuple): desired shape (after cropping), expanded to 3D if int.
         """
-
         assert isinstance(out_shape, (int, tuple))
         if isinstance(out_shape, int):
             self.out_shape = (out_shape, out_shape, out_shape)
@@ -35,10 +34,7 @@ class RandomCropper3D():
             self.out_shape = out_shape
 
     def __call__(self, x, y):
-        """
-        Apply the random cropping to a (x,y) pair.
-        """
-
+        """Apply the random cropping to a (x,y) pair."""
         h, w, d = x.shape[0], x.shape[1], x.shape[2]
         bh, bw, bd = self.out_shape
         tx = randint(0, h - bh)

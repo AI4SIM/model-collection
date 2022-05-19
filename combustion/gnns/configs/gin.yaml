@@ -10,26 +10,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-fit:
-    model:
-        class_path: models.LitGIN
-        init_args:
-            in_channels: 1
-            hidden_channels: 32
-            out_channels: 1
-            num_layers: 4
-            dropout: .5
-            lr: .0001
+model:
+    class_path: models.LitGIN
+    init_args:
+        in_channels: 1
+        hidden_channels: 32
+        out_channels: 1
+        num_layers: 4
+        dropout: .5
+        lr: .0001
 
-    data:
-        class_path: data.LitCombustionDataModule
-        init_args:
-            batch_size: 1
-            num_workers: 0
-            y_normalizer : 342.553
+data:
+    class_path: data.LitCombustionDataModule
+    init_args:
+        batch_size: 1
+        num_workers: 0
+        y_normalizer: 3295.4
 
-    trainer:
-        max_epochs: 1000
-        accelerator: "gpu"
-        devices:
-            - 0
+trainer:
+    max_epochs: 1
+    accelerator: "gpu"
+    callbacks:
+      - class_path: pytorch_lightning.callbacks.EarlyStopping
+        init_args:
+          monitor: val_loss
+          patience: 30
+          mode: min
+          min_delta: 0.0
+    devices:
+        - 0
+        - 1

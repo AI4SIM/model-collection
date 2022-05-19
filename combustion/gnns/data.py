@@ -26,8 +26,7 @@ import config
 
 
 class CombustionDataset(pyg.data.Dataset):
-    """
-    Creates graphs usable for GNNs using the standard PyG data structure. Each graph is built with
+    """Create graphs usable for GNNs using the standard PyG data structure. Each graph is built with
     x = c and y = sigma, and is a regular cartesian grid with uniform connexions. Each graph is
     serialized on disk using standard PyTorch API.
 
@@ -40,6 +39,7 @@ class CombustionDataset(pyg.data.Dataset):
 
         Args:
             root (str): Path to the root data folder.
+            y_normalizer (str): normalizing value
         """
         self.y_normalizer = y_normalizer
         super().__init__(root)
@@ -70,6 +70,83 @@ class CombustionDataset(pyg.data.Dataset):
             f"Data not found. Please download the data at {'https://uftp.fz-juelich.de:9112/UFTP_Auth/rest/access/JUDAC/dc4eef36-1929-41f6-9eb9-c11417be1dcf'} "  # noqa: E501 line too long
             f"and move all files in file.tgz/DATA in {self.raw_dir}"
         )
+
+    def get(self, idx: int) -> pyg.data.Data:
+        """Return the graph at the given index.
+
+        Returns:
+            (pyg.data.Data): Graph at the given index.
+        """
+        data = torch.load(os.path.join(self.processed_dir, f'data-{idx}.pt'))
+        return data
+
+    def len(self) -> int:
+        """Return the total length of the dataset
+
+        Returns:
+            (int): Dataset length.
+        """
+        return len(self.raw_file_names)
+
+
+class R2Dataset(CombustionDataset):
+    """Class to process data for the R2 Use case."""
+
+    def __init__(self, root: str, y_normalizer: float = None):
+        """Create the Dataset.
+
+        Args:
+            root (str): Path to the root data folder.
+            y_normalizer (str): normalizing value
+        """
+        super().__init__(root, y_normalizer)
+
+    def process(self) -> None:
+        """
+        Create a graph for each volume of data, and saves each graph in a separate file index by
+        the order in the raw file names list.
+        """
+        i = 0
+        for raw_path in self.raw_paths:
+            with h5py.File(raw_path, 'r') as file:
+                feat = file["/c_filt"][:]
+
+                sigma = file["/c_grad_filt"][:]
+                if self.y_normalizer:
+                    sigma /= self.y_normalizer
+
+            x_size, y_size, z_size = feat.shape
+
+            grid_shape = (z_size, y_size, x_size)
+
+            g0 = nx.grid_graph(dim=grid_shape)
+            graph = pyg.utils.convert.from_networkx(g0)
+            undirected_index = graph.edge_index
+            coordinates = list(g0.nodes())
+            coordinates.reverse()
+
+            data = pyg.data.Data(
+                x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
+                edge_index=torch.tensor(undirected_index, dtype=torch.long),
+                pos=torch.tensor(np.stack(coordinates)),
+                y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float)
+            )
+
+            torch.save(data, os.path.join(self.processed_dir, f'data-{i}.pt'))
+            i += 1
+
+
+class CnfDataset(CombustionDataset):
+    """Class to process data for the CNF Use case."""
+
+    def __init__(self, root: str, y_normalizer: float = None):
+        """Create the Dataset.
+
+        Args:
+            root (str): Path to the root data folder.
+            y_normalizer (str): normalizing value.
+        """
+        super().__init__(root, y_normalizer)
 
     def process(self) -> None:
         """
@@ -105,28 +182,11 @@ class CombustionDataset(pyg.data.Dataset):
             torch.save(data, os.path.join(self.processed_dir, f'data-{i}.pt'))
             i += 1
 
-    def get(self, idx: int) -> pyg.data.Data:
-        """Return the graph at the given index.
-
-        Returns:
-            (pyg.data.Data): Graph at the given index.
-        """
-        data = torch.load(os.path.join(self.processed_dir, f'data-{idx}.pt'))
-        return data
-
-    def len(self) -> int:
-        """Return the total length of the dataset
-
-        Returns:
-            (int): Dataset length.
-        """
-        return len(self.raw_file_names)
-
 
 @DATAMODULE_REGISTRY
 class LitCombustionDataModule(pl.LightningDataModule):
     """
-    Creates train, val, and test splits for the CNF Combustion UC—current setup being (111, 8, 8).
+    Create train, val, and test splits for the CNF Combustion UC—current setup being (111, 8, 8).
     Training set is randomized.
     """
 
@@ -136,11 +196,16 @@ class LitCombustionDataModule(pl.LightningDataModule):
         Args:
             batch_size (int): Batch size.
             num_workers (int): DataLoader number of workers for loading data.
+            y_normalizer (float): Normalizing value.
+            data_path (str): path to raw data.
         """
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.y_normalizer = y_normalizer
+        self.local_raw_data = os.path.join(config.data_path, 'raw')
+
         super().__init__()
+
         # init the attribute
         self.val_dataset = None
         self.test_dataset = None
@@ -150,10 +215,10 @@ class LitCombustionDataModule(pl.LightningDataModule):
         """Not used."""
         CombustionDataset(config.data_path, self.y_normalizer)
 
-    def setup(self, data_path=config.data_path) -> None:
+    def setup(self, stage: str, data_path=config.data_path, raw_data_path=config.data_path) -> None:
         """Create the main Dataset and splits the train, test and validation Datasets from the main
         Dataset. Currently the repartition is respectively, 80%, 10% and 10% from the main Dataset
-        size.
+        size. Creates symbolic links from origin data.
 
         Args:
             data_path (str): Path of the data.
@@ -161,7 +226,9 @@ class LitCombustionDataModule(pl.LightningDataModule):
         Raises:
             ValueError: if the main dataset is too small and leads to have an empty dataset.
         """
-        dataset = CombustionDataset(data_path, self.y_normalizer).shuffle()
+        config.LinkRawData(raw_data_path, data_path)
+
+        dataset = R2Dataset(data_path, y_normalizer=self.y_normalizer).shuffle()
         dataset_size = len(dataset)
 
         self.val_dataset = dataset[int(dataset_size * 0.9):]

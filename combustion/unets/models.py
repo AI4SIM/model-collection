@@ -20,14 +20,13 @@ from unet import UNet3D
 
 
 class CombustionModule(LightningModule):
-    """
-    LightningModule for combustion use-cases (R2-scored).
-    """
+    """LightningModule for combustion use-cases (R2-scored)."""
 
     def forward(self, x):
         return self.model(x)
 
-    def _common_step(self, batch, batch_idx, stage):
+    def _common_step(self, batch, stage):
+        """Compute the loss, additional metrics, and log them."""
         x, y = batch
         y_hat = self(x)
         loss = func.mean_squared_error(y_hat, y)
@@ -39,19 +38,19 @@ class CombustionModule(LightningModule):
         return y_hat, loss, r2
 
     def training_step(self, batch, batch_idx):
-        _, loss, _ = self._common_step(batch, batch_idx, "train")
+        _, loss, _ = self._common_step(batch, "train")
         return loss
 
     def validation_step(self, batch, batch_idx):
-        self._common_step(batch, batch_idx, "val")
+        self._common_step(batch, "val")
 
     def test_step(self, batch, batch_idx):
-        self._common_step(batch, batch_idx, "test")
+        self._common_step(batch, "test")
 
 
 @MODEL_REGISTRY
 class LitUnet3D(CombustionModule):
-    """Lit wrapper to compile a 3D U-net, generic volume shapes."""
+    """Compile a 3D isotropic U-Net with generic volume shapes."""
 
     def __init__(self, in_channels, out_channels, n_levels, n_features_root, lr):
         super().__init__()

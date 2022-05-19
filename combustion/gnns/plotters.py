@@ -121,36 +121,68 @@ class Plotter:
         plt.close()
 
     def total_flame_surface(self,
-                            y_val: np.ndarray,
+                            y_target: np.ndarray,
                             y_hat: np.ndarray,
+                            y_hat_2: np.ndarray = None,
+                            y_hat_3: np.ndarray = None,
+                            target_title: str = "Ground Truth",
+                            pred_title: str = "Prediction GNN",
+                            pred_2_title: str = "Prediction CNN",
+                            pred_3_title: str = "Pred",
+                            save: bool = False,
                             plot_path=config.plots_path) -> None:
         """Plot the total_flame_surface and save it in image."""
-        gt_total_flame_surface = np.stack(y_val, axis=0)
+        gt_total_flame_surface = np.stack(y_target, axis=0)
         gt_total_flame_surface = np.sum(gt_total_flame_surface, axis=(2, 3))
 
         pred_total_flame_surface = np.stack(y_hat, axis=0)
         pred_total_flame_surface = np.sum(pred_total_flame_surface, axis=(2, 3))
+
+        if y_hat_2 is not None:
+            pred_total_flame_surface_2 = np.stack(y_hat_2, axis=0)
+            pred_total_flame_surface_2 = np.sum(pred_total_flame_surface_2, axis=(2, 3))
+
+        if y_hat_3 is not None:
+            pred_total_flame_surface_3 = np.stack(y_hat_3, axis=0)
+            pred_total_flame_surface_3 = np.sum(pred_total_flame_surface_3, axis=(2, 3))
 
         for i in range(gt_total_flame_surface.shape[0]):
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=np.arange(gt_total_flame_surface.shape[1]),
                                      y=gt_total_flame_surface[i, :],
                                      mode="lines+markers",
-                                     name="DNS"))
+                                     name=target_title))
             fig.add_trace(go.Scatter(x=np.arange(gt_total_flame_surface.shape[1]),
                                      y=pred_total_flame_surface[i, :],
                                      mode="lines+markers",
-                                     name=self.model_type))
+                                     name=pred_title))
+            if y_hat_2 is not None:
+                fig.add_trace(go.Scatter(x=np.arange(gt_total_flame_surface.shape[1]),
+                                         y=pred_total_flame_surface_2[i, :],
+                                         mode="lines+markers",
+                                         name=pred_2_title))
+            if y_hat_3 is not None:
+                fig.add_trace(go.Scatter(x=np.arange(gt_total_flame_surface.shape[1]),
+                                         y=pred_total_flame_surface_3[i, :],
+                                         mode="lines+markers",
+                                         name=pred_3_title))
             fig.update_layout(width=1280, height=640)
             fig.update_xaxes(title_text="x position")
             fig.update_yaxes(title_text="Total flame surface")
 
-            fig.write_image(os.path.join(plot_path,
-                                         f"total-flame-surface-{self.model_type}-{i}.png"))
+            fig.show()
+            if save:
+                fig.write_image(os.path.join(plot_path,
+                                             f"total-flame-surface-{self.model_type}-{i}.png"))
 
-    def cross_section(self, zslice: int,
+    def cross_section(self,
+                      zslice: int,
                       y_val: np.ndarray,
                       y_hat: np.ndarray,
+                      y_title: str = 'Ground Truth',
+                      y_hat_title: str = 'Prediction',
+                      norm_val: float = 1,
+                      save: bool = False,
                       plot_path=config.plots_path) -> None:
         """Plot the cross_section and save it in image."""
         for i in range(y_hat.shape[0]):
@@ -164,11 +196,11 @@ class Plotter:
             prediction = np.moveaxis(prediction, [0, -1], [-1, 0])
 
             fig = make_subplots(rows=1, cols=6,
-                                subplot_titles=["Ground Truth", f"{self.model_type}", "Difference"],
+                                subplot_titles=[y_title, y_hat_title, "Difference"],
                                 specs=[[{}, None, {}, None, {}, None]])
             fig.add_trace(go.Contour(z=sigma[zslice, :, :],
                                      zmin=0,
-                                     zmax=950,
+                                     zmax=950 / norm_val,
                                      contours=dict(showlines=False,
                                                    showlabels=False,),
                                      line=dict(width=0),
@@ -177,7 +209,7 @@ class Plotter:
                                      colorbar=dict(x=0.27)), row=1, col=1)
             fig.add_trace(go.Contour(z=prediction[zslice, :, :],
                                      zmin=0,
-                                     zmax=950,
+                                     zmax=950 / norm_val,
                                      contours=dict(showlines=False,
                                                    showlabels=False,),
                                      line=dict(width=0),
@@ -185,8 +217,8 @@ class Plotter:
                                      colorscale="IceFire",
                                      colorbar=dict(x=0.62)), row=1, col=3)
             fig.add_trace(go.Contour(z=sigma[zslice, :, :] - prediction[zslice, :, :],
-                                     zmin=-300,
-                                     zmax=300,
+                                     zmin=-300 / norm_val,
+                                     zmax=300 / norm_val,
                                      contours=dict(showlines=False,
                                                    showlabels=False,),
                                      line=dict(width=0),
@@ -205,4 +237,7 @@ class Plotter:
                               xaxis2=dict(domain=[0.35, 0.62]),
                               xaxis3=dict(domain=[0.7, 0.97])
                               )
-            fig.write_image(os.path.join(plot_path, f"cross-section-{self.model_type}-{i}.png"))
+
+            fig.show()
+            if save:
+                fig.write_image(os.path.join(plot_path, f"cross-section-{self.model_type}-{i}.png"))

@@ -29,7 +29,6 @@ class TestModels(TestCase):
             'lr': .0001}
 
     def test_forward_common_step(self):
-
         # Fake data, of dim (n_batchs, n_channels, x, y, z).
         x = from_numpy(zeros((1, self.initParam['in_channels'], 10, 10, 10)))
         y = from_numpy(zeros((1, self.initParam['in_channels'], 10, 10, 10)))
@@ -41,7 +40,7 @@ class TestModels(TestCase):
         self.assertEqual(y.shape, (1, self.initParam['out_channels'], 10, 10, 10))
 
         # Common step.
-        loss = test_unet._common_step(batch=(x, y), batch_idx=1, stage="train")
+        loss = test_unet._common_step(batch=(x, y), stage="train")
         self.assertEqual(len(loss), 3)
 
     def test_configure_optimizers(self):

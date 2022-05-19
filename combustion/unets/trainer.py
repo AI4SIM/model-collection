@@ -35,10 +35,10 @@ class Trainer(Trainer):
                  fast_dev_run: Union[int, bool] = False,
                  callbacks: Union[List[Callback], Callback, None] = None) -> None:
         """
+        Run a training session.
         Args:
             max_epochs (int): Maximum number of epochs if no early stopping logic is implemented.
         """
-
         self._devices = devices
         if accelerator == 'cpu':
             self._devices = None
@@ -53,8 +53,8 @@ class Trainer(Trainer):
 
     def test(self, **kwargs):
         """
-        Uses superclass test results and save raw results as a JSON file.
-        Stores the model weights for future use in inference mode.
+        Use superclass test results and save raw results as a JSON file.
+        Store the model weights for future use in inference mode.
         """
         results = super().test(**kwargs)[0]
         with open(join(config.artifacts_path, "results.json"), "w") as f:

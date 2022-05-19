@@ -92,9 +92,7 @@ class DoubleConv(nn.Module):
 
 
 class Downsampler(nn.Module):
-    """
-    Combination of MaxPool3d and DoubleConv in series.
-    """
+    """Combination of MaxPool3d and DoubleConv in series."""
 
     def __init__(self, inp_ch: int, out_ch: int):
         super().__init__()
