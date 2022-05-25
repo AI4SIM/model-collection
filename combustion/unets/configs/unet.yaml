@@ -14,6 +14,7 @@ fit:
             batch_size: 1
             num_workers: 0
             splitting_lengths: [111, 8, 8]
+            y_normalizer: 342.553
             subblock_shape: [32, 16, 16]  # keeping power 2 dimensions for the U-net.
 
     trainer:

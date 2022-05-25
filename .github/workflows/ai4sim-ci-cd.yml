@@ -1,0 +1,47 @@
+name: ai4sim-ci-cd
+
+on: [push, pull_request]
+
+jobs:
+  run-checks:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9]
+        test-path:
+          - combustion/gnns/
+          - combustion/unets/
+          - weather_forecast/gwd/
+      fail-fast: false
+
+    steps:
+    - name: Checkout sources
+      uses: actions/checkout@v2
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install nox build tool
+      run: pip3 install nox
+
+    - name: Analysing the code with flake8
+      working-directory: ${{ matrix.test-path }}
+      run: nox -s lint -v
+
+    - name: Run unit tests with coverage report
+      working-directory: ${{ matrix.test-path }}
+      run: nox -s tests -v
+
+    - name: Coverage Commentator
+      uses: 5monkeys/cobertura-action@master
+      with:
+        path: ${{ matrix.test-path }}.ci-reports/pycoverage.xml
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        minimum_coverage: 80
+        show_missing: true
+        link_missing_lines: true
+        link_missing_lines_source_dir: ${{ matrix.test-path }}
+        report_name: Coverage report for ${{ matrix.test-path }} use-case
