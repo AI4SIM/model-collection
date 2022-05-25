@@ -86,7 +86,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
 
 @MODEL_REGISTRY
-class LitUnet3D(ThreeDCorrectionModule):
+class LitUnet1D(ThreeDCorrectionModule):
     """Compile a 1D U-Net."""
 
     def __init__(self, in_channels, out_channels, n_levels, n_features_root, lr):

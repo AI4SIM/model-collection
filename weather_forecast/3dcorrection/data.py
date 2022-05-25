@@ -74,8 +74,9 @@ class ThreeDCorrectionDataset(Dataset):
             hr_units='K d-1')
 
         # Convert to NetCDF.
-        array = cmlds.to_xarray()
-        array.to_netcdf(self.raw_paths[0])
+        data = cmlds.to_xarray()
+        print(data)
+        data.to_netcdf(self.raw_paths[0])
 
         # TODO: split between timestep files
 
@@ -88,6 +89,7 @@ class ThreeDCorrectionDataset(Dataset):
 
         def broadcast_features(t):
             """Broadcast scalar on a column profile."""
+            # TODO: do the broadcasting in the network, to reduce mem footprint.
             t = torch.unsqueeze(t, -1)
             t = t.repeat((1, 1, 138))
             t = t.moveaxis(1, -1)
@@ -113,9 +115,9 @@ class ThreeDCorrectionDataset(Dataset):
             x = torch.cat(
                 [
                     hl_inputs,
-                    pad(inter_inputs, (0, 0, 1, 1, 0, 0)),
-                    pad(col_inputs, (0, 0, 1, 0, 0, 0)),
-                    broadcast_features(sca_inputs)  # broadcast scalars (TODO: in the network)
+                    pad(inter_inputs, (0, 0, 1, 1, 0, 0)),  # pad the column to 138.
+                    pad(col_inputs, (0, 0, 1, 0, 0, 0)),  # shift column to the bottom to 138.
+                    broadcast_features(sca_inputs)  # broadcast scalars.
                 ], dim=-1)
 
             y = torch.cat(
