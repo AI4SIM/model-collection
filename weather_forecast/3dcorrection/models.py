@@ -102,12 +102,13 @@ class LitGAT(ThreeDCorrectionModule):
                  out_channels,
                  num_layers,
                  dropout,
-                 act=nn.SiLU(inplace=True)
                  heads,
                  jk,
                  lr,
                  timestep,
-                 norm):
+                 norm,
+                 act=nn.SiLU(inplace=True),
+                ):
         super().__init__()
         self.save_hyperparameters()
         

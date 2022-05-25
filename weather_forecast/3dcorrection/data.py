@@ -24,6 +24,8 @@ import yaml
 import netCDF4
 from tqdm import tqdm
 
+from typing import List, Tuple, Optional
+
 import config
 
 class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
@@ -33,7 +35,7 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
     Normalization parameters are computed at this point and are used later in the model.
     """
     
-    def __init__(self, root: str, step: int, force: bool=False): -> None
+    def __init__(self, root: str, step: int, force: bool=False) -> None:
         """
         Creates the dataset.
         
@@ -72,7 +74,7 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
         """
         return [f"data-{self.step}.pt"]
     
-    def download(self): -> None
+    def download(self) -> None:
         """
         Downloads the dataset using Climetlab and stores it in a unique NetCDF file.
         """
@@ -93,10 +95,10 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
         array = cmlds.to_xarray()
         array.to_netcdf(self.raw_paths[0])
 
-    def process(self): -> None
-    """
-    Processes the data, creates a graph for each sample, and saves each graph in a separate file index by the order in the raw file names list.
-    """
+    def process(self) -> None:
+        """
+        Processes the data, creates a graph for each sample, and saves each graph in a separate file index by the order in the raw file names list.
+        """
         
         def broadcast_features(tensor):
             t = torch.unsqueeze(tensor, -1)
@@ -139,6 +141,8 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
                 torch.unsqueeze(flux_up_sw, -1),
                 torch.unsqueeze(flux_dn_lw, -1),
                 torch.unsqueeze(flux_up_lw, -1),
+                torch.unsqueeze(hr_lw, -1),
+                torch .unsqueeze(hr_sw, -1)
             ], dim=-1)
             
             stats_path = os.path.join(self.root, f"stats-{self.step}.pt")
