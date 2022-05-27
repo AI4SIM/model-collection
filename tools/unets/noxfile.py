@@ -14,6 +14,6 @@ build_ref_dir = os.path.join(os.path.dirname(os.path.dirname(current_dir)), "too
 sys.path.insert(0, build_ref_dir)
 
 # Fetch the nox_ref_file.py content
-from nox_ref_file import *
+from  nox_ref_file import *
 
 # Insert below the use case specific targets
