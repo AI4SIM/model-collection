@@ -20,8 +20,8 @@ import torch
 from typing import List, Union
 
 import config
-import data
-import models
+import data  # noqa: F401 'data' imported but not used
+import models  # noqa: F401 'data' imported but not used
 
 
 class Trainer(pl.Trainer):
@@ -46,7 +46,6 @@ class Trainer(pl.Trainer):
             to use for training.
             max_epochs (int): Maximum number of epochs if no early stopping logic is implemented.
         """
-
         if accelerator == 'cpu':
             devices = None
 
@@ -62,11 +61,11 @@ class Trainer(pl.Trainer):
 
     def test(self, **kwargs) -> None:
         """
-        Uses superclass test results, but additionally, saves raw results as a JSON file,
+        Use superclass test results, but additionally, saves raw results as a JSON file,
         and stores the model weights for future use in inference mode.
 
         Returns:
-            None
+            None.
         """
         results = super().test(**kwargs)[0]
 

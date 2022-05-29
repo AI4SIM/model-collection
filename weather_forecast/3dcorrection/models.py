@@ -1,3 +1,4 @@
+"""This module proposes Pytorch style LightningModule classes for the 3dcorrection use-case."""
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -16,7 +17,7 @@ import torch
 import torch.nn as nn
 import torch_geometric as pyg
 import torch_optimizer as optim
-import torchmetrics.functional as F
+import torchmetrics.functional as tmf
 import os
 
 import config
@@ -43,8 +44,8 @@ class ThreeDCorrectionModule(pl.LightningModule):
                 if param.requires_grad:
                     self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
 
-    def _normalize(self, batch, batch_size):
-        stats = torch.load(os.path.join(config.data_path, f"stats-{self.step}.pt"))
+    def _normalize(self, batch, batch_size, path):
+        stats = torch.load(os.path.join(path, f"stats-{self.timestep}.pt"))
         device = self.device
         x_mean = stats["x_mean"].to(device)
         y_mean = stats["y_mean"].to(device)
@@ -60,20 +61,22 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
         x = x.reshape(-1, batch.num_features)
         y = y.reshape(-1, num_output_features)
+        
+        print(x.shape, y.shape)
 
         return x, batch.y, batch.edge_index
 
     def _common_step(self, batch, batch_idx, stage, normalize=False):
-        batch_size = batch.ptr.size()[0]-1
+        batch_size = batch.ptr.size()[0] - 1
 
         if normalize:
-            x, y, edge_index = self._normalize(batch, batch_size)
+            x, y, edge_index = self._normalize(batch, batch_size, config.data_path)
         else:
             x, y, edge_index = batch.x, batch.y, batch.edge_index
 
         y_hat = self(x, edge_index)
-        loss = F.mean_squared_error(y_hat, y)
-        r2 = F.r2_score(y_hat, y)
+        loss = tmf.mean_squared_error(y_hat, y)
+        r2 = tmf.r2_score(y_hat, y)
 
         self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=batch_size)
         self.log(f"{stage}_r2", r2, prog_bar=True, on_step=True, batch_size=batch_size)
@@ -109,18 +112,17 @@ class LitGAT(ThreeDCorrectionModule):
                  out_channels,
                  num_layers,
                  dropout,
+                 edge_dim,
                  heads,
                  jk,
                  lr,
                  timestep,
-                 norm,
-                 act=nn.SiLU(inplace=True)
-                 ):
+                 norm):
         super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
-        self.step = timestep
+        self.timestep = timestep
         self.norm = norm
         self.net = pyg.nn.GAT(in_channels=in_channels,
                               hidden_channels=hidden_channels,

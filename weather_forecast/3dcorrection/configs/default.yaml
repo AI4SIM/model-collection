@@ -2,22 +2,24 @@ fit:
     model:
         class_path: models.LitGAT
         init_args:
-            in_channels: 20
+            in_channels: 21
             hidden_channels: 8
-            out_channels: 4
+            out_channels: 6
             num_layers: 4
             dropout: .3
+            edge_dim: 27
             heads: 8
             jk: "last"
             lr: .0001
-            timestep: 1000
+            timestep: 3500
             norm: True
 
     data:
         class_path: data.LitThreeDCorrectionDataModule
         init_args:
-            timestep: 1000
-            batch_size: 256
+            timestep: 3500
+            patchstep: 16
+            batch_size: 64
             num_workers: 0
     
     trainer:

@@ -18,9 +18,9 @@ import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 import torch
+from torch.nn.functional import pad
 import torch_geometric as pyg
 import netCDF4
-from tqdm import tqdm
 import climetlab as cml
 
 import config
@@ -28,22 +28,24 @@ import config
 
 class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
     """
-    Creates a PyG InMeMoryDataset for the 3DCorrection UC.
+    Create a PyG InMeMoryDataset for the 3DCorrection UC.
     The data are downloaded using the Climetlab library developped by ECMWF.
     Normalization parameters are computed at this point and are used later in the model.
     """
 
-    def __init__(self, root: str, step: int, force: bool = False) -> None:
+    def __init__(self, root: str, timestep: int, patchstep: int = 1, force: bool = False) -> None:
         """
-        Creates the dataset.
+        Create the dataset.
 
         Args:
             root (str): Path to the root data folder.
-            step (int): Increment between two outputs
-            (time increment is 12 minutes so step 125 corresponds to an output every 25 hours.).
+            timestep (int): Increment between two outputs (time increment is 12 minutes so
+                step 125 corresponds to an output every 25 hours.).
+            patchstep (int): step of the patchs (16 Earth's regions).
             force (bool): Either to remove the processed files or not.
         """
-        self.step = step
+        self.timestep = timestep
+        self.patchstep = patchstep
 
         super().__init__(root)
 
@@ -56,37 +58,34 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
     @property
     def raw_file_names(self) -> List[str]:
         """
-        Returns the raw data file names.
+        Return the raw data file names.
 
         Returns:
             (List[str]): Raw data file names list.
         """
-        return [f"data-{self.step}.nc"]
+        return [f"data-{self.timestep}.nc"]
 
     @property
     def processed_file_names(self) -> List[str]:
         """
-        Returns the processed data file names.
+        Return the processed data file names.
 
         Returns:
             (List[str]): Processed data file names list.
         """
-        return [f"data-{self.step}.pt"]
+        return [f"data-{self.timestep}.pt"]
 
     def download(self) -> None:
-        """
-        Downloads the dataset using Climetlab and stores it in a unique NetCDF file.
-        """
-
+        """Download the dataset using Climetlab and stores it in a unique NetCDF file."""
         cml.settings.set("cache-directory", os.path.join(self.root, "raw"))
 
         cmlds = cml.load_dataset(
             'maelstrom-radiation',
             dataset='3dcorrection',
             raw_inputs=False,
-            timestep=list(range(0, 3501, self.step)),
+            timestep=list(range(0, 3501, self.timestep)),
             minimal_outputs=False,
-            patch=list(range(0, 16, 1)),
+            patch=list(range(0, 16, self.patchstep)),
             hr_units='K d-1',
         )
 
@@ -95,18 +94,14 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
 
     def process(self) -> None:
         """
-        Processes the data, creates a graph for each sample,
+        Process the data, creates a graph for each sample,
         and saves each graph in a separate file index by the order in the raw file names list.
         """
-
         def broadcast_features(tensor):
             tensor_ = torch.unsqueeze(tensor, -1)
             tensor_ = tensor_.repeat((1, 1, 138))
             tensor_ = tensor_.moveaxis(1, -1)
             return tensor_
-
-        # def pad_tensor(tensor):
-        #     return F.pad(tensor, (0, 0, 1, 1, 0, 0))
 
         for raw_path in self.raw_paths:
 
@@ -114,6 +109,7 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
                 sca_inputs = torch.tensor(file['sca_inputs'][:])
                 col_inputs = torch.tensor(file['col_inputs'][:])
                 hl_inputs = torch.tensor(file['hl_inputs'][:])
+                pressure_hl = torch.tensor(file['pressure_hl'][:])
                 inter_inputs = torch.tensor(file['inter_inputs'][:])
 
                 flux_dn_sw = torch.tensor(file['flux_dn_sw'][:])
@@ -124,25 +120,25 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
                 hr_sw = torch.tensor(file["hr_sw"][:])
                 hr_lw = torch.tensor(file["hr_lw"][:])
 
-            # inter_inputs_ = pad_tensor(inter_inputs)
-            sca_inputs_ = broadcast_features(sca_inputs)
+            feats = torch.cat(
+                [
+                    broadcast_features(sca_inputs),
+                    hl_inputs,
+                    pad(inter_inputs, (0, 0, 1, 1, 0, 0)),
+                    pressure_hl
+                ], dim=-1)
 
-            feats = torch.cat([
-                hl_inputs,
-                inter_inputs,
-                sca_inputs_
-            ], dim=-1)
+            targets = torch.cat(
+                [
+                    torch.unsqueeze(flux_dn_lw, -1),
+                    torch.unsqueeze(flux_up_lw, -1),
+                    torch.unsqueeze(flux_dn_sw, -1),
+                    torch.unsqueeze(flux_up_sw, -1),
+                    torch.unsqueeze(pad(hr_lw, (1, 0)), -1),
+                    torch.unsqueeze(pad(hr_sw, (1, 0)), -1)
+                ], dim=-1)
 
-            targets = torch.cat([
-                torch.unsqueeze(flux_dn_sw, -1),
-                torch.unsqueeze(flux_up_sw, -1),
-                torch.unsqueeze(flux_dn_lw, -1),
-                torch.unsqueeze(flux_up_lw, -1),
-                torch.unsqueeze(hr_lw, -1),
-                torch .unsqueeze(hr_sw, -1)
-            ], dim=-1)
-
-            stats_path = os.path.join(self.root, f"stats-{self.step}.pt")
+            stats_path = os.path.join(self.root, f"stats-{self.timestep}.pt")
             if not os.path.isfile(stats_path):
                 stats = {
                     "x_mean": torch.mean(feats, dim=0),
@@ -161,11 +157,11 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
 
             data_list = []
 
-            for idx in tqdm(range(feats.shape[0])):
+            for idx in range(feats.shape[0]):
                 feats_ = torch.squeeze(feats[idx, ...])
                 targets_ = torch.squeeze(targets[idx, ...])
 
-                edge_attr = torch.squeeze(sca_inputs_[idx, ...])
+                edge_attr = torch.squeeze(col_inputs[idx, ...])
 
                 data = pyg.data.Data(
                     x=feats_,
@@ -181,15 +177,17 @@ class ThreeDCorrectionDataset(pyg.data.InMemoryDataset):
 
 @DATAMODULE_REGISTRY
 class LitThreeDCorrectionDataModule(pl.LightningDataModule):
-    """Creates datasets for the """
+    """Create datasets for the 3dcorrection use-case."""
 
     def __init__(self,
                  timestep: int,
+                 patchstep: int,
                  batch_size: int,
                  num_workers: int,
                  force: bool = False) -> None:
 
-        self.step = timestep
+        self.timestep = timestep
+        self.patchstep = patchstep
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.force = force
@@ -201,10 +199,16 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         super().__init__()
 
     def prepare_data(self) -> None:
-        ThreeDCorrectionDataset(config.data_path, self.step, self.force)
+        ThreeDCorrectionDataset(config.data_path,
+                                self.timestep,
+                                self.patchstep,
+                                self.force)
 
     def setup(self, stage: Optional[str] = None) -> None:
-        dataset = ThreeDCorrectionDataset(config.data_path, self.step, self.force).shuffle()
+        dataset = ThreeDCorrectionDataset(config.data_path,
+                                          self.timestep,
+                                          self.patchstep,
+                                          self.force).shuffle()
         length = dataset.len()
 
         self.test_dataset = dataset[int(0.9 * length):]
