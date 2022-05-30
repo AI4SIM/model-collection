@@ -19,11 +19,11 @@ from unet import UNet
 class TestUnet(TestCase):
     """Testing U-nets."""
 
-    def test_3d(self):
+    def n_conv(self, n_levels):
+        # 2 per DoubleConv + 1 per upsampler.
+        return 2 * 2 * n_levels + (n_levels - 1)
 
-        def n_conv(n_levels):
-            # 2 per DoubleConv + 1 per upsampler.
-            return 2 * 2 * n_levels + (n_levels - 1)
+    def test_3d(self):
 
         n_levels = 1
         net = UNet(
@@ -37,7 +37,7 @@ class TestUnet(TestCase):
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
         self.assertEqual(summary.count("Upsampler"), n_levels - 1)
-        self.assertEqual(summary.count("Conv3d"), n_conv(n_levels))
+        self.assertEqual(summary.count("Conv3d"), self.n_conv(n_levels))
 
         n_levels = 5
         net = UNet(
@@ -51,7 +51,7 @@ class TestUnet(TestCase):
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
         self.assertEqual(summary.count("Upsampler"), n_levels - 1)
-        self.assertEqual(summary.count("Conv3d"), n_conv(n_levels))
+        self.assertEqual(summary.count("Conv3d"), self.n_conv(n_levels))
 
     def test_inference(self):
         net = UNet(
@@ -64,6 +64,43 @@ class TestUnet(TestCase):
         inp = from_numpy(rand(1, 1, n, n, n))
         shp = net(inp).shape
         self.assertEqual(shp, (1, 1, n, n, n))
+
+    def test_1d(self):
+
+        n_levels = 1
+        net = UNet(
+            inp_feat=1,
+            out_feat=1,
+            dim=1,
+            n_levels=n_levels)
+
+        summary = str(net)
+        self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
+        self.assertEqual(summary.count("Upsampler"), n_levels - 1)
+        self.assertEqual(summary.count("Conv3d"), self.n_conv(n_levels))
+
+        n_levels = 6
+        net = UNet(
+            inp_feat=1,
+            out_feat=1,
+            dim=3,
+            n_levels=n_levels)
+
+        summary = str(net)
+        self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
+        self.assertEqual(summary.count("Upsampler"), n_levels - 1)
+        self.assertEqual(summary.count("Conv3d"), self.n_conv(n_levels))
+
+    def test_inference(self):
+        net = UNet(
+            inp_feat=1,
+            out_feat=1,
+            dim=3,
+            n_levels=3)
+        n = 32
+        inp = from_numpy(rand(1, 1, n))
+        shp = net(inp).shape
+        self.assertEqual(shp, (1, 1, n))
 
 
 if __name__ == '__main__':
