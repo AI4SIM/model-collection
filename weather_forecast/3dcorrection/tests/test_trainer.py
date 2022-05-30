@@ -23,12 +23,8 @@ class TestTrainer(TestCase):
 
     def setUp(self) -> None:
         """Define the default parameters."""
-        self.args_cpu = {"max_epochs": 1,
-                         "accelerator": "cpu",
-                         "devices": [0]}
-        self.args_gpu = {"max_epochs": 1,
-                         "accelerator": "gpu",
-                         "devices": [0]}
+        self.args_cpu = {"max_epochs": 1, "accelerator": "cpu", "devices": [0]}
+        self.args_gpu = {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}
 
     def test_trainer(self) -> None:
         """Test trainer file."""
@@ -43,5 +39,5 @@ class TestTrainer(TestCase):
             self.assertEqual(test_trainer_cpu.devices, 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

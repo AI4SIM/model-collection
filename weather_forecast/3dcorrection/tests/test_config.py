@@ -18,7 +18,6 @@ import config
 
 
 class TestConfig(TestCase):
-
     def test_paths(self):
         self.assertTrue(exists(config.experiment_path))
         self.assertTrue(exists(config.logs_path))
@@ -26,5 +25,5 @@ class TestConfig(TestCase):
         self.assertTrue(exists(config.plots_path))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

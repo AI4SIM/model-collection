@@ -12,10 +12,10 @@
 # limitations under the License.
 
 import os
+from pathlib import Path
 import shutil
 import unittest
 import torch
-from pathlib import Path
 
 from data import ThreeDCorrectionDataset, LitThreeDCorrectionDataModule
 
@@ -30,25 +30,31 @@ class TestData(unittest.TestCase):
     def setUpClass(cls) -> None:
         """Set up the test environment to test the ThreeDCorrectionDataset class."""
         if not os.path.exists(os.path.join(TEST_DATA_PATH)):
-            os.mkdir(os.path.join(TEST_DATA_PATH))
+            os.makedirs(os.path.join(TEST_DATA_PATH), exist_ok=True)
 
         if not os.path.exists(os.path.join(TEST_DATA_PATH, "raw")):
-            os.mkdir(os.path.join(TEST_DATA_PATH, "raw"))
+            os.makedirs(os.path.join(TEST_DATA_PATH, "raw"), exist_ok=True)
 
     def setUp(self) -> None:
         """
         Define default parameters and
         instantiate the ThreeDCorrectionDataset class in train mode.
         """
-        self.initParam = {'timestep': 3500,
-                          'patchstep': 16,
-                          'batch_size': 1,
-                          'num_workers': 0}
-        self.num_files = 2 * (16 // self.initParam["patchstep"]) \
-            * (3501 // self.initParam["timestep"] + 1)
-        self.data_test = ThreeDCorrectionDataset(root=TEST_DATA_PATH,
-                                                 timestep=self.initParam["timestep"],
-                                                 patchstep=self.initParam["patchstep"])
+        self.init_param = {
+            "timestep": 3500,
+            "patchstep": 16,
+            "batch_size": 1,
+            "num_workers": 0,
+        }
+        self.num_files = (2 * (16 // self.init_param["patchstep"]) * (
+            3501 // self.init_param["timestep"] + 1
+        )
+        )
+        self.data_test = ThreeDCorrectionDataset(
+            root=TEST_DATA_PATH,
+            timestep=self.init_param["timestep"],
+            patchstep=self.init_param["patchstep"],
+        )
         self.data_len = len(self.data_test)
         print(f"DATA LENGTH = {self.data_len}")
 
@@ -66,37 +72,41 @@ class TestData(unittest.TestCase):
         """Test download raise error."""
         self.data_test.download()
 
-        self.assertEqual(len(next(os.walk(os.path.join(TEST_DATA_PATH, "raw")))[2]) - 1,
-                         self.num_files + 1)
+        self.assertEqual(
+            len(next(os.walk(os.path.join(TEST_DATA_PATH, "raw")))[2]) - 1,
+            self.num_files + 1,
+        )
 
     def test_process(self):
         """Test download raise error."""
         self.data_test.process()
 
         self.assertTrue(os.path.exists(os.path.join(TEST_DATA_PATH, "processed")))
-        self.assertTrue(os.path.isfile(os.path.join(TEST_DATA_PATH, 'stats-3500.pt')))
+        self.assertTrue(os.path.isfile(os.path.join(TEST_DATA_PATH, "stats-3500.pt")))
 
         # insert +2 to have transform and filter files
         self.assertEqual(
             len(os.listdir(os.path.join(TEST_DATA_PATH, "processed"))),
-            len(self.data_test.processed_file_names) + 2
+            len(self.data_test.processed_file_names) + 2,
         )
 
     def test_setup(self):
         """Test the "setup" method."""
-        dataset_test = LitThreeDCorrectionDataModule(**self.initParam)
+        dataset_test = LitThreeDCorrectionDataModule(**self.init_param)
         dataset_test.setup(stage=None)
 
-        self.assertEqual(len(dataset_test.train_dataset),
-                         int(self.data_len * 0.8))
-        self.assertEqual(len(dataset_test.val_dataset),
-                         int(self.data_len) - int(self.data_len * 0.9))
-        self.assertEqual(len(dataset_test.test_dataset),
-                         int(self.data_len * 0.9) - int(self.data_len * 0.8))
+        self.assertEqual(len(dataset_test.train_dataset), int(self.data_len * 0.8))
+        self.assertEqual(
+            len(dataset_test.val_dataset), int(self.data_len) - int(self.data_len * 0.9)
+        )
+        self.assertEqual(
+            len(dataset_test.test_dataset),
+            int(self.data_len * 0.9) - int(self.data_len * 0.8),
+        )
 
     def test_train_dataloader(self):
         """Test the "train_dataloader"."""
-        dataset_test = LitThreeDCorrectionDataModule(**self.initParam)
+        dataset_test = LitThreeDCorrectionDataModule(**self.init_param)
         dataset_test.setup(stage=None)
 
         test_train_dl = dataset_test.train_dataloader()
@@ -104,7 +114,7 @@ class TestData(unittest.TestCase):
 
     def test_val_dataloader(self):
         """Test the "val_dataloader"."""
-        dataset_test = LitThreeDCorrectionDataModule(**self.initParam)
+        dataset_test = LitThreeDCorrectionDataModule(**self.init_param)
         dataset_test.setup(stage=None)
 
         test_val_dl = dataset_test.val_dataloader()
@@ -112,7 +122,7 @@ class TestData(unittest.TestCase):
 
     def test_test_dataloader(self):
         """Test the "test_dataloader"."""
-        dataset_test = LitThreeDCorrectionDataModule(**self.initParam)
+        dataset_test = LitThreeDCorrectionDataModule(**self.init_param)
         dataset_test.setup(stage=None)
 
         test_test_dl = dataset_test.test_dataloader()
@@ -125,5 +135,5 @@ class TestData(unittest.TestCase):
         shutil.rmtree(TEST_DATA_PATH, ignore_errors=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
