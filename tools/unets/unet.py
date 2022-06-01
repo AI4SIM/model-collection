@@ -21,40 +21,39 @@ class UNet(nn.Module):
     Using float64 (double-precision) for physics.
 
     Args:
-        inp_feat (int): Number of channels of the input.
-        out_feat (int): Number of channels of the output.
         dim (int): Number of dimensions of the data (e.g. 1, 2 or 3).
+        inp_ch (int): Number of channels of the input.
+        out_ch (int): Number of channels of the output.
         n_levels (int): Number of levels (up/down-sampler + double conv).
         n_features_root (int): Number of features in the first level, squared at each level.
         bilinear (bool): Whether to use bilinear interpolation or transposed convolutions for upsampling.
     """
 
     def __init__(self,
-                 inp_feat: int,
-                 out_feat: int,
-                 dim: int = 1,
+                 dim: int,
+                 inp_ch: int,
+                 out_ch: int,
                  n_levels: int = 3,
                  n_features_root: int = 32,
                  bilinear: bool = False):
         super().__init__()
         self.n_levels = n_levels
-        self.dim = dim
 
         # First level hardcoded.
-        layers = [DoubleConv(inp_feat, n_features_root, dim=self.dim)]
+        layers = [DoubleConv(dim, inp_ch, n_features_root)]
 
         # Downward path.
         f = n_features_root
         for _ in range(n_levels - 1):
-            layers.append(Downsampler(f, f * 2, dim=self.dim))
+            layers.append(Downsampler(dim, f, f * 2))
             f *= 2
 
         # Upward path.
         for _ in range(n_levels - 1):
-            layers.append(Upsampler(f, f // 2, bilinear, dim=self.dim))
+            layers.append(Upsampler(dim, f, f // 2, bilinear))
             f //= 2
 
-        layers.append(DoubleConv(f, out_feat, dim=self.dim))
+        layers.append(DoubleConv(dim, f, out_ch))
         self.layers = nn.ModuleList(layers).double()
 
     def forward(self, x):

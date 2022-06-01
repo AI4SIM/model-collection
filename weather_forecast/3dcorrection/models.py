@@ -17,7 +17,9 @@ from torchmetrics.functional import mean_squared_error
 import os
 from torch_optimizer import AdamP
 
-from unet import UNet1D
+import sys
+sys.path.insert(0, '../../tools/unets')
+from unet import UNet
 import config
 
 EPS = torch.tensor(1.e-8)
@@ -94,9 +96,10 @@ class LitUnet1D(ThreeDCorrectionModule):
         self.save_hyperparameters()
 
         self.lr = lr
-        self.model = UNet1D(
-            inp_feat=in_channels,
-            out_feat=out_channels,
+        self.model = UNet(
+            dim=1,
+            inp_ch=in_channels,
+            out_ch=out_channels,
             n_levels=n_levels,
             n_features_root=n_features_root)
 

@@ -22,11 +22,11 @@ class DoubleConv(nn.Module):
     """
 
     def __init__(self,
+                 dim: int,
                  inp_ch: int,
                  out_ch: int,
                  residual: bool = False,
-                 kernel_size: int = 3,
-                 dim: int = 3):
+                 kernel_size: int = 3):
         super().__init__()
 
         conv = {1: nn.Conv1d, 2: nn.Conv2d, 3: nn.Conv3d}.get(dim)
@@ -52,17 +52,17 @@ class Downsampler(nn.Module):
     """Combination of MaxPool1d and DoubleConv in series."""
 
     def __init__(self,
+                 dim: int,
                  inp_ch: int,
                  out_ch: int,
-                 kernel_size: int = 3,
-                 dim: int = 3):
+                 kernel_size: int = 3):
         super().__init__()
 
         maxpool = {1: nn.MaxPool1d, 2: nn.MaxPool2d, 3: nn.MaxPool3d}.get(dim)
 
         self.net = nn.Sequential(
             maxpool(kernel_size=2, stride=2),
-            DoubleConv(inp_ch, out_ch, kernel_size=kernel_size, dim=dim))
+            DoubleConv(dim, inp_ch, out_ch, kernel_size=kernel_size))
 
     def forward(self, x):
         return self.net(x)
@@ -72,15 +72,15 @@ class Upsampler(nn.Module):
     """
     Upsampling (by either bilinear interpolation or transpose convolutions)
     followed by concatenation of feature map from contracting path,
-    followed by double convolution.
+    followed by double convolution (which enforces the output channels dimension).
     """
 
     def __init__(self,
+                 dim: int,
                  inp_ch: int,
                  out_ch: int,
                  bilinear: bool = False,
-                 kernel_size: int = 3,
-                 dim: int = 3):
+                 kernel_size: int = 3):
         super().__init__()
         self.upsample = None
         self.dim = dim
@@ -94,22 +94,22 @@ class Upsampler(nn.Module):
                 conv(inp_ch, inp_ch // 2, kernel_size=1))
         else:
             self.upsample = conv_t(inp_ch, inp_ch // 2, kernel_size=2, stride=2)
-        self.conv = DoubleConv(inp_ch, out_ch, kernel_size=kernel_size, dim=dim)
+        self.conv = DoubleConv(dim, inp_ch, out_ch, kernel_size=kernel_size)
 
     def forward(self, x1, x2):
-        x1 = self.upsample(x1)
+        x1_up = self.upsample(x1)
 
-        # Pad x1 to the size of x2.
-        d2 = x2.shape[2] - x1.shape[2]
+        # Pad x1_up to the size of x2.
+        d2 = x2.shape[2] - x1_up.shape[2]
         pad = [d2 // 2, d2 - d2 // 2]
         if self.dim > 1:
-            d3 = x2.shape[3] - x1.shape[3]
+            d3 = x2.shape[3] - x1_up.shape[3]
             pad.extend([d3 // 2, d3 - d3 // 2])
         if self.dim > 2:
-            d4 = x2.shape[4] - x1.shape[4]
+            d4 = x2.shape[4] - x1_up.shape[4]
             pad.extend([d4 // 2, d4 - d4 // 2])
         pad.reverse()  # pads from last to first.
-        x1 = nn.functional.pad(x1, pad)
+        x1_up = nn.functional.pad(x1_up, pad)
 
-        x = cat([x2, x1], dim=1)  # concatenate along the channels axis.
+        x = cat([x2, x1_up], dim=1)  # concatenate along the channels axis.
         return self.conv(x)

@@ -60,9 +60,9 @@ class LitUnet3D(CombustionModule):
 
         self.lr = lr
         self.model = UNet(
-            inp_feat=in_channels,
-            out_feat=out_channels,
             dim=3,
+            inp_ch=in_channels,
+            out_ch=out_channels,
             n_levels=n_levels,
             n_features_root=n_features_root)
 
