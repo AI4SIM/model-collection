@@ -16,9 +16,7 @@ from torch import flatten
 from torch_optimizer import AdamP
 from torchmetrics.functional import mean_squared_error, r2_score
 
-import sys
-sys.path.insert(0, '../../tools/unets')
-from unet import UNet
+from unet import UNet3D
 
 
 class CombustionModule(LightningModule):
@@ -59,8 +57,7 @@ class LitUnet3D(CombustionModule):
         self.save_hyperparameters()
 
         self.lr = lr
-        self.model = UNet(
-            dim=3,
+        self.model = UNet3D(
             inp_ch=in_channels,
             out_ch=out_channels,
             n_levels=n_levels,

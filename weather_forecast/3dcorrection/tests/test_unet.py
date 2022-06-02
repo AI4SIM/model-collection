@@ -13,37 +13,52 @@
 from unittest import TestCase, main
 from numpy.random import rand
 from torch import from_numpy
-from unet import UNet1D
+from unet import UNet1D, Downsampler, Upsampler
 
 
 class TestUnet(TestCase):
-    """Testing 1D U-Nets."""
+    """Testing U-nets."""
 
-    def test_architecture(self):
+    def n_conv(self, n_levels: int, bilinear: bool = False):
+        # 2 per DoubleConv + 1 per upsampler.
+        return 4 * n_levels + (n_levels - 1 if bilinear else 0)
 
-        def n_conv1d(n_levels):
-            return 2 * 2 * n_levels + (n_levels - 1)  # 2 per DoubleConv + 1 per upsampler.
+    def test_1d(self):
 
         n_levels = 1
-        net = UNet1D(inp_feat=1, out_feat=1, n_levels=n_levels, n_features_root=4, bilinear=True)
+        net = UNet1D(inp_ch=1, out_ch=1, n_levels=n_levels)
+
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
         self.assertEqual(summary.count("Upsampler"), n_levels - 1)
-        self.assertEqual(summary.count("Conv3d"), n_conv1d(n_levels))
+        self.assertEqual(summary.count("Conv1d"), self.n_conv(n_levels))
 
-        n_levels = 5
-        net = UNet1D(inp_feat=1, out_feat=1, n_levels=n_levels, n_features_root=4, bilinear=True)
+        n_levels = 6
+        net = UNet1D(inp_ch=1, out_ch=1, n_levels=n_levels)
+
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
         self.assertEqual(summary.count("Upsampler"), n_levels - 1)
-        self.assertEqual(summary.count("Conv3d"), n_conv1d(n_levels))
+        self.assertEqual(summary.count("Conv1d"), self.n_conv(n_levels))
 
-    def test_inference(self):
-        net = UNet1D(inp_feat=1, out_feat=1, n_levels=3, n_features_root=4)
-        n = 32
-        inp = from_numpy(rand(1, 1, n, n, n))
+    def test_inference_1d(self):
+        net = UNet1D(inp_ch=1, out_ch=1, n_levels=3)
+        inp = from_numpy(rand(1, 1, 16))
         shp = net(inp).shape
-        self.assertEqual(shp, (1, 1, n, n, n))
+        self.assertEqual(shp, (1, 1, 16))
+
+    def test_downsampler(self):
+        sampler = Downsampler(inp_ch=4, out_ch=8).double()
+        inp = from_numpy(rand(1, 4, 16))
+        shp = sampler(inp).shape
+        self.assertEqual(shp, (1, 8, 8))
+
+    def test_upsampler(self):
+        sampler = Upsampler(inp_ch=8, out_ch=4).double()
+        inp = from_numpy(rand(1, 8, 16))
+        res = from_numpy(rand(1, 4, 32))
+        shp = sampler(inp, res).shape
+        self.assertEqual(shp, (1, 4, 32))  # last DoubleConv enforces the out_ch.
 
 
 if __name__ == '__main__':
