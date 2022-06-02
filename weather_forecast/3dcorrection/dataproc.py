@@ -25,14 +25,23 @@ from typing import Dict, List, Tuple, Union
 import yaml
 import xarray as xr
 
+import config
+
 class Dataproc:
     
-    def __init__(self, 
-                 root_path: str = "/home/jupyter/data/", 
+    def __init__(self,
                  step: int = 500,
                  num_workers: int = 16) -> None:
-        
-        self.root_path = root_path
+
+        self.cached_data_path = osp.join(config.data_path, 'cached')
+        self.raw_data_path = osp.join(config.data_path, 'raw')
+        self.processed_data_path = osp.join(config.data_path, 'processed')
+
+        for path in [self.cached_data_path, 
+                     self.raw_data_path, 
+                     self.processed_data_path]:
+            os.makedirs(path, exist_ok=True)
+            
         self.step = step
         self.num_workers = num_workers
     
@@ -55,7 +64,7 @@ class Dataproc:
     def download(self, step) -> xr.DataArray:
         """Download the data for 3D Correction UC and return an xr.Array"""
 
-        cml.settings.set("cache-directory", osp.join(self.root_path, "cached"))
+        cml.settings.set("cache-directory", self.cached_data_path)
         cmlds = cml.load_dataset(
             'maelstrom-radiation', 
             dataset='3dcorrection', 
@@ -151,7 +160,7 @@ class Dataproc:
         y_ = da.rechunk(y, chunks=(shard_size, *y.shape[1:]))
         edge_ = da.rechunk(edge, chunks=(shard_size, *edge.shape[1:]))
 
-        out_dir = osp.join(self.root_path, "processed", f'features-{self.step}')
+        out_dir = osp.join(self.processed_data_path, f'features-{self.step}')
 
         x_path, y_path, edge_path = self.purgedirs([
             osp.join(out_dir, 'x'), 
@@ -193,66 +202,66 @@ class Dataproc:
                 f'{name}_std': torch.tensor(s)
             })
         
-        stats_path = osp.join(self.root_path, "processed", f"stats-{self.step}.pt")
+        stats_path = osp.join(self.processed_data_path, f"stats-{self.step}.pt")
         torch.save(stats, stats_path)
 
         return stats
     
-    def _bulk_graphs(self):
+#     def _bulk_graphs(self):
     
-    def build_graphs(self):
+#     def build_graphs(self):
         
-        import numpy as np
+#         import numpy as np
         
-        # Each 'common' step can store a shared property to all steps
-        # Start is common here, and we branch on next step
-        # More info https://docs.metaflow.org/metaflow/basics#branch
-        self.out_dir = osp.join(self.PROCESSED_DATA_PATH, f"graphs-{self.timestep}")
-        if osp.isdir(self.out_dir):
-            shutil.rmtree(self.out_dir)
-        os.makedirs(self.out_dir)
+#         # Each 'common' step can store a shared property to all steps
+#         # Start is common here, and we branch on next step
+#         # More info https://docs.metaflow.org/metaflow/basics#branch
+#         self.out_dir = osp.join(self.PROCESSED_DATA_PATH, f"graphs-{self.timestep}")
+#         if osp.isdir(self.out_dir):
+#             shutil.rmtree(self.out_dir)
+#         os.makedirs(self.out_dir)
         
-        # To launch in thread in parallel, just call the next step over an attribute's list
-        self.shard = np.arange(self.num_shards)
-        self.next(self.build_graphs, foreach="shard")
+#         # To launch in thread in parallel, just call the next step over an attribute's list
+#         self.shard = np.arange(self.num_shards)
+#         self.next(self.build_graphs, foreach="shard")
         
-        if mp.cpu_count() < self.num_processes:
-            raise ValueError("The number of CPU's specified exceed the amount available.")
+#         if mp.cpu_count() < self.num_processes:
+#             raise ValueError("The number of CPU's specified exceed the amount available.")
 
-        subset_raw_paths = np.array_split(self.raw_paths, self.num_processes)
-        pool = mp.Pool(self.num_processes)
-        pool.map(self.build_graph, subset_raw_paths)
-        pool.close()
-        pool.join()
+#         subset_raw_paths = np.array_split(self.raw_paths, self.num_processes)
+#         pool = mp.Pool(self.num_processes)
+#         pool.map(self.build_graph, subset_raw_paths)
+#         pool.close()
+#         pool.join()
         
-        main_dir = osp.join(self.PROCESSED_DATA_PATH, f"features-{self.timestep}")
+#         main_dir = osp.join(self.PROCESSED_DATA_PATH, f"features-{self.timestep}")
         
-        def load(name: Union['x', 'y', 'edge']) -> torch.Tensor:
-            return torch.tensor(
-                np.lib.format.open_memmap(
-                    mode='r', 
-                    dtype=self.dtype, 
-                    filename=osp.join(main_dir, name, f"{self.input}.npy"), 
-                    shape=getattr(self, f'{name}_shape')))
+#         def load(name: Union['x', 'y', 'edge']) -> torch.Tensor:
+#             return torch.tensor(
+#                 np.lib.format.open_memmap(
+#                     mode='r', 
+#                     dtype=self.dtype, 
+#                     filename=osp.join(main_dir, name, f"{self.input}.npy"), 
+#                     shape=getattr(self, f'{name}_shape')))
                 
-        x, y, edge = load("x"), load("y"), load("edge")
+#         x, y, edge = load("x"), load("y"), load("edge")
         
-        directed_idx = np.array([[*range(1, 138)], [*range(137)]])
-        undirected_idx = np.hstack((
-            directed_idx, 
-            directed_idx[[1, 0], :]
-        ))
-        undirected_idx = torch.tensor(undirected_idx, dtype=torch.long)
+#         directed_idx = np.array([[*range(1, 138)], [*range(137)]])
+#         undirected_idx = np.hstack((
+#             directed_idx, 
+#             directed_idx[[1, 0], :]
+#         ))
+#         undirected_idx = torch.tensor(undirected_idx, dtype=torch.long)
         
-        data_list = []
-        for idx in range(len(x)):
+#         data_list = []
+#         for idx in range(len(x)):
             
-            x_ = torch.squeeze(x[idx, ...])
-            y_ = torch.squeeze(y[idx, ...])
-            edge_ = torch.squeeze(edge[idx, ...])
+#             x_ = torch.squeeze(x[idx, ...])
+#             y_ = torch.squeeze(y[idx, ...])
+#             edge_ = torch.squeeze(edge[idx, ...])
 
-            data = pyg.data.Data(x=x_, edge_attr=edge_, edge_index=undirected_idx, y=y_,)
-            data_list.append(data)
+#             data = pyg.data.Data(x=x_, edge_attr=edge_, edge_index=undirected_idx, y=y_,)
+#             data_list.append(data)
             
-        out_path = osp.join(self.out_dir, f"data-{self.input}.pt")
-        torch.save(data_list, out_path)
+#         out_path = osp.join(self.out_dir, f"data-{self.input}.pt")
+#         torch.save(data_list, out_path)
