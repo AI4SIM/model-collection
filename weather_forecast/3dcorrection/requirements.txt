@@ -1,8 +1,0 @@
-h5py=='3.4.0'
-numpy=='1.21.2'
-pytorch-lightning=='1.5.7'
-PyYAML=='0.5.4'
-randomname=='0.1.5'
-torch=='1.9.0+cu111'
-torchmetrics=='0.5.1'
-torch_optimizer=='0.1.0'
