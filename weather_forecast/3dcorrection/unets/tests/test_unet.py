@@ -44,20 +44,20 @@ class TestUnet(TestCase):
     def test_inference_1d(self):
         net = UNet1D(inp_ch=1, out_ch=1, n_levels=3)
         inp = from_numpy(rand(1, 1, 16))
-        shp = net(inp).shape
+        shp = tuple(net(inp).shape)
         self.assertEqual(shp, (1, 1, 16))
 
     def test_downsampler(self):
         sampler = Downsampler(inp_ch=4, out_ch=8).double()
         inp = from_numpy(rand(1, 4, 16))
-        shp = sampler(inp).shape
+        shp = tuple(sampler(inp).shape)
         self.assertEqual(shp, (1, 8, 8))
 
     def test_upsampler(self):
         sampler = Upsampler(inp_ch=8, out_ch=4).double()
         inp = from_numpy(rand(1, 8, 16))
         res = from_numpy(rand(1, 4, 32))
-        shp = sampler(inp, res).shape
+        shp = tuple(sampler(inp, res).shape)
         self.assertEqual(shp, (1, 4, 32))  # last DoubleConv enforces the out_ch.
 
 

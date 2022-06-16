@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from torch import cat
+from torch import cat, Tensor
 import torch.nn as nn
 
 
@@ -52,7 +52,7 @@ class UNet3D(nn.Module):
         layers.append(DoubleConv(f, out_ch))
         self.layers = nn.ModuleList(layers).double()  # forces double precision for the whole model.
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         # xi keeps the data at each level, allowing to pass it through skip-connections.
         xi = [self.layers[0](x)]
 
@@ -89,7 +89,7 @@ class DoubleConv(nn.Module):
         if residual:
             self.res = nn.Conv3d(inp_ch, out_ch, kernel_size=1, bias=False)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         return self.net(x) + (self.res(x) if self.res is not None else 0)
 
 
@@ -102,7 +102,7 @@ class Downsampler(nn.Module):
             nn.MaxPool3d(kernel_size=2, stride=2),
             DoubleConv(inp_ch, out_ch))
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         return self.net(x)
 
 
@@ -127,7 +127,7 @@ class Upsampler(nn.Module):
             self.upsample = nn.ConvTranspose3d(inp_ch, inp_ch // 2, kernel_size=2, stride=2)
         self.conv = DoubleConv(inp_ch, out_ch)
 
-    def forward(self, x1, x2):
+    def forward(self, x1: Tensor, x2: Tensor) -> Tensor:
         x1 = self.upsample(x1)
 
         # Pad x1 to the size of x2.

@@ -11,34 +11,47 @@
 # limitations under the License.
 
 import climetlab as cml
-import dask
+from dask.config import set
 import dask.array as da
 import numpy as np
 import os
 import os.path as osp
-import shutil
 import torch
 from typing import Dict, Tuple, Union
 import xarray as xr
 
 import config
 
+
 class Dataproc:
+    """
+    Download, preprocess and shard the data of the 3DCorrection use-case.
+    To be called once before experiments to build the dataset on the filesystem.
+    """
 
     def __init__(self,
-                 step: int = 500,
+                 timestep: int = 500,
+                 patchstep: int = 1,
                  num_workers: int = 16) -> None:
+        """
+        Preprocess and shard data on disk.
+
+        Args:
+            timestep (int): Increment between two outputs (time increment is 12min so
+                step 125 corresponds to an output every 25h).
+            patchstep (int): Step of the patchs (16 Earth's regions)
+            num_workers (int): Number of workers.
+        """
 
         self.cached_data_path = osp.join(config.data_path, 'cached')
         self.raw_data_path = osp.join(config.data_path, 'raw')
         self.processed_data_path = osp.join(config.data_path, 'processed')
 
-        for path in [self.cached_data_path,
-                     self.raw_data_path,
-                     self.processed_data_path]:
+        for path in [self.cached_data_path, self.raw_data_path, self.processed_data_path]:
             os.makedirs(path, exist_ok=True)
 
-        self.step = step
+        self.timestep = timestep
+        self.patchstep = patchstep
         self.num_workers = num_workers
 
     def process(self) -> None:
@@ -46,26 +59,26 @@ class Dataproc:
         Proceeds with all the following steps:
             * Download the raw data and return an Xarray;
             * Select and build features;
-            * Reshard and Convert to Numpy;
+            * Reshard and convert to Numpy;
             * Compute stats multi-threaded fashion.
         """
 
-        xr_array = self.download(self.step)
+        xr_array = self.download()
         x, y = self.build_features(xr_array)
-        x_path, y_path = self.reshard_and_convert(x, y)
+        x_path, y_path = self.reshard(x, y)
         self.compute_stats(x_path, y_path)
 
-    def download(self, step) -> xr.DataArray:
-        """Download the data for 3D Correction UC and return an xr.Array"""
+    def download(self) -> xr.DataArray:
+        """Download the data for 3D Correction UC and return an xr.Array."""
 
         cml.settings.set("cache-directory", self.cached_data_path)
         cmlds = cml.load_dataset(
             'maelstrom-radiation',
             dataset='3dcorrection',
             raw_inputs=False,
-            timestep=list(range(0, 3501, step)),
+            timestep=list(range(0, 3501, self.timestep)),
             minimal_outputs=False,
-            patch=list(range(0, 16, 1)),
+            patch=list(range(0, 16, self.patchstep)),
             hr_units='K d-1')
 
         return cmlds.to_xarray()
@@ -93,7 +106,7 @@ class Dataproc:
         n_shards = 53 * 2 ** 6
         self.shard_size = dataset_len // n_shards
 
-        dask.config.set(scheduler='threads')
+        set(scheduler='threads')
         data = {}
         for f in features:
             arr = xr_array[f].data
@@ -124,23 +137,23 @@ class Dataproc:
 
         for p in paths:
             if osp.isdir(p):
-                shutil.rmtree(p)
+                from shutil import rmtree
+                rmtree(p)
             os.makedirs(p, exist_ok=True)
 
-        if len(paths) == 1:
-            return paths[0]
-        return paths
+        return paths[0] if len(paths) == 1 else paths
 
-    def reshard_and_convert(self, x: da.Array, y: da.Array) -> Tuple[str]:
+    def reshard(self, x: da.Array, y: da.Array) -> Tuple[str]:
         """
         Reshard the arrays by rechunking on memory,
         store the chunks on disk in Numpy file format (.npy)
         """
 
+        # Chunk on the zeroth axis.
         x_chunked = da.rechunk(x, chunks=(self.shard_size, *x.shape[1:]))
         y_chunked = da.rechunk(y, chunks=(self.shard_size, *y.shape[1:]))
 
-        out_dir = osp.join(self.processed_data_path, f'features-{self.step}')
+        out_dir = osp.join(self.processed_data_path, f'features-{self.timestep}')
 
         x_path, y_path = self.purgedirs([osp.join(out_dir, 'x'), osp.join(out_dir, 'y')])
         da.to_npy_stack(x_path, x_chunked, axis=0)
