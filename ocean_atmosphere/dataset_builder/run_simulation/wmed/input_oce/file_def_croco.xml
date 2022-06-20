@@ -1,0 +1,48 @@
+
+
+
+
+
+
+
+
+
+
+
+<file_definition type="one_file" name="@expname@_@freq@" sync_freq="1h" min_digits="4">
+
+  <!-- <!-\- !! GC to use @expname@_@freq@
+       - use file_group id="3h"
+       - use file1, file2, file3 in file id definition
+       - file_3h KO => it will write @expname@_@freq@ in name of files
+       -\-> -->
+
+  <file_group id="1ts" output_freq="1ts"  output_level="10" enabled=".false."/> <!-- 1 time step files -->
+  <file_group id="6s"  output_freq="6s"   output_level="10" enabled=".false."/> <!-- 6 seconds files -->
+  <file_group id="2mi" output_freq="2mi"  output_level="10" enabled=".false."/> <!-- 2 minutes files -->
+  <file_group id="3h"  output_freq="3h"   output_level="10" enabled=".false."/> <!-- 3 hours files -->
+  <file_group id="4d"  output_freq="4d"   output_level="10" enabled=".false."/> <!-- 4 days files -->
+  <file_group id="1mo" output_freq="1mo"  output_level="10" enabled=".false."/> <!-- real montly files -->
+  <file_group id="1y"  output_freq="1y"   output_level="10" enabled=".false."/> <!-- real yearly files -->
+
+  <file_group id="1ts" output_freq="1ts" output_level="10" enabled=".true.">
+    <file id="file1" name_suffix="_inst" split_freq="1h" split_freq_format="%y%mo%d_%h">
+      <field_group id="inst_fields1" operation="instant">
+	<field field_ref="zeta" name="zeta" />
+	<field field_ref="sustr" name="sustr" />
+	<field field_ref="svstr" name="svstr" />
+	<field field_ref="u_surf" name="u_surf" />
+	<field field_ref="v_surf" name="v_surf" />
+	<field field_ref="temp_surf" name="temp_surf" />
+	<field field_ref="shflx" name="shflx" />
+	<field field_ref="shflx_sen" name="shflx_sen" />
+	<field field_ref="shflx_lat" name="shflx_lat" />
+	<field field_ref="shflx_rlw" name="shflx_rlw" />
+      </field_group>
+    </file>
+  </file_group>
+
+
+</file_definition>
+<!-- ========================================================================== -->
+<!-- ========================================================================== -->

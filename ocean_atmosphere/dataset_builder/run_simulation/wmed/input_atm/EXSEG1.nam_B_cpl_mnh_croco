@@ -1,0 +1,123 @@
+&NAM_CONFZ MPI_BUFFER_SIZE=400 / 
+
+&NAM_CONF  CCONF = "START", NVERB=1, NMODEL = 1,
+           CEXP = "WMED0", CSEG = "SEG01", NHALO=3,
+           CSPLIT="BSPLITTING" /
+
+&NAM_CONFIO LCDF4 = .TRUE. /
+
+&NAM_SFX_WAVE_CPL XTSTEP_CPL_WAVE = -1.0,
+                  CWAVE_U10       = 'MNH__U10',
+                  CWAVE_V10       = 'MNH__V10',
+                  CWAVE_CHA       = 'MNH__CHA',
+                  CWAVE_UCU       = 'MNH_WSSU',
+                  CWAVE_VCU       = 'MNH_WSSV',
+                  CWAVE_HS        = 'MNH___HS',
+                  CWAVE_TP        = 'MNH___TP' /
+
+&NAM_SFX_SEA_CPL XTSTEP_CPL_SEA  =  600.0,
+                 CSEA_FWSU       = 'MNH_TAUX',
+                 CSEA_FWSV       = 'MNH_TAUY',
+                 CSEA_HEAT       = 'MNH_HEAT',
+                 CSEA_SNET       = 'MNH_SNET',
+                 CSEA_WIND       = '        ',
+                 CSEA_FWSM       = '        ',
+                 CSEA_EVAP       = '        ',
+                 CSEA_RAIN       = '        ',
+                 CSEA_SNOW       = '        ',
+                 CSEA_WATF       = 'MNH_EVPR',
+                 CSEA_PRES       = '        ',
+                 CSEA_LWFL       = 'MNH_LWFL',
+                 CSEA_LHFL       = 'MNH_LHFL',
+                 CSEA_SHFL       = 'MNH_SHFL',
+                 CSEA_SST        = 'MNH__SST',
+                 CSEA_UCU        = 'MNH_OSSU',
+                 CSEA_VCU        = 'MNH_OSSV' /
+
+&NAM_OASIS LOASIS      = .TRUE.,
+           LOASIS_GRID = .TRUE.,
+           CMODEL_NAME = 'mesonh' /
+
+&NAM_DYN XSEGLEN = 85800.,
+         LCORIO = T,
+         LNUMDIFU = F,
+         XALKTOP = 0.005,
+         XALZBOT = 12000. /
+
+&NAM_LUNITn CINIFILE     = "ECMWF_20060101_00",
+            CINIFILEPGD  = "PGD_WMED_10km", 
+            CCPLFILE( 1) = "ECMWF_20060101_06",
+            CCPLFILE( 2) = "ECMWF_20060101_12",
+            CCPLFILE( 3) = "ECMWF_20060101_18",
+            CCPLFILE( 4) = "ECMWF_20060102_00"/
+
+&NAM_DYNn XTSTEP = 60.,
+          CPRESOPT="ZRESI",
+          NITR = 12,
+          LHORELAX_UVWTH = T, LHORELAX_RV = T, LVE_RELAX = T,
+          NRIMX = 5, NRIMY = 5, XRIMKMAX = 0.0083 /
+
+&NAM_ADVn  CUVW_ADV_SCHEME="WENO_K", NWENO_ORDER=5, CTEMP_SCHEME="RK53",
+           CMET_ADV_SCHEME = "PPM_01", CSV_ADV_SCHEME = "PPM_01" /
+
+&NAM_PARAMn  CCLOUD = "ICE3", CTURB = "TKEL", CRAD = "ECMW",
+             CDCONV = "KAFR", CSCONV="EDKF" /
+
+&NAM_PARAM_RADn  XDTRAD = 600., XDTRAD_CLONLY = 600., NRAD_COLNBR = 400 /
+
+&NAM_PARAM_KAFRn XDTCONV = 360., NICE = 1, LCHTRANS = T,
+                 LREFRESH_ALL = T, LDOWN = T /
+
+&NAM_PARAM_MFSHALLn CMF_UPDRAFT = "EDKF", CMF_CLOUD = "DIRE" /
+
+&NAM_LBCn  CLBCX = 2*"OPEN", CLBCY = 2*"OPEN" /
+
+&NAM_TURBn  CTURBLEN = "BL89",
+            CTURBDIM = "1DIM",
+            LSUBG_COND = F,
+            CSUBG_AUCV = 'NONE',
+            LTURB_FLX = F,
+            LSIGMAS = T /
+
+&NAM_NUDGINGn LNUDGING=.TRUE., XTNUDGING=21600. /
+
+&NAM_BACKUP XBAK_TIME(1,1) =  3600.,
+            XBAK_TIME(1,2) =  7200.,
+            XBAK_TIME(1,3) =  10800.,
+            XBAK_TIME(1,4) =  14400.,
+            XBAK_TIME(1,5) =  18000.,
+            XBAK_TIME(1,6) =  21600.,
+            XBAK_TIME(1,7) =  25200.,
+            XBAK_TIME(1,8) =  28800.,
+            XBAK_TIME(1,9) =  32400.,
+            XBAK_TIME(1,10) =  36000.,
+            XBAK_TIME(1,11) =  39600.,
+            XBAK_TIME(1,12) =  43200.,
+            XBAK_TIME(1,13) =  46800.,
+            XBAK_TIME(1,14) =  50400.,
+            XBAK_TIME(1,15) =  54000.,
+            XBAK_TIME(1,16) =  57600.,
+            XBAK_TIME(1,17) =  61200.,
+            XBAK_TIME(1,18) =  64800.,
+            XBAK_TIME(1,19) =  68400.,
+            XBAK_TIME(1,20) =  72000.,
+            XBAK_TIME(1,21) =  75600.,
+            XBAK_TIME(1,22) =  79200.,
+            XBAK_TIME(1,23) =  82800./
+
+&NAM_SSOn CROUGH="Z01D" /
+
+&NAM_DIAG_ISBAn /
+
+&NAM_SEAFLUXn CSEA_ALB="TA96", LPRECIP = T,
+              CSEA_FLUX="COARE3" /
+
+&NAM_DIAG_SURFn        LSURF_BUDGET  = T      ,
+                       N2M           = 2      ,
+                       LCOEF         = T      ,
+                       LSURF_VARS    = T      ,
+                       LRAD_BUDGET   = T      ,
+                       LSURF_BUDGETC = T
+/
+
+

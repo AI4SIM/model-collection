@@ -1,0 +1,7 @@
+prepare_wmed_job.err
+prepare_wmed_job.out
+prepare_wmed_job.sbatch
+
+wmed_job.err
+wmed_job.out
+wmed.sbatch

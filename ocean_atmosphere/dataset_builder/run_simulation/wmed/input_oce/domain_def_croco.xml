@@ -1,0 +1,54 @@
+
+
+
+
+
+
+
+
+
+
+
+<domain_definition>
+
+	<domain_group id="rho">
+        <!--   My zoom: example of hand defined zoom   -->
+        <!-- <domain id="myzoom" zoom_ibegin="10" zoom_jbegin="10" zoom_ni="5" zoom_nj="5" /> -->
+		<domain id="rho" long_name="grid Rho"/>
+        <!-- <domain id="1point" zoom_ibegin="1" zoom_jbegin="1" zoom_ni="1" zoom_nj="1" /> -->
+	</domain_group>
+
+	<domain_group id="u">
+		<domain id="u" long_name="grid U"/>
+ 	</domain_group>
+
+ 	<domain_group id="v">
+		<domain id="v" long_name="grid V"/>
+	</domain_group>
+
+ 	<domain_group id="w">
+		<domain id="w" long_name="grid W"/>
+ 	</domain_group>
+
+	 <domain_group id="b">
+		<domain id="b" long_name="grid sed"/>
+	</domain_group>
+
+	 <domain_group id="psi">
+		<domain id="psi" long_name="grid psi"/>
+	</domain_group>
+
+
+     <!-- <domain_group id="scalarpoint_1">
+         <domain id="scalarpoint_1" long_name="scalar"/> -->
+         <!-- for mooring
+         <domain id="1point" zoom_ibegin="1" zoom_jbegin="1" zoom_ni="1" zoom_nj="1" />
+         -->
+	<!-- </domain_group> -->
+
+      <!-- <domain_group id="scalarpoint">
+         <domain id="scalarpoint" long_name="scalar"/>
+      </domain_group> -->
+
+
+</domain_definition>

@@ -1,0 +1,15 @@
+NETCDF_INCDIR="-I ${NETCDF_DIR}/include"
+NETCDF_LIBDIR="-L ${NETCDF_DIR}/lib"
+NETCDF_LIB="-lnetcdff -lnetcdf"
+
+MPI_INCDIR="-I ${OMPI_DIR}/include"
+MPI_LIBDIR="-L ${OMPI_DIR}/lib"
+MPI_LIB="-lmpi"
+
+HDF5_INCDIR="-I ${HDF5_DIR}/include"
+HDF5_LIBDIR="-L ${HDF5_DIR}/lib"
+HDF5_LIB="-lhdf5_hl -lhdf5 -lhdf5 -lz"
+
+OASIS_INCDIR="-I${OASIS_DIR}/build/lib/psmile.MPI1"
+OASIS_LIBDIR="-L${OASIS_DIR}/lib"
+OASIS_LIB="-lpsmile.MPI1 -lscrip -lmct -lmpeu"

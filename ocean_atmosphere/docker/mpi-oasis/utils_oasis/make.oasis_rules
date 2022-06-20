@@ -1,0 +1,63 @@
+#
+# CHAN	: communication technique used in OASIS3 (MPI1/MPI2/NONE)
+CHAN            = MPI1
+#
+# Paths for libraries, object files and binaries
+#
+# COUPLE	: path for oasis3-mct main directory
+COUPLE          = /tmp/oasis/oasis3-mct-OASIS3-MCT_$(OASIS_VERSION)
+#
+# ARCHDIR       : directory created when compiling
+ARCHDIR         = $(OASIS_DIR)
+#
+# MPI library
+MPIBIN      = $(OMPI_DIR)/bin
+MPI_INCLUDE = $(OMPI_DIR)/include
+MPILIB      = -L$(OMPI_DIR)/lib 
+#
+# NETCDF library
+NETCDF_INCLUDE  = $(NETCDF_DIR)/include
+NETCDF_LIBRARY  = -L$(LD_LIBRARY_PATH) -lnetcdff
+#
+# Compiling and other commands
+MAKE        = make
+F90         = $(MPIBIN)/mpif90 -Wall -I$(MPI_INCLUDE) -ffree-line-length-512 -fallow-argument-mismatch
+F           = $(F90)
+f90         = $(F90)
+f           = $(F90)
+CC          = $(MPIBIN)/mpicc -I$(MPI_INCLUDE)
+LD          = $(MPIBIN)/mpif90 $(MPILIB)
+AR          = ar
+ARFLAGS     = -ruv
+#
+# CPP keys and compiler options
+# 
+CPPDEF    = -Duse_comm_$(CHAN) -D__VERBOSE -DTREAT_OVERLAY
+#
+# 
+F90FLAGS_1  = 
+f90FLAGS_1  = $(F90FLAGS_1)
+FFLAGS_1    = $(F90FLAGS_1)
+fFLAGS_1    = $(F90FLAGS_1)
+CCFLAGS_1   = 
+LDFLAGS     = 
+#
+###################
+#
+# Additional definitions that should not be changed
+#
+FLIBS		= $(NETCDF_LIBRARY)
+# BINDIR        : directory for executables
+BINDIR          = $(ARCHDIR)/bin
+# LIBBUILD      : contains a directory for each library
+LIBBUILD        = $(ARCHDIR)/build/lib
+# INCPSMILE     : includes all *o and *mod for each library
+INCPSMILE       = -I$(LIBBUILD)/psmile.$(CHAN) -I$(LIBBUILD)/pio  -I$(LIBBUILD)/mct 
+
+F90FLAGS  = $(F90FLAGS_1) $(INCPSMILE) $(CPPDEF) -I$(NETCDF_INCLUDE)
+f90FLAGS  = $(f90FLAGS_1) $(INCPSMILE) $(CPPDEF) -I$(NETCDF_INCLUDE)
+FFLAGS    = $(FFLAGS_1) $(INCPSMILE) $(CPPDEF) -I$(NETCDF_INCLUDE)
+fFLAGS    = $(fFLAGS_1) $(INCPSMILE) $(CPPDEF) -I$(NETCDF_INCLUDE)
+CCFLAGS   = $(CCFLAGS_1) $(INCPSMILE) $(CPPDEF) -I$(NETCDF_INCLUDE)
+#
+#############################################################################

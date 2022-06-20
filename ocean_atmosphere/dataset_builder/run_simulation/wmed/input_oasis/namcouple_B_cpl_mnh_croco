@@ -1,0 +1,151 @@
+# This is a typical input file for OASIS3-MCT.
+# Keywords used in previous versions of OASIS3 
+# but now obsolete are marked "Not used"
+# Don't hesitate to ask precisions or make suggestions (oasishelp@cerfacs.fr). 
+#
+# Any line beginning with # is ignored. Blank lines are not allowed.
+#
+#########################################################################
+ $NFIELDS
+# The number of fields described in the second part of the namcouple.
+#
+           11
+ $END
+#########################################################################
+ $NBMODEL
+# The number of models in this experiment + their names (6 characters)
+#
+   2 mesonh crocox
+ $END
+###########################################################################
+ $RUNTIME
+# The total simulated time for this run in seconds
+#
+   151200
+ $END
+###########################################################################
+ $NLOGPRT
+# Amount of information written to OASIS3-MCT log files (see User Guide)
+# Premier nombre: quantite d'information pour debugger
+# Second nombre: statistics des processeurs
+  0 -1
+ $END
+###########################################################################
+ $STRINGS
+#
+# The above variables are the general parameters for the experiment.
+# Everything below has to do with the fields being exchanged.
+#
+#                     ------------------------------------------
+#                        MNH (mesonh) ==> CROCO (crocox)
+#                          LAG = time-step of Meso-NH
+#                     ------------------------------------------
+#
+#~~~~~~~~~~~
+# Field 01 : 
+#~~~~~~~~~~~
+MNH_TAUX CROCO_UTAU 1 600 2 rst_A.nc EXPORTED
+128 108 629 537 atmt ocnt LAG=+60
+R  0  R  0
+MAPPING BLASNEW
+rmp_atmt_to_ocnt_DISTWGT.nc
+-1.0 0
+#
+#~~~~~~~~~~~
+# Field 02 : 
+#~~~~~~~~~~~
+MNH_TAUY CROCO_VTAU 1 600 2 rst_A.nc EXPORTED
+128 108 629 537 atmt ocnt LAG=+60
+R  0  R  0
+MAPPING BLASNEW
+rmp_atmt_to_ocnt_DISTWGT.nc
+-1.0 0
+#
+#~~~~~~~~~~~
+# Field 03 : 
+#~~~~~~~~~~~
+MNH_HEAT CROCO_STFL 1 600 1 rst_A.nc EXPORTED
+128 108 629 537 atmt ocnt LAG=+60
+R  0  R  0
+MAPPING
+rmp_atmt_to_ocnt_DISTWGT.nc
+#
+#~~~~~~~~~~~
+# Field 04 : 
+#~~~~~~~~~~~
+MNH_SNET CROCO_SRFL 1 600 1 rst_A.nc EXPORTED
+128 108 629 537 atmt ocnt LAG=+60
+R  0  R  0
+MAPPING
+rmp_atmt_to_ocnt_DISTWGT.nc
+#
+#~~~~~~~~~~~
+# Field 05 : 
+#~~~~~~~~~~~
+MNH_EVPR CROCO_EVPR 1 600 2 rst_A.nc EXPORTED
+128 108 629 537 atmt ocnt LAG=+60
+R  0  R  0
+MAPPING BLASNEW
+rmp_atmt_to_ocnt_DISTWGT.nc
+-1.0 0
+#
+#~~~~~~~~~~~
+# Field 06 : 
+#~~~~~~~~~~~
+MNH_LWFL CROCO_LWFL 1 600 1 rst_A.nc EXPORTED
+128 108 629 537 atmt ocnt LAG=+60
+R  0  R  0
+MAPPING
+rmp_atmt_to_ocnt_DISTWGT.nc
+#
+#~~~~~~~~~~~
+# Field 7 : 
+#~~~~~~~~~~~
+MNH_LHFL CROCO_LHFL 1 600 1 rst_A.nc EXPORTED
+128 108 629 537 atmt ocnt LAG=+60
+R  0  R  0
+MAPPING
+rmp_atmt_to_ocnt_DISTWGT.nc
+#
+#~~~~~~~~~~~
+# Field 8 : 
+#~~~~~~~~~~~
+MNH_SHFL CROCO_SHFL 1 600 1 rst_A.nc EXPORTED
+128 108 629 537 atmt ocnt LAG=+60
+R  0  R  0
+MAPPING
+rmp_atmt_to_ocnt_DISTWGT.nc
+#
+#                     ------------------------------------------
+#                        CROCO (crocox) ==> MNH (mesonh)
+#                          LAG = time-step of CROCO
+#                     ------------------------------------------
+#
+#~~~~~~~~~~~
+# Field 09 : 
+#~~~~~~~~~~~
+CROCO_SST MNH__SST 1 600 1 rst_O.nc EXPORTED
+629 537 128 108 ocnt atmt LAG=+600
+R  0  R  0
+MAPPING
+rmp_ocnt_to_atmt_DISTWGT.nc
+#
+#~~~~~~~~~~~
+# Field 10 : 
+#~~~~~~~~~~~
+CROCO_UOCE MNH_OSSU 1 600 1 rst_O.nc EXPORTED
+629 537 128 108 ocnt atmt LAG=+600
+R  0  R  0
+MAPPING
+rmp_ocnt_to_atmt_DISTWGT.nc
+#
+#~~~~~~~~~~~
+# Field 11 : 
+#~~~~~~~~~~~
+CROCO_VOCE MNH_OSSV 1 600 1 rst_O.nc EXPORTED
+629 537 128 108 ocnt atmt LAG=+600
+R  0  R  0
+MAPPING
+rmp_ocnt_to_atmt_DISTWGT.nc
+#
+ $END

@@ -1,0 +1,24 @@
+################################################################################
+###################                Projet XIOS               ###################
+################################################################################
+
+%CCOMPILER      mpicc
+%FCOMPILER      mpif90
+%LINKER         mpif90  
+
+%BASE_CFLAGS    -w -std=c++11 -D__XIOS_EXCEPTION
+%PROD_CFLAGS    -O3 -DBOOST_DISABLE_ASSERTS
+%DEV_CFLAGS     -g -O2 
+%DEBUG_CFLAGS   -g 
+
+%BASE_FFLAGS    -D__NONE__ -ffree-line-length-512
+%PROD_FFLAGS    -O3
+%DEV_FFLAGS     -g -O2
+%DEBUG_FFLAGS   -g 
+
+%BASE_INC       -D__NONE__
+%BASE_LD        -lstdc++
+
+%CPP            cpp
+%FPP            cpp -P
+%MAKE           make
