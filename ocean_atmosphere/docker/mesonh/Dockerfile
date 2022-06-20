@@ -1,4 +1,4 @@
-FROM mpi-oasis:latest as base
+FROM oa-mpi-oasis:latest as base
 
 LABEL maintainer="Atos AI4Sim"
 

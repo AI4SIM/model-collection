@@ -5,8 +5,14 @@ then
     DATA_DIR=$1
     echo "$0: Using DATA_DIR=${DATA_DIR}"
 else
-    DATA_DIR=/net/172.16.118.188/data/ocean_atmosphere/simulations
-    echo "$0: Using default DATA_DIR=${DATA_DIR}"
+    DATA_DIR=/net/172.16.118.188/data/ocean_atmosphere/simulations/
+    read -rep "Path to the ocean-atmosphere dataset directory`echo $'\n '`(DEFAULT: ${DATA_DIR}): " -r
+    echo 
+    if [[ ! -z "$REPLY" ]]
+    then
+        DATA_DIR=$REPLY
+    fi
+    echo "$0: Using DATA_DIR=${DATA_DIR}"
 fi
 
 SCRIPT=`realpath $0`

@@ -16,8 +16,8 @@
     <li><a href="#usage">Usage</a></li>
       <ul>
         <li><a href="#build-your-own-training-dataset">Build your own training dataset</a></li>
-        <li><a href="#training">Jit Training</a></li>
-        <li><a href="#inference">Jit Inference</a></li>
+        <li><a href="#training">Training</a></li>
+        <li><a href="#inference">Inference</a></li>
       </ul>
     <li><a href="#roadmap">Roadmap</a></li>
   </ol>

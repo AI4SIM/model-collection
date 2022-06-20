@@ -1,240 +1,280 @@
+"""
+Functions for COARE model bulk flux calculations.
+"""
 import numpy as np
-import xarray as xr
-import sys
 
-mm_dryair = 28.9644E-3
-mm_water  = 18.0153E-3
-MvoMa  = mm_water/mm_dryair
-c0  = 1.326E-5
-c1=6.542E-3
-c2=8.301E-6
-c3=4.84E-9
-alpi   = 32.62117980819471
-betai  = 6295.421338904806
-gami = 0.5631331575423155
-alpw   = 60.2227554
-betaw  = 6822.40088
-gamw = 5.13926744
-ip00      = 1.E-5
-blk_Rgas  = 287.0596736665907
-blk_Cpa   = 1004.708857833067
-blk_Rvap  = 461.5249933083879
-mm_dryair = 28.9644E-3
-mm_water  = 18.0153E-3
-r_gas     = 8.314510
-g         = 9.80665
-rdocpd    = blk_Rgas/blk_Cpa
-MvoMa     = 0.622
 
-#==== Physical parameters
-CtoK      = 273.16
-emiss_lw  = 0.985
-SigmaSB   = 5.6697E-8
-#==== Atmosheric parameters
-lwdwn     = 300.      # W/m2
-swdwn     = 150.      # W/m2
-prate     = 0.      # precipitation rate (m/s)
-#==== Oceanic parameters
-sss       = 36.    # salinity psu
-rho0      = 1024.  # Boussinesq density
-cp        = 3985.  # oce heat capacity
-rho0i     = 1./rho0   #
-cpi       = 1./cp     #
-# parameters
-g           = 9.81
-psurf       = 100000.
+MM_DRYAIR = 28.9644e-3
+MM_WATER = 18.0153e-3
+C0 = 1.326e-5
+C1 = 6.542e-3
+C2 = 8.301e-6
+C3 = 4.84e-9
+ALPI = 32.62117980819471
+BETAI = 6295.421338904806
+GAMI = 0.5631331575423155
+ALPW = 60.2227554
+BETAW = 6822.40088
+GAMW = 5.13926744
+IP00 = 1.0e-5
+BLK_RGAS = 287.0596736665907
+BLK_CPA = 1004.708857833067
+BLK_RVAP = 461.5249933083879
+MM_DRYAIR = 28.9644e-3
+MM_WATER = 18.0153e-3
+R_GAS = 8.314510
+G = 9.80665
+RDOCPD = BLK_RGAS / BLK_CPA
+MVOMA = 0.622
+CHARN0=0.011
+CHARN1=0.018
+CHARNSLOPE=0.125
 
-ip00        = 1.E-5
-p00         = 1.E+5
-MvoMa       = 0.622
-rdocpd      = blk_Rgas/blk_Cpa
-blk_beta    = 1.2
-blk_Zabl    = 600.
-vonKar      = 0.41
-cpvir       = blk_Rvap/blk_Rgas - 1.
-eps         = 1.E-08
-blk_ZToZW   = 1.
-Ch10        = 0.00115
+# ==== Physical parameters
+CTOK = 273.16
+EMISS_LW = 0.985
+SIGMASB = 5.6697e-8
+# ==== Atmosheric parameters
+LWDWN = 300.0  # W/m2
+SWDWN = 150.0  # W/m2
+PRATE = 0.0  # precipitation rate (m/s)
+
+# ==== Oceanic parameters
+SSS = 36.0  # salinity psu
+RHO0 = 1024.0  # Boussinesq density
+CP = 3985.0  # oce heat capacity
+RHO_I = 1.0 / RHO0  #
+CPI = 1.0 / CP  #
+
+IP00 = 1.0e-5
+P00 = 1.0e5
+BLK_BETA = 1.2
+BLK_ZABL = 600.0
+BLK_ZW = 10
+VONKAR = 0.41
+CPVIR = BLK_RVAP / BLK_RGAS - 1.0
+EPS = 1.0e-08
+BLK_ZTOTW = 1.0
+CH10 = 0.00115
 
 
 def bulk_psiu_coare(zol):
-    with np.errstate(invalid='ignore'):
-        chic = np.where(
-            zol < 0.,
-            np.power(1.-10.15*zol,(1./3.)),
-            -np.where(0.35*zol < 50., 0.35*zol, 50))
+    """
+    Computes the velocity structure function.
+    Args:
+        zol : relative height z/L
 
-        chik = np.where(zol <= 0.,
-                        np.power(1.-15.*zol,0.25),
-                        np.nan)
-        psik = np.where(zol <= 0.,
-                        2.*np.log(0.5*(1.+chik))+np.log(0.5*(1.+chik*chik))-2.*np.arctan(chik)+0.5*np.pi,
-                        np.nan)
-        psic = np.where(zol <= 0.,
-                        1.5*np.log( (chic*chic+chic+1.)/3.)- np.sqrt(3.)*np.arctan((2.*chic+1.)/np.sqrt(3.))+np.pi/np.sqrt(3.),
-                        np.nan)
-    
-    return np.where(zol <= 0,
-                    psic+(psik-psic)/(1.+zol*zol),
-                    -( (1.+zol)+0.6667*(zol-14.28)*np.exp(chic)+8.525))
+    Returns:
+        psi: The velocity structure function
+    """
+    with np.errstate(invalid="ignore"):
+        chic = np.where(
+            zol < 0.0,
+            np.power(1.0 - 10.15 * zol, (1.0 / 3.0)),
+            -np.where(0.35 * zol < 50.0, 0.35 * zol, 50),
+        )
+
+        chik = np.where(zol <= 0.0, np.power(1.0 - 15.0 * zol, 0.25), np.nan)
+        psik = np.where(
+            zol <= 0.0,
+            2.0 * np.log(0.5 * (1.0 + chik))
+            + np.log(0.5 * (1.0 + chik * chik))
+            - 2.0 * np.arctan(chik)
+            + 0.5 * np.pi,
+            np.nan,
+        )
+        psic = np.where(
+            zol <= 0.0,
+            1.5 * np.log((chic * chic + chic + 1.0) / 3.0)
+            - np.sqrt(3.0) * np.arctan((2.0 * chic + 1.0) / np.sqrt(3.0))
+            + np.pi / np.sqrt(3.0),
+            np.nan,
+        )
+
+    return np.where(
+        zol <= 0,
+        psic + (psik - psic) / (1.0 + zol * zol),
+        -((1.0 + zol) + 0.6667 * (zol - 14.28) * np.exp(chic) + 8.525),
+    )
 
 
 def bulk_psit_coare(zol):
-    mask = zol <= 0.
-    with np.errstate(invalid='ignore'):
-        chic = np.where(mask,
-                        np.power(1.-34.15*zol, 1./3.),
-                        -np.where(0.35*zol < 50., 0.35*zol, 50))
+    """
+    Computes the temperature structure function.
+    Args:
+        zol : relative height z/L
 
-        chik = np.where(mask,
-                        np.power(1.-15.*zol,0.25),
-                        np.nan)
-        psik = np.where(zol <= 0.,
-                        2.*np.log(0.5*(1.+chik*chik)),
-                        np.nan)
-        psic = np.where(zol <= 0.,
-                        1.5*np.log( (chic*chic+chic+1.)/3.)-np.sqrt(3.)*np.arctan((2.*chic+1.)/np.sqrt(3.))+np.pi/np.sqrt(3.),
-                        np.nan)    
-    
-    return np.where(zol <= 0,
-                    psic+(psik-psic)/(1.+zol*zol),
-                    -((1.0+2.0*zol/3.0)**1.5+0.6667*(zol-14.28)*np.exp(chic)+8.525))
+    Returns:
+        psi: The temperature structure function
+    """
+    mask = zol <= 0.0
+    with np.errstate(invalid="ignore"):
+        chic = np.where(
+            mask,
+            np.power(1.0 - 34.15 * zol, 1.0 / 3.0),
+            -np.where(0.35 * zol < 50.0, 0.35 * zol, 50),
+        )
 
-def air_visc(TairC):
-    cff = TairC*TairC
-    return c0*(1.+c1*TairC+c2*cff-c3*cff*TairC)
+        chik = np.where(mask, np.power(1.0 - 15.0 * zol, 0.25), np.nan)
+        psik = np.where(zol <= 0.0, 2.0 * np.log(0.5 * (1.0 + chik * chik)), np.nan)
+        psic = np.where(
+            zol <= 0.0,
+            1.5 * np.log((chic * chic + chic + 1.0) / 3.0)
+            - np.sqrt(3.0) * np.arctan((2.0 * chic + 1.0) / np.sqrt(3.0))
+            + np.pi / np.sqrt(3.0),
+            np.nan,
+        )
 
-def qsat(TairK, patm, coeff):
-    psat = np.where(TairK <= CtoK, 
-                    np.exp(alpi - betai/TairK - gami*np.log(TairK)),
-                    np.exp(alpw - betaw/TairK - gamw*np.log(TairK)))
-    psat = coeff * psat
-    return (MvoMa*psat)/(patm+(MvoMa-1)*psat)
+    return np.where(
+        zol <= 0,
+        psic + (psik - psic) / (1.0 + zol * zol),
+        -(
+            (1.0 + 2.0 * zol / 3.0) ** 1.5
+            + 0.6667 * (zol - 14.28) * np.exp(chic)
+            + 8.525
+        ),
+    )
 
-def exner_patm_from_tairabs(q,tairabs,z,psfc,nits):
 
+def air_visc(t_air_c):
+    """
+    Computes the air viscosity given air temperatuce.
+    Args:
+        t_air_c : air temperature in Celsius
+
+    Returns:
+        air_visc: Air viscosity
+    """
+    cff = t_air_c * t_air_c
+    return C0 * (1.0 + C1 * t_air_c + C2 * cff - C3 * cff * t_air_c)
+
+
+def qsat(t_air_k, patm, ratio):
+    """
+    Computes the saturation humidity ratio of air.
+    Args:
+        t_air_k : air temperature in Kelvin
+        patm : atmospheric pressure in Pa
+        ratio : humidity radio in %
+    Returns:
+        qsat: The maximum saturation humidity ratio of air
+    """
+    psat = np.where(
+        t_air_k <= CTOK,
+        np.exp(ALPI - BETAI / t_air_k - GAMI * np.log(t_air_k)),
+        np.exp(ALPW - BETAW / t_air_k - GAMW * np.log(t_air_k)),
+    )
+    psat = ratio * psat
+    return (MVOMA * psat) / (patm + (MVOMA - 1) * psat)
+
+
+def exner_patm_from_tairabs(q_air, t_air_k, psfc, nits):
+    """
+    Computes the atmospheric pressure
+    Args:
+        q_air : air humidity ratio
+        t_air_k : air temperature in Kelvin
+        psfc : surface air pressure in Pa
+        nits : number of iterations
+    Returns:
+        iexn: ???
+        pair: surface air pressure in Pa
+    """
     pair = psfc
     for _ in range(nits):
-        q_sat = qsat(tairabs, pair, 1.)
-        xm    =  mm_dryair + (q/q_sat) * ( mm_water - mm_dryair )
-        pair  = psfc * np.exp( -g * xm * z / ( r_gas * tairabs ) )
-    iexn =  (pair*ip00)**(-rdocpd)
-    return iexn,pair
+        q_sat = qsat(t_air_k, pair, 1.0)
+        fraction = MM_DRYAIR + (q_air / q_sat) * (MM_WATER - MM_DRYAIR)
+        pair = psfc * np.exp(-G * fraction * BLK_ZW / (R_GAS * t_air_k))
+    iexn = (pair * IP00) ** (-RDOCPD)
+    return iexn, pair
 
-def spec_hum(RH,psfc,TairC):
-    cff=(1.0007+3.46E-6 * 0.01*psfc)*6.1121*np.exp(17.502*TairC/(240.97+TairC))
-    if(RH<2):
-        cff = cff*RH
-        return MvoMa*(cff/(psfc*0.01-0.378*cff))
-    else:
-        return 0.001*RH
-    
-def iteration(Wstar, Tstar, Qstar, delW, delT, TairK, Qsea, qatm, wspd0, charn, VisAir, blk_ZW):
-    ZoLu    = vonKar*g*blk_ZW*(Tstar*(1.0+cpvir*qatm)+cpvir*TairK*Qstar) / (TairK*Wstar*Wstar*(1.0+cpvir*qatm)+eps)
-    psi_u   = bulk_psiu_coare(ZoLu)
-    psi_t   = bulk_psiu_coare(ZoLu*blk_ZToZW)
-    del ZoLu
-    iZoW    = g*Wstar / ( charn*Wstar*Wstar*Wstar+0.11*g*VisAir )
-    logus10 = np.log(blk_ZW*iZoW)
-    iZoT    = Wstar/(iZoW*VisAir)
-    del iZoW
-    iZoT    = np.where(8695.65 > 18181.8*(iZoT**0.6), 8695.65, 18181.8*(iZoT**0.6))
-    logts10 = np.log(blk_ZW*iZoT)
-    del iZoT
+def coare_croco(uwnd_r, vwnd_r, t_air_k, q_atm, psurf, t_sea_c, nits):
+    """
+    Computes ocean atmosphere fluxes using COARE bulk parametrization
+    Args:
+        uwnd_r : relative u-wind speed in m.s^-1
+        vwnd_r : relative u-wind speed in m.s^-1
+        t_air_k : surface air temperature in Kelvin
+        q_atm : surface air humidity ratio in kg.kg^-1
+        psurf : surface pressure in Pa
+        t_sea_c : sea surface tenperature in Celsius
+        nits : number of iterations
+    Returns:
+        sustr: u-wind stress
+        svstr: v-wind stress
+        hflat: latent heat flux
+        hfsen : sensible heat flux
+    """
+    wspd0 = np.sqrt(uwnd_r * uwnd_r + vwnd_r * vwnd_r)
+    wspd0 = np.where(wspd0 > 0.1 * min(10.0, BLK_ZW), wspd0, 0.1 * min(10.0, BLK_ZW))
+    iexna, patm = exner_patm_from_tairabs(q_atm, t_air_k,  psurf, nits)
+    q_sat = qsat(t_sea_c + CTOK, psurf, 0.98)
+    del_w = np.sqrt(wspd0 * wspd0 + 0.25)
+    cff = CTOK * (iexna - (psurf * IP00) ** (-RDOCPD))
+    del_t = (t_air_k - CTOK) * iexna - t_sea_c * (psurf * IP00) ** (-RDOCPD) + cff
+    w_star = 0.035 * del_w * np.log(10.0 * 10000.0) / np.log(BLK_ZW * 10000)
+    vis_air = air_visc(t_air_k - CTOK)
+    ribcu = -BLK_ZW / (BLK_ZABL * 0.004 * BLK_BETA**3)
+    izo10 = G * w_star / (CHARN0 * w_star * w_star * w_star + 0.11 * G * vis_air)
+    cff = 1.0 / (CH10 * np.log(10.0 * izo10))
+    izot10 = 0.1 * np.exp(VONKAR * VONKAR * cff)
+    cc_ = np.log(BLK_ZW * izo10) * np.log(BLK_ZW * izo10) / np.log(BLK_ZW * izot10)
+    ri_ = G * BLK_ZW * (del_t + CPVIR * t_air_k * (q_atm - q_sat)) / (t_air_k * del_w * del_w)
+    zolu = np.where(
+        ri_ < 0.0, cc_ * ri_ / (1.0 + ri_ / ribcu), cc_ * ri_ / (1.0 + 3.0 * ri_ / cc_)
+    )
+    psi_u = bulk_psiu_coare(zolu)
+    logus10 = np.log(BLK_ZW * izo10)
+    w_star = del_w * VONKAR / (logus10 - psi_u)
+    zolt = zolu * BLK_ZTOTW
+    psi_t = bulk_psit_coare(zolt)
+    logts10 = np.log(BLK_ZW * izot10)
+    cff = VONKAR / (logts10 - psi_t)
+    t_star = del_t * cff
+    q_star = (q_atm - q_sat) * cff
+    charn = np.where(
+        del_w > 10.0, CHARN0 + CHARNSLOPE * (CHARN1 - CHARN0) * (del_w - 10.0), CHARN0
+    )
+    charn = np.where(del_w > 18.0, CHARN1, charn)
 
-    cff     = vonKar/(logts10-psi_t)
-    Wstar   = delW*vonKar/(logus10-psi_u)
-    del logus10
-    Tstar   = delT*cff
-    Qstar   = (qatm-Qsea)*cff
-    
-    Bf=-g/TairK*Wstar*(Tstar+cpvir*TairK*Qstar)
-    with np.errstate(invalid='ignore'):
-        cff = np.where(Bf > 0.0,
-                       np.power(blk_beta*(Bf*blk_Zabl),1./3),
-                       0.2)
-    del Bf
-    delW  = np.sqrt(wspd0*wspd0+cff*cff)
-    del cff
-    
-    return Wstar, Tstar, Qstar, delW, logts10, psi_t#, psi_u
-    
-def coare_croco(uatm,vatm,uoce,voce,TairK,qatm,blk_ZW,TseaC,nits):
-    VisAir      = air_visc ( TairK - CtoK )
-    Qsea        = qsat(TseaC + CtoK,psurf,0.98) # ssq_abl
-    
-    iexns       = (psurf*ip00)**(-rdocpd)
-    iexna,patm  = exner_patm_from_tairabs(qatm,TairK,blk_ZW,psurf,nits)
-    cff         = CtoK*(iexna-iexns)
-    delT        = (TairK - CtoK)*iexna - TseaC*iexns + cff
-    du          = uatm-uoce
-    dv          = vatm-voce
-    wspd0       = np.sqrt( du*du+dv*dv)
-    wspd0       = np.where(wspd0 > 0.1 * min(10.,blk_ZW), wspd0, 0.1 * min(10.,blk_ZW))
-    delW        = np.sqrt(wspd0*wspd0+0.25)
-    
-    Wstar       = 0.035*delW*np.log(10.0*10000.)/np.log(blk_ZW*10000)
-    
-    
-    Ribcu       = - blk_ZW / ( blk_Zabl * 0.004 * blk_beta**3 )
-    iZo10       = g*Wstar / (0.011*Wstar*Wstar*Wstar+0.11*g*VisAir)
-    cff         = 1./( Ch10*np.log( 10.0*iZo10) )
-    iZoT10      = 0.1 * np.exp( vonKar*vonKar*cff )
-    CC          = np.log( blk_ZW*iZo10 )*np.log( blk_ZW*iZo10 )/ np.log( blk_ZW*iZoT10 )
-    
-    ZoLu         = g * blk_ZW * ( delT+cpvir*TairK*(qatm-Qsea) )/( TairK*delW*delW )
-    ZoLu        = np.where(ZoLu < 0., CC*ZoLu/(1.0+ZoLu/Ribcu), CC*ZoLu/(1.0+3.0*ZoLu/CC))
-    del CC
-    psi_t       = bulk_psit_coare(ZoLu*blk_ZToZW)
-    psi_u       = bulk_psiu_coare(ZoLu)
+    # iterative process
+    for _ in range(nits):
+        izow = G * w_star / (charn * w_star * w_star * w_star + 0.11 * G * vis_air)
+        rr_ = w_star / (izow * vis_air)
+        izot = np.where(18181.8 * (rr_**0.6) > 8695.65, 18181.8 * (rr_**0.6), 8695.65)
+        zolu = (
+            VONKAR
+            * G
+            * BLK_ZW
+            * (t_star * (1.0 + CPVIR * q_atm) + CPVIR * t_air_k * q_star)
+            / (t_air_k * w_star * w_star * (1.0 + CPVIR * q_atm) + EPS)
+        )
+        psi_u = bulk_psiu_coare(zolu)
+        logus10 = np.log(BLK_ZW * izow)
+        w_star = del_w * VONKAR / (logus10 - psi_u)
+        zolt = zolu * BLK_ZTOTW
+        psi_t = bulk_psit_coare(zolt)
+        logts10 = np.log(BLK_ZW * izot)
+        cff = VONKAR / (logts10 - psi_t)
+        t_star = del_t * cff
+        q_star = (q_atm - q_sat) * cff
+        bf_ = -G / t_air_k * w_star * (t_star + CPVIR * t_air_k * q_star)
+        cff = np.where(bf_ > 0.0, np.power(BLK_BETA * (bf_ * BLK_ZABL), 1.0 / 3), 0.2)
+        del_w = np.sqrt(wspd0 * wspd0 + cff * cff)
 
-    Wstar       = delW*vonKar/(np.log(blk_ZW*iZo10)-psi_u)
-    
-    logts10     = np.log(blk_ZW*iZoT10)
-    cff         = vonKar/(logts10-psi_t)
-    Tstar       = delT*cff
-    Qstar       = (qatm-Qsea)*cff
-    charn = np.where(delW > 10.0,
-                     0.011+0.125*(0.018-0.011)*(delW-10.),
-                     0.011)
-    charn = np.where(delW > 18.0,
-                     0.018,
-                     charn)
-# iterative process
-    for i in range(nits):
-        Wstar, Tstar, Qstar, delW, logts10, psi_t = iteration(Wstar, Tstar, Qstar, delW, delT, TairK, Qsea, qatm, wspd0, charn, VisAir, blk_ZW)
+    c_drag = (w_star / del_w) ** 2
+    c_drag_du = c_drag * del_w
+    c_heat_du = VONKAR / (logts10 - psi_t) * np.sqrt(c_drag) * del_w
 
-
-        
-    Cd_du     =  (Wstar/delW)**2 * delW
-    Ch_du     =  vonKar/(logts10-psi_t) * np.sqrt((Wstar/delW)**2) * delW
-    Ce_du     =  vonKar/(logts10-psi_t) * np.sqrt((Wstar/delW)**2) * delW
-
-    #==== Compute fluxes from bulk parameters
-    #WstarTstar = Ch_du*(TairK-CtoK-TseaC)  # Celsius * (m/s)
-    #WstarQstar = Ce_du*(qatm -Qsea)
-    rhoAir      = patm*(1.+qatm) / ( blk_Rgas*TairK*(1.+MvoMa*qatm) )    # rho_abl
-    #hfsen      = - blk_Cpa*rhoAir*WstarTstar  # W/m2
-    #Hlv        = (2.5008 - 0.0023719*TseaC)*1.0E+6
-    #hflat      = - Hlv*rhoAir*WstarQstar
-    #upvel      = -1.61*WstarQstar-(1.0+1.61*qatm)*WstarTstar/TairK
-    #hflat      = hflat+rhoAir*Hlv*upvel*qatm # W/m2
-    # Convert from W/m2 to Celsius/(m/s)
-    #hflat=-hflat*rho0i*cpi
-    #hfsen=-hfsen*rho0i*cpi   # Celsius * (m/s)
-    # radiative fluxes
-    #hflw       = rho0i*cpi*(lwdwn - emiss_lw*SigmaSB*np.power(TseaC + CtoK,4))
-    #hfsw       = rho0i*cpi*swdwn
-    #cff        = rhoAir*rho0i
-    sustr      = rhoAir*rho0i * Cd_du * uatm    # m2/s2
-    svstr      = rhoAir*rho0i * Cd_du * vatm    # m2/s2
-    # net heat flux (solar + nonsolar)
-    # stflx      = hfsw+hflw+hflat+hfsen
-    # Salinity flux 
-    
-    #evap=-cp*hflat/Hlv
-    #ssflx=(evap-prate)*sss   # psu * (m/s)
-
-    #del Cd_du, Ch_du, Ce_du, Wstar, Tstar, Qstar, delW, delT, Qsea, wspd0, charn, VisAir
-    return (sustr, svstr)#, svstr#Cd_du,Ch_du,Ce_du,rhoAir,Qsea
-
+    # ==== Compute fluxes from bulk parameters
+    wstar_tstar = c_heat_du * (t_air_k - CTOK - t_sea_c)  # Celsius * (m/s)
+    wstar_qstar = c_heat_du * (q_atm - q_sat)
+    rho_air = patm * (1.0 + q_atm) / (BLK_RGAS * t_air_k * (1.0 + MVOMA * q_atm))  # rho_abl
+    hfsen = -BLK_CPA * rho_air * wstar_tstar  # W/m2
+    hlv = (2.5008 - 0.0023719 * t_sea_c) * 1.0e6
+    hflat = -hlv * rho_air * wstar_qstar
+    upvel = -1.61 * wstar_qstar - (1.0 + 1.61 * q_atm) * wstar_tstar / t_air_k
+    hflat = hflat + rho_air * hlv * upvel * q_atm  # W/m2
+    sustr = rho_air * c_drag_du * uwnd_r  # m2/s2
+    svstr = rho_air * c_drag_du * vwnd_r  # m2/s2
+    return sustr, svstr, hflat, hfsen

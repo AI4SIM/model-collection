@@ -1,11 +1,28 @@
-from datasetBuilder import DatasetBuilder
+"""
+Python post-processing tool for ocean-atmosphere coupled simulations.
+"""
 
-import sys, logging
+import argparse
+import os
+import sys
+import logging
+from post_processing import PostProcessing
+
+
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 if __name__ == "__main__":
-    run_dir = "/net/172.16.118.188/data/ocean_atmosphere/simulations/wmed/run"
-    save_dir = "/net/172.16.118.188/data/ocean_atmosphere/simulations/wmed/processed"
 
-    builder = DatasetBuilder(run_dir)
-    builder.run(save_dir)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "base_dir", type=str, help="Path to the simulation base directory."
+    )
+
+    args = parser.parse_args()
+
+    run_dir = os.path.join(args.base_dir, "run")
+    save_dir = os.path.join(args.base_dir, "processed")
+
+    process = PostProcessing(run_dir)
+    process.run(save_dir)

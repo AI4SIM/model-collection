@@ -15,20 +15,23 @@ SCRIPTPATH=`dirname $SCRIPT`
 
 mkdir -p ${SAVE_SIF_DIR}
 
-for IMG in mpi-oasis mesonh croco-xios
+for IMG in mpi-oasis mesonh croco-xios dataset_builder 
 do
     echo "Building ${IMG} with Docker"
     cd ${SCRIPTPATH}/docker/${IMG}
-    docker build --progress plain\
+    docker build \
         --build-arg HTTP_PROXY=${http_proxy}  \
         --build-arg HTTPS_PROXY=${http_proxy} \
-        -t ${IMG}:latest \
+        -t oa-${IMG}:latest \
         .
+done
 
+for IMG in mesonh croco-xios dataset_builder 
+do
     cd ${SAVE_SIF_DIR}
-    echo "Exporting ${IMG}:latest to singularity"
-    docker save ${IMG}:latest -o ${IMG}.tar
+    echo "Exporting oa-${IMG}:latest to singularity"
+    docker save oa-${IMG}:latest -o ${IMG}.tar
     singularity build --force ${IMG}.sif docker-archive://${IMG}.tar
     rm ${IMG}.tar
-    ln -sf ${SCRIPTPATH}/dataset_builder/${IMG}.sif ${IMG}.sif
+    ln -sf ${SAVE_SIF_DIR}/${IMG}.sif ${SCRIPTPATH}/dataset_builder/${IMG}.sif 
 done
