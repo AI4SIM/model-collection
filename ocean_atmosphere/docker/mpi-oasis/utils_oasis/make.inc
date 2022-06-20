@@ -1,0 +1,1 @@
+include /tmp/oasis/oasis3-mct-OASIS3-MCT_$(OASIS_VERSION)/util/make_dir/make.oasis_rules

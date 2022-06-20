@@ -1,0 +1,24 @@
+#O3DIR = ${MNH_DIR}/src/LIB/oasis3-mct_v3
+#include $(O3DIR)/util/make_dir/make.generic_mesonh 
+#-I$(OASIS_PATH)/include
+
+ARCHDIR=${OASIS_DIR}
+CHAN=MPI1
+INC_DIR = -I$(OASIS_DIR)/build/lib/psmile.MPI1 -I$(OASIS_DIR)/build/lib/scrip
+
+F90 = mpif90
+
+NETCDF_INCDIR=-I${NETCDF_DIR}/include
+NETCDF_LIBDIR=-L${NETCDF_DIR}/lib
+NETCDF_LIB=-lnetcdff -lnetcdf
+
+HDF5_LIB=-lhdf5_hl -lhdf5 -lhdf5 -lz -ldl
+HDF5_INCDIR=-I${HDF5_DIR}/include
+HDF5_LIBDIR=-L${HDF5_DIR}/lib
+
+OASIS_INCDIR=-I${OASIS_DIR}/build/lib/psmile.MPI1
+OASIS_LIBDIR=-L${OASIS_DIR}/lib
+OASIS_LIB=-lpsmile.MPI1 -lscrip -lmct -lmpeu
+
+FLIBS = ${NETCDF_LIBDIR} ${NETCDF_LIB} ${HDF5_LIBDIR} ${HDF5_LIB}
+F90FLAGS = $(INC_DIR) ${NETCDF_INCDIR} ${OASIS_INCDIR} ${HDF5_INCDIR} $(CPPDEF) 

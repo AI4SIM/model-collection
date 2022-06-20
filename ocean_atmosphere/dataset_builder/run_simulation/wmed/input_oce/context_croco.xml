@@ -1,0 +1,97 @@
+
+
+
+
+
+
+
+
+
+
+
+<context id="crocox">
+  
+  <!-- ========================================================================== -->
+  <!-- ========================================================================== -->
+  
+  <field_definition src="./field_def_croco.xml"/>
+  
+  <!-- ========================================================================== -->
+  <!-- ========================================================================== -->
+  
+  <file_definition src="./file_def_croco.xml"/>
+  
+  <!-- ========================================================================== -->
+  <!-- ========================================================================== -->
+  
+  <domain_definition src="./domain_def_croco.xml"/>
+  
+  <axis_definition>
+    <axis id="s_rho"/>
+    <axis id="s_w"/>
+    <axis id="s_b"/>      <!-- For Sediment -->
+    <axis id="s_rhoS"/> <!-- For Sediment + PISCES -->
+  </axis_definition>
+  
+  <scalar_definition>
+    <scalar id="scalar"/>
+  </scalar_definition>
+  
+  <grid_definition>
+    <grid id="scalar_grid">
+      <scalar scalar_ref="scalar"/>
+    </grid>
+    
+    <grid id="rho_2D"> 		<domain domain_ref="rho"/> 				</grid>
+    <grid id="u_2D">		<domain domain_ref="u"  />				</grid>
+    <grid id="v_2D">		<domain domain_ref="v"  />				</grid>
+    <grid id="w_2D">		<domain domain_ref="w"  />				</grid>
+    <grid id="rho_3D"> 		<domain domain_ref="rho"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="rho_3DS">       <domain domain_ref="rho"/>	<axis axis_ref="s_rhoS"/></grid>
+    <grid id="u_3D">		<domain domain_ref="u"  />	<axis axis_ref="s_rho"/></grid>
+    <grid id="v_3D">		<domain domain_ref="v"  />	<axis axis_ref="s_rho"/></grid>
+    <grid id="w_3D">		<domain domain_ref="w"  />	<axis axis_ref="s_w"  /></grid>
+    
+    <grid id="b_2D">		<domain domain_ref="b"  />				</grid>
+    <grid id="b_3D">		<domain domain_ref="b"  />	<axis axis_ref="s_b"  /></grid>
+    
+    <grid id="psi_2D">		<domain domain_ref="psi"/>				</grid>
+    
+    <grid id="rho_vertical_dimension">				<axis axis_ref="s_rho"/></grid>
+    <grid id="w_vertical_dimension">				<axis axis_ref="s_w"  /></grid>
+    
+    <grid id="PT_01_grid_T">	<domain domain_ref="PT_01_T"/>				</grid>
+    <grid id="PT_01_grid_T3D">	<domain domain_ref="PT_01_T"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="PT_01_grid_U3D">	<domain domain_ref="PT_01_U"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="PT_01_grid_V3D">	<domain domain_ref="PT_01_V"/>	<axis axis_ref="s_rho"/></grid>
+
+    <grid id="PT_02_grid_T">	<domain domain_ref="PT_02_T"/>				</grid>
+    <grid id="PT_02_grid_T3D">	<domain domain_ref="PT_02_T"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="PT_02_grid_U3D">	<domain domain_ref="PT_02_U"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="PT_02_grid_V3D">	<domain domain_ref="PT_02_V"/>	<axis axis_ref="s_rho"/></grid>
+
+    <grid id="PT_03_grid_T">	<domain domain_ref="PT_03_T"/>				</grid>
+    <grid id="PT_03_grid_T3D">	<domain domain_ref="PT_03_T"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="PT_03_grid_U3D">	<domain domain_ref="PT_03_U"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="PT_03_grid_V3D">	<domain domain_ref="PT_03_V"/>	<axis axis_ref="s_rho"/></grid>
+
+    <grid id="PT_04_grid_T">	<domain domain_ref="PT_04_T"/>				</grid>
+    <grid id="PT_04_grid_T3D">	<domain domain_ref="PT_04_T"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="PT_04_grid_U3D">	<domain domain_ref="PT_04_U"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="PT_04_grid_V3D">	<domain domain_ref="PT_04_V"/>	<axis axis_ref="s_rho"/></grid>
+
+    <grid id="PT_05_grid_T">	<domain domain_ref="PT_05_T"/>				</grid>
+
+    <grid id="zoom_1_grid_T">	<domain domain_ref="zoom_1_T"/>				</grid>
+    <grid id="zoom_1_grid_T3D">	<domain domain_ref="zoom_1_T"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="zoom_1_grid_U3D">	<domain domain_ref="zoom_1_U"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="zoom_1_grid_V3D">	<domain domain_ref="zoom_1_V"/>	<axis axis_ref="s_rho"/></grid>
+
+    <grid id="zoom_2_grid_T">	<domain domain_ref="zoom_2_T"/>				</grid>
+    <grid id="zoom_2_grid_T3D">	<domain domain_ref="zoom_2_T"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="zoom_2_grid_U3D">	<domain domain_ref="zoom_2_U"/>	<axis axis_ref="s_rho"/></grid>
+    <grid id="zoom_2_grid_V3D">	<domain domain_ref="zoom_2_V"/>	<axis axis_ref="s_rho"/></grid>
+
+  </grid_definition>
+
+</context>

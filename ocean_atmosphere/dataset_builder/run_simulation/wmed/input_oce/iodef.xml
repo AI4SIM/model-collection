@@ -1,0 +1,54 @@
+
+
+
+
+
+
+
+
+
+
+
+<?xml version="1.0"?>
+<!-- =========================================================================================================== -->
+<!-- iodef.xml : Main configuration file for production of output files using  for CROCO                     -->
+<!--             A separatate file context_wrf.xml contains all specifications for WRF                           -->
+<!-- =========================================================================================================== -->
+<simulation>
+
+  <!-- =========================================================================================================== -->
+  <!--  context                                                                                                -->
+  <!-- =========================================================================================================== -->
+  <context id="xios">
+    <variable_definition>
+      <variable_group id="buffer">
+        <variable id="optimal_buffer_size" type="string">performance</variable>
+        <variable id="buffer_size_factor" type="double">1.0</variable>
+      </variable_group>
+
+      <variable_group id="parameters" >
+        <variable id="using_server" type="bool">true</variable>
+        <variable id="using_oasis"type="bool">true</variable>
+        <variable id="oasis_codes_id"type="string" >crocox</variable>
+        <variable id="call_oasis_enddef"type="bool" >false</variable>
+        <variable id="info_level" type="int">0</variable>
+        <variable id="print_file" type="bool">false</variable>
+      </variable_group>
+    </variable_definition>
+  </context>
+
+  <!-- =========================================================================================================== -->
+  <!-- CROCO and/or WRF context                                                                                    -->
+  <!-- The files context_croco.xml and context_wrf.xml are included here.                                          -->
+  <!-- This file needs to exist during run time.                                                                   -->
+  <!-- With AGRIF you need to add as many context as the number of zoom, with context name crocox.1, crocox.2 etc  -->
+  <!-- and copy/modify context_croco.xml for each zoom, and adapt the name of the context crocox.1, crocox.2       -->
+  <!-- see commented example below                                                                                 -->
+  <!-- =========================================================================================================== -->
+  <context id="crocox"  src="./context_croco.xml"/>
+
+  <!-- Example for AGRIF with one zoom
+  <context id="crocox.1"  src="./context_croco.xml.1"/>
+  -->
+
+</simulation>
