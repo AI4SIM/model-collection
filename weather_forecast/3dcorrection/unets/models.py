@@ -14,13 +14,10 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
 import torch
 from torchmetrics.functional import mean_squared_error
-import os
+import os.path as osp
 from torch_optimizer import AdamP
 
 from unet import UNet1D
-import config
-
-EPS = torch.tensor(1.e-8)
 
 # TODO: learn the heating rate
 
@@ -28,8 +25,21 @@ EPS = torch.tensor(1.e-8)
 class ThreeDCorrectionModule(pl.LightningModule):
     """Create a Lit module for 3dcorrection."""
 
+    def __init__(self, data_path: str):
+        """
+        Args:
+            data_path (str): Path to folder containing the stats.pt.
+        """
+        super().__init__()
+
+        stats = torch.load(osp.join(data_path, "stats.pt"))
+        self.x_mean = stats["x_mean"].to(self.device)
+        self.y_mean = stats["y_mean"].to(self.device)
+        self.x_std = stats["x_std"].to(self.device)
+        self.y_std = stats["y_std"].to(self.device)
+
     def forward(self, x):
-        return self.net(x)
+        return self.model(x)
 
     def weight_histograms_adder(self):
         for name, params in self.named_parameters():
@@ -43,16 +53,9 @@ class ThreeDCorrectionModule(pl.LightningModule):
                     self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
 
     def _normalize(self, x, y):
-        stats = torch.load(os.path.join(config.data_path, f"stats-{self.step}.pt"))
-
-        x_mean = stats["x_mean"].to(self.device)
-        y_mean = stats["y_mean"].to(self.device)
-        x_std = stats["x_std"].to(self.device)
-        y_std = stats["y_std"].to(self.device)
-
-        x = (x - x_mean) / (x_std + EPS)
-        y = (y - y_mean) / (y_std + EPS)
-
+        eps = torch.tensor(1.e-8)
+        x = (x - self.x_mean) / (self.x_std + eps)
+        y = (y - self.y_mean) / (self.y_std + eps)
         return x, y
 
     def _common_step(self, batch, stage, normalize=False):
@@ -87,10 +90,16 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
 @MODEL_REGISTRY
 class LitUnet1D(ThreeDCorrectionModule):
-    """Compile a 1D U-Net."""
+    """Compile a 1D U-Net, which needs a stats.pt (in the folder of data_path)."""
 
-    def __init__(self, in_channels, out_channels, n_levels, n_features_root, lr):
-        super().__init__()
+    def __init__(self,
+                 data_path: str,
+                 in_channels: int,
+                 out_channels: int,
+                 n_levels: int,
+                 n_features_root: int,
+                 lr: float):
+        super(LitUnet1D, self).__init__(data_path)
         self.save_hyperparameters()
 
         self.lr = lr

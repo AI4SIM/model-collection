@@ -24,7 +24,10 @@ from utils import RandomCropper3D
 
 class CnfCombustionDataset(Dataset):
 
-    def __init__(self, root, y_normalizer: float = None, subblock_shape: Union[int, tuple] = None):
+    def __init__(self,
+                 root: str,
+                 y_normalizer: float = None,
+                 subblock_shape: Union[int, tuple] = None):
         super().__init__()
         self.root = root
         self.y_normalizer = y_normalizer

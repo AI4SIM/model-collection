@@ -123,7 +123,7 @@ class Upsampler(nn.Module):
                 nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
                 nn.Conv1d(inp_ch, inp_ch // 2, kernel_size=1))
         else:
-            self.upsample = nn.ConvTranspose3d(inp_ch, inp_ch // 2, kernel_size=2, stride=2)
+            self.upsample = nn.ConvTranspose1d(inp_ch, inp_ch // 2, kernel_size=2, stride=2)
         self.conv = DoubleConv(inp_ch, out_ch)
 
     def forward(self, x1: Tensor, x2: Tensor) -> Tensor:

@@ -16,8 +16,8 @@ from torch import from_numpy
 from unet import UNet3D, Downsampler, Upsampler
 
 
-class TestUnet(TestCase):
-    """Testing U-nets."""
+class TestUnet3D(TestCase):
+    """Testing 3D U-nets."""
 
     def n_conv(self, n_levels: int, bilinear: bool = False):
         # 2 per DoubleConv + 1 per upsampler.

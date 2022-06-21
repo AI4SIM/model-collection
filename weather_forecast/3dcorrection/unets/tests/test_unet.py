@@ -16,8 +16,8 @@ from torch import from_numpy
 from unet import UNet1D, Downsampler, Upsampler
 
 
-class TestUnet(TestCase):
-    """Testing U-nets."""
+class TestUnet1D(TestCase):
+    """Testing 1D U-nets."""
 
     def n_conv(self, n_levels: int, bilinear: bool = False):
         # 2 per DoubleConv + 1 per upsampler.
@@ -26,7 +26,7 @@ class TestUnet(TestCase):
     def test_1d(self):
 
         n_levels = 1
-        net = UNet1D(inp_ch=1, out_ch=1, n_levels=n_levels)
+        net = UNet1D(inp_ch=1, out_ch=1, n_levels=n_levels, n_features_root=4)
 
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
@@ -34,7 +34,7 @@ class TestUnet(TestCase):
         self.assertEqual(summary.count("Conv1d"), self.n_conv(n_levels))
 
         n_levels = 6
-        net = UNet1D(inp_ch=1, out_ch=1, n_levels=n_levels)
+        net = UNet1D(inp_ch=1, out_ch=1, n_levels=n_levels, n_features_root=2)
 
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
@@ -42,7 +42,7 @@ class TestUnet(TestCase):
         self.assertEqual(summary.count("Conv1d"), self.n_conv(n_levels))
 
     def test_inference_1d(self):
-        net = UNet1D(inp_ch=1, out_ch=1, n_levels=3)
+        net = UNet1D(inp_ch=1, out_ch=1, n_levels=3, n_features_root=4)
         inp = from_numpy(rand(1, 1, 16))
         shp = tuple(net(inp).shape)
         self.assertEqual(shp, (1, 1, 16))

@@ -14,6 +14,7 @@ import json
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
 from typing import List, Union
@@ -41,15 +42,16 @@ class Trainer(pl.Trainer):
             devices: (Union[List[int], str, int, None]): devices to use for training.
             max_epochs (int): maximum number of epochs if no early stopping logic is implemented.
         """
+        self._devices = devices
         if accelerator == 'cpu':
-            devices = None
+            self._devices = None
+        logger = TensorBoardLogger(config.logs_path, name=None)
 
-        logger = pl.loggers.TensorBoardLogger(config.logs_path, name=None)
         super().__init__(
             default_root_dir=config.logs_path,
             logger=logger,
             accelerator=accelerator,
-            devices=devices,
+            devices=self._devices,
             max_epochs=max_epochs,
             # for some reason, a forward pass happens in the model before datamodule creation.
             # TODO: learn normalizers (mean, std) in a layer

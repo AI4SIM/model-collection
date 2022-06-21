@@ -20,16 +20,15 @@ import torch
 from typing import Dict, Tuple, Union
 import xarray as xr
 
-import config
 
-
-class Dataproc:
+class ThreeDCorrectionDataproc:
     """
     Download, preprocess and shard the data of the 3DCorrection use-case.
     To be called once before experiments to build the dataset on the filesystem.
     """
 
     def __init__(self,
+                 root: str,
                  timestep: int = 500,
                  patchstep: int = 1,
                  num_workers: int = 16) -> None:
@@ -43,9 +42,9 @@ class Dataproc:
             num_workers (int): Number of workers.
         """
 
-        self.cached_data_path = osp.join(config.data_path, 'cached')
-        self.raw_data_path = osp.join(config.data_path, 'raw')
-        self.processed_data_path = osp.join(config.data_path, 'processed')
+        self.cached_data_path = osp.join(root, 'cached')
+        self.raw_data_path = osp.join(root, 'raw')
+        self.processed_data_path = osp.join(root, 'processed')
 
         for path in [self.cached_data_path, self.raw_data_path, self.processed_data_path]:
             os.makedirs(path, exist_ok=True)
@@ -72,30 +71,32 @@ class Dataproc:
         """Download the data for 3D Correction UC and return an xr.Array."""
 
         cml.settings.set("cache-directory", self.cached_data_path)
-        cmlds = cml.load_dataset(
+        cml_ds = cml.load_dataset(
             'maelstrom-radiation',
+            subset='tier-1',
             dataset='3dcorrection',
             raw_inputs=False,
-            timestep=list(range(0, 3501, self.timestep)),
             minimal_outputs=False,
+            timestep=list(range(0, 3501, self.timestep)),
             patch=list(range(0, 16, self.patchstep)),
             hr_units='K d-1')
 
-        return cmlds.to_xarray()
+        return cml_ds.to_xarray()
 
     def build_features(self, xr_array) -> Tuple[da.Array]:
         """
-        Select features from the array provided in input,
-        then rechunk on row dimension,
-        and finally lazily build (x, y).
+        Build feature vectors (of spatial dimension 138)
+            * Select features from the array provided in input;
+            * Rechunk on row dimension;
+            * Finally lazily build (x, y).
         """
 
-        def broadcast_features(arr: da.Array, sz: int):
+        def broadcast_features(arr: da.Array, sz: int) -> da.Array:
             """Repeat a scalar in a vector."""
             a = da.repeat(arr, sz, axis=-1)
             return da.moveaxis(a, -2, -1)
 
-        def pad_tensor(arr: da.Array, pads: Tuple):
+        def pad_tensor(arr: da.Array, pads: Tuple) -> da.Array:
             """Pads zeros to the vertical axis (n_before, n_after)."""
             return da.pad(arr, ((0, 0), pads, (0, 0)))
 
@@ -153,30 +154,37 @@ class Dataproc:
         x_chunked = da.rechunk(x, chunks=(self.shard_size, *x.shape[1:]))
         y_chunked = da.rechunk(y, chunks=(self.shard_size, *y.shape[1:]))
 
-        out_dir = osp.join(self.processed_data_path, f'features-{self.timestep}')
-
-        x_path, y_path = self.purgedirs([osp.join(out_dir, 'x'), osp.join(out_dir, 'y')])
+        x_path, y_path = self.purgedirs([
+            osp.join(self.processed_data_path, 'x'),
+            osp.join(self.processed_data_path, 'y')])
         da.to_npy_stack(x_path, x_chunked, axis=0)
         da.to_npy_stack(y_path, y_chunked, axis=0)
 
         return x_path, y_path
 
-    def compute_stats(self, x_path: str, y_path: str) -> Dict[str, torch.Tensor]:
+    def compute_stats(self, x_path: str, y_path: str) -> Dict[str, np.array]:
         """Computes stats: mean and standard deviation for features of x and y."""
 
         stats = {}
         for a in [da.from_npy_stack(x_path), da.from_npy_stack(y_path)]:
             a_mean = da.mean(a, axis=0)
             a_std = da.std(a, axis=0)
+            a_nb = a.shape[0]
 
             m = a_mean.compute(num_workers=self.num_workers)
             s = a_std.compute(num_workers=self.num_workers)
+            n = a_nb.compute(num_workers=self.num_workers)
 
             name = a.name.split("/")[-1]
             stats.update({
                 f'{name}_mean': torch.tensor(m),
-                f'{name}_std': torch.tensor(s)})
+                f'{name}_std': torch.tensor(s),
+                f'{name}_nb': torch.tensor(n)})
 
-        torch.save(stats, osp.join(self.processed_data_path, f"stats-{self.step}.pt"))
+        torch.save(stats, osp.join(self.processed_data_path, "stats.pt"))
 
-        return stats
+
+if __name__ == '__main__':
+    import config
+    dataproc = ThreeDCorrectionDataproc(config.data_path)
+    dataproc.process()
