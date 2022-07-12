@@ -19,6 +19,8 @@ import numpy as np
 import dask.array as da
 import torch
 
+from dataproc import ThreeDCorrectionDataproc
+
 
 class ThreeDCorrectionDataset(Dataset):
     """
@@ -39,6 +41,7 @@ class ThreeDCorrectionDataset(Dataset):
         # Lazily load and assemble chunks.
         self.x = da.from_npy_stack(osp.join(data_path, 'x'))
         self.y = da.from_npy_stack(osp.join(data_path, 'y'))
+        self.z = da.from_npy_stack(osp.join(data_path, 'z'))
 
         # Load number of data.
         stats = torch.load(osp.join(data_path, "stats.pt"))
@@ -54,13 +57,14 @@ class ThreeDCorrectionDataset(Dataset):
         """
         x = self.x[i].compute()
         y = self.y[i].compute()
-        return x, y
+        z = self.z[i].compute()
+        return x, y, z
 
     def __len__(self) -> int:
         return self.n_data
 
 
-@DATAMODULE_REGISTRY
+# @DATAMODULE_REGISTRY
 class LitThreeDCorrectionDataModule(pl.LightningDataModule):
     """DataModule for the 3dcorrection dataset."""
 
@@ -78,32 +82,43 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         """
         super().__init__()
         self.data_path = data_path
+        self.timestep = timestep,
+        self.patchstep = patchstep,
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.splitting_lengths = splitting_lengths
 
     def prepare_data(self):
+        dataproc = ThreeDCorrectionDataproc(config.data_path,
+                                            self.timestep,
+                                            self.patchstep, 
+                                            self.num_workers)
+        dataproc.process()
         self.dataset = ThreeDCorrectionDataset(self.data_path)
 
     def setup(self, stage: Optional[str] = None):
+        length = len(self.dataset)
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(
-            self.dataset, self.splitting_lengths)
+            self.dataset, [int(length * split) for split in self.splitting_lengths])
 
     def train_dataloader(self):
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+            pin_memory=True)
 
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+            pin_memory=True)
 
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+            pin_memory=True)

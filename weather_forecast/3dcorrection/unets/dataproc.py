@@ -63,9 +63,9 @@ class ThreeDCorrectionDataproc:
         """
 
         xr_array = self.download()
-        x, y = self.build_features(xr_array)
-        x_path, y_path = self.reshard(x, y)
-        self.compute_stats(x_path, y_path)
+        x, y, z = self.build_features(xr_array)
+        x_path, y_path, z_path = self.reshard(x, y, z)
+        self.compute_stats(x_path)
 
     def download(self) -> xr.DataArray:
         """Download the data for 3D Correction UC and return an xr.Array."""
@@ -79,7 +79,8 @@ class ThreeDCorrectionDataproc:
             minimal_outputs=False,
             timestep=list(range(0, 3501, self.timestep)),
             patch=list(range(0, 16, self.patchstep)),
-            hr_units='K d-1')
+            hr_units='K d-1',
+        )
 
         return cml_ds.to_xarray()
 
@@ -102,7 +103,9 @@ class ThreeDCorrectionDataproc:
 
         features = [
             'sca_inputs', 'col_inputs', 'hl_inputs', 'inter_inputs',
-            'flux_dn_sw', 'flux_up_sw', 'flux_dn_lw', 'flux_up_lw']
+            'hr_sw', "hr_lw",
+            'flux_dn_sw', 'flux_up_sw', 'flux_dn_lw', 'flux_up_lw',
+        ]
         dataset_len = xr_array.dims['column']
         n_shards = 53 * 2 ** 6
         self.shard_size = dataset_len // n_shards
@@ -115,20 +118,30 @@ class ThreeDCorrectionDataproc:
             data.update({f: arr})
 
         x = da.concatenate([
+            broadcast_features(data['sca_inputs'][..., np.newaxis], 138),
+            pad_tensor(data['col_inputs'], (1, 0)),
             data['hl_inputs'],
             pad_tensor(data['inter_inputs'], (1, 1)),
-            pad_tensor(data['col_inputs'], (1, 0)),
-            broadcast_features(data['sca_inputs'][..., np.newaxis], 138)
         ], axis=-1)
+
+        data["delta_sw_diff"] = data["flux_dn_sw"] - data["flux_up_sw"]
+        data["delta_sw_add"] = data["flux_dn_sw"] + data["flux_up_sw"]
+        data["delta_lw_diff"] = data["flux_dn_lw"] - data["flux_up_lw"]
+        data["delta_lw_add"] = data["flux_dn_lw"] + data["flux_up_lw"]
 
         y = da.concatenate([
-            data['flux_dn_sw'][..., np.newaxis],
-            data['flux_up_sw'][..., np.newaxis],
-            data['flux_dn_lw'][..., np.newaxis],
-            data['flux_up_lw'][..., np.newaxis],
+            data['delta_sw_diff'][..., np.newaxis],
+            data['delta_sw_add'][..., np.newaxis],
+            data['delta_lw_diff'][..., np.newaxis],
+            data['delta_lw_add'][..., np.newaxis],
+        ], axis=-1)
+        
+        z = da.concatenate([
+            data["hr_sw"][..., np.newaxis],
+            data["hr_lw"][..., np.newaxis],
         ], axis=-1)
 
-        return x, y
+        return x, y, z
 
     def purgedirs(self, paths: Union[str, list]) -> Union[str, list]:
         """Removes all content of directories in paths."""
@@ -144,7 +157,7 @@ class ThreeDCorrectionDataproc:
 
         return paths[0] if len(paths) == 1 else paths
 
-    def reshard(self, x: da.Array, y: da.Array) -> Tuple[str]:
+    def reshard(self, x: da.Array, y: da.Array, z: da.Array) -> Tuple[str]:
         """
         Reshard the arrays by rechunking on memory,
         store the chunks on disk in Numpy file format (.npy)
@@ -153,33 +166,37 @@ class ThreeDCorrectionDataproc:
         # Chunk on the zeroth axis.
         x_chunked = da.rechunk(x, chunks=(self.shard_size, *x.shape[1:]))
         y_chunked = da.rechunk(y, chunks=(self.shard_size, *y.shape[1:]))
+        z_chunked = da.rechunk(z, chunks=(self.shard_size, *z.shape[1:]))
 
-        x_path, y_path = self.purgedirs([
+        x_path, y_path, zpath = self.purgedirs([
             osp.join(self.processed_data_path, 'x'),
-            osp.join(self.processed_data_path, 'y')])
+            osp.join(self.processed_data_path, 'y'),
+            osp.join(self.processed_data_path, 'z'),
+        ])
         da.to_npy_stack(x_path, x_chunked, axis=0)
         da.to_npy_stack(y_path, y_chunked, axis=0)
+        da.to_npy_stack(z_path, z_chunked, axis=0)
 
-        return x_path, y_path
+        return x_path, y_path, z_path
 
-    def compute_stats(self, x_path: str, y_path: str) -> Dict[str, np.array]:
+    def compute_stats(self, x_path: str) -> Dict[str, np.array]:
         """Computes stats: mean and standard deviation for features of x and y."""
 
         stats = {}
-        for a in [da.from_npy_stack(x_path), da.from_npy_stack(y_path)]:
-            a_mean = da.mean(a, axis=0)
-            a_std = da.std(a, axis=0)
-            a_nb = a.shape[0]
+        a = da.from_npy_stack(x_path)
+        a_mean = da.mean(a, axis=0)
+        a_std = da.std(a, axis=0)
+        a_nb = a.shape[0]
 
-            m = a_mean.compute(num_workers=self.num_workers)
-            s = a_std.compute(num_workers=self.num_workers)
-            n = a_nb.compute(num_workers=self.num_workers)
+        m = a_mean.compute(num_workers=self.num_workers)
+        s = a_std.compute(num_workers=self.num_workers)
+        n = a_nb.compute(num_workers=self.num_workers)
 
-            name = a.name.split("/")[-1]
-            stats.update({
-                f'{name}_mean': torch.tensor(m),
-                f'{name}_std': torch.tensor(s),
-                f'{name}_nb': torch.tensor(n)})
+        name = a.name.split("/")[-1]
+        stats.update({
+            f'{name}_mean': torch.tensor(m),
+            f'{name}_std': torch.tensor(s),
+            f'{name}_nb': torch.tensor(n)})
 
         torch.save(stats, osp.join(self.processed_data_path, "stats.pt"))
 
