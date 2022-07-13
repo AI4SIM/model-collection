@@ -167,19 +167,14 @@ class ThreeDCorrectionDataproc:
 
         stats = {}
         for a in [da.from_npy_stack(x_path), da.from_npy_stack(y_path)]:
-            a_mean = da.mean(a, axis=0)
-            a_std = da.std(a, axis=0)
-            a_nb = a.shape[0]
-
-            m = a_mean.compute(num_workers=self.num_workers)
-            s = a_std.compute(num_workers=self.num_workers)
-            n = a_nb.compute(num_workers=self.num_workers)
+            m = da.mean(a, axis=0).compute(num_workers=self.num_workers)
+            s = da.std(a, axis=0).compute(num_workers=self.num_workers)
 
             name = a.name.split("/")[-1]
             stats.update({
                 f'{name}_mean': torch.tensor(m),
                 f'{name}_std': torch.tensor(s),
-                f'{name}_nb': torch.tensor(n)})
+                f'{name}_nb': torch.tensor(a.shape[0])})
 
         torch.save(stats, osp.join(self.processed_data_path, "stats.pt"))
 
