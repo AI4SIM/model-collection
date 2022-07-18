@@ -49,7 +49,7 @@ class UNet1D(nn.Module):
             f //= 2
 
         layers.append(DoubleConv(f, out_ch))
-        self.layers = nn.ModuleList(layers).double()  # forces double precision for the whole model.
+        self.layers = nn.ModuleList(layers)  # .double()  # forces double precision for the whole model.
 
     def forward(self, x: Tensor) -> Tensor:
         # xi keeps the data at each level, allowing to pass it through skip-connections.

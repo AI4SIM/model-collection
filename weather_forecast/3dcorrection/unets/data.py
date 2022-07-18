@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import os.path as osp
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
@@ -19,6 +20,7 @@ import numpy as np
 import dask.array as da
 import torch
 
+import config
 from dataproc import ThreeDCorrectionDataproc
 
 
@@ -55,21 +57,22 @@ class ThreeDCorrectionDataset(Dataset):
         Args:
             i (int): Index of datum to load.
         """
-        x = self.x[i].compute()
-        y = self.y[i].compute()
-        z = self.z[i].compute()
-        return x, y, z
+        x, y, z = da.compute(self.x[i], self.y[i], self.z[i])
+
+        return torch.Tensor(x), torch.Tensor(y), torch.Tensor(z)
 
     def __len__(self) -> int:
         return self.n_data
 
 
-# @DATAMODULE_REGISTRY
+@DATAMODULE_REGISTRY
 class LitThreeDCorrectionDataModule(pl.LightningDataModule):
     """DataModule for the 3dcorrection dataset."""
 
     def __init__(self,
                  data_path: str,
+                 timestep: int,
+                 patchstep: int,
                  batch_size: int,
                  num_workers: int,
                  splitting_lengths: list):
@@ -81,19 +84,21 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             splitting_lengths (list): List of lengths of train, val and test dataset.
         """
         super().__init__()
+
         self.data_path = data_path
-        self.timestep = timestep,
-        self.patchstep = patchstep,
+        self.timestep = timestep
+        self.patchstep = patchstep
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.splitting_lengths = splitting_lengths
 
     def prepare_data(self):
-        dataproc = ThreeDCorrectionDataproc(config.data_path,
-                                            self.timestep,
-                                            self.patchstep, 
-                                            self.num_workers)
-        dataproc.process()
+        if not osp.isdir(self.data_path) or len(os.listdir(self.data_path)) == 0:
+            dataproc = ThreeDCorrectionDataproc(config.data_path,
+                                                self.timestep,
+                                                self.patchstep,
+                                                self.num_workers)
+            dataproc.process()
         self.dataset = ThreeDCorrectionDataset(self.data_path)
 
     def setup(self, stage: Optional[str] = None):

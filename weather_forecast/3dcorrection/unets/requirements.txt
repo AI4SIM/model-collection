@@ -7,3 +7,4 @@ torchmetrics==0.5.1
 torch_optimizer==0.1.0
 climetlab==0.11.9
 climetlab-maelstrom-radiation==0.5.4
+omegaconf==2.2.2

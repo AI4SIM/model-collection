@@ -73,7 +73,6 @@ class ThreeDCorrectionDataproc:
         cml.settings.set("cache-directory", self.cached_data_path)
         cml_ds = cml.load_dataset(
             'maelstrom-radiation',
-            subset='tier-1',
             dataset='3dcorrection',
             raw_inputs=False,
             minimal_outputs=False,
@@ -102,7 +101,7 @@ class ThreeDCorrectionDataproc:
             return da.pad(arr, ((0, 0), pads, (0, 0)))
 
         features = [
-            'sca_inputs', 'col_inputs', 'hl_inputs', 'inter_inputs',
+            'sca_inputs', 'col_inputs', 'hl_inputs', 'inter_inputs', 'pressure_hl',
             'hr_sw', "hr_lw",
             'flux_dn_sw', 'flux_up_sw', 'flux_dn_lw', 'flux_up_lw',
         ]
@@ -110,36 +109,37 @@ class ThreeDCorrectionDataproc:
         n_shards = 53 * 2 ** 6
         self.shard_size = dataset_len // n_shards
 
-        set(scheduler='threads')
-        data = {}
-        for f in features:
-            arr = xr_array[f].data
-            arr = da.rechunk(arr, chunks=(self.shard_size, *arr.shape[1:]))
-            data.update({f: arr})
+        with set(scheduler='threads'):
+            data = {}
+            for f in features:
+                arr = xr_array[f].data
+                arr = da.rechunk(arr, chunks=(self.shard_size, *arr.shape[1:]))
+                data.update({f: arr})
 
-        x = da.concatenate([
-            broadcast_features(data['sca_inputs'][..., np.newaxis], 138),
-            pad_tensor(data['col_inputs'], (1, 0)),
-            data['hl_inputs'],
-            pad_tensor(data['inter_inputs'], (1, 1)),
-        ], axis=-1)
+            x = da.concatenate([
+                broadcast_features(data['sca_inputs'][..., np.newaxis], 138),
+                pad_tensor(data['col_inputs'], (1, 0)),
+                data['hl_inputs'],
+                pad_tensor(data['inter_inputs'], (1, 1)),
+                data["pressure_hl"],
+            ], axis=-1)
 
-        data["delta_sw_diff"] = data["flux_dn_sw"] - data["flux_up_sw"]
-        data["delta_sw_add"] = data["flux_dn_sw"] + data["flux_up_sw"]
-        data["delta_lw_diff"] = data["flux_dn_lw"] - data["flux_up_lw"]
-        data["delta_lw_add"] = data["flux_dn_lw"] + data["flux_up_lw"]
+            data["delta_sw_diff"] = data["flux_dn_sw"] - data["flux_up_sw"]
+            data["delta_sw_add"] = data["flux_dn_sw"] + data["flux_up_sw"]
+            data["delta_lw_diff"] = data["flux_dn_lw"] - data["flux_up_lw"]
+            data["delta_lw_add"] = data["flux_dn_lw"] + data["flux_up_lw"]
 
-        y = da.concatenate([
-            data['delta_sw_diff'][..., np.newaxis],
-            data['delta_sw_add'][..., np.newaxis],
-            data['delta_lw_diff'][..., np.newaxis],
-            data['delta_lw_add'][..., np.newaxis],
-        ], axis=-1)
-        
-        z = da.concatenate([
-            data["hr_sw"][..., np.newaxis],
-            data["hr_lw"][..., np.newaxis],
-        ], axis=-1)
+            y = da.concatenate([
+                data['delta_sw_diff'][..., np.newaxis],
+                data['delta_sw_add'][..., np.newaxis],
+                data['delta_lw_diff'][..., np.newaxis],
+                data['delta_lw_add'][..., np.newaxis],
+            ], axis=-1)
+
+            z = da.concatenate([
+                data["hr_sw"][..., np.newaxis],
+                data["hr_lw"][..., np.newaxis],
+            ], axis=-1)
 
         return x, y, z
 
@@ -168,7 +168,7 @@ class ThreeDCorrectionDataproc:
         y_chunked = da.rechunk(y, chunks=(self.shard_size, *y.shape[1:]))
         z_chunked = da.rechunk(z, chunks=(self.shard_size, *z.shape[1:]))
 
-        x_path, y_path, zpath = self.purgedirs([
+        x_path, y_path, z_path = self.purgedirs([
             osp.join(self.processed_data_path, 'x'),
             osp.join(self.processed_data_path, 'y'),
             osp.join(self.processed_data_path, 'z'),
@@ -184,24 +184,19 @@ class ThreeDCorrectionDataproc:
 
         stats = {}
         a = da.from_npy_stack(x_path)
-        a_mean = da.mean(a, axis=0)
-        a_std = da.std(a, axis=0)
-        a_nb = a.shape[0]
-
-        m = a_mean.compute(num_workers=self.num_workers)
-        s = a_std.compute(num_workers=self.num_workers)
-        n = a_nb.compute(num_workers=self.num_workers)
+        # Last feature should not be normalized as it is used to compute the heating rate ie pressure
+        m, s = da.compute(da.mean(a[..., :-1], axis=0), da.std(a[..., :-1], axis=0), num_workers=self.num_workers)
 
         name = a.name.split("/")[-1]
         stats.update({
             f'{name}_mean': torch.tensor(m),
             f'{name}_std': torch.tensor(s),
-            f'{name}_nb': torch.tensor(n)})
+            f'{name}_nb': torch.tensor(a.shape[0])})
 
         torch.save(stats, osp.join(self.processed_data_path, "stats.pt"))
 
 
 if __name__ == '__main__':
     import config
-    dataproc = ThreeDCorrectionDataproc(config.data_path)
+    dataproc = ThreeDCorrectionDataproc(config.data_path, timestep=3500, patchstep=16)
     dataproc.process()

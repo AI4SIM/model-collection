@@ -14,35 +14,40 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
 import torch
 from torch.nn import Module
-from torchmetrics.functional import mean_squared_error
+from torchmetrics.functional import mean_squared_error, mean_absolute_error
 import os.path as osp
 from torch_optimizer import AdamP
 
 from unet import UNet1D
 
 # TODO: learn the heating rate
-#TODO: learning rate scheduler (cosine annealing with warm restart)
+# TODO: learning rate scheduler (cosine annealing with warm restart)
 
 
 class ThreeDCorrectionModule(pl.LightningModule):
     """Create a Lit module for 3dcorrection."""
 
-    def __init__(self, data_path: str):
+    def __init__(self, data_path: str, norm: bool):
         """
         Args:
             data_path (str): Path to folder containing the stats.pt.
         """
         super().__init__()
 
-        stats = torch.load(osp.join(data_path, "stats.pt"))
-        self.x_mean = stats["x_mean"].to(self.device)
-        self.x_std = stats["x_std"].to(self.device)
-        
+        self.data_path = data_path
+        self.norm = norm
+
+    def setup(self, stage):
+        stats = torch.load(osp.join(self.data_path, "stats.pt"))
+        self.x_mean = stats["x_mean"]  # .to(self.device)
+        self.x_std = stats["x_std"]  # .to(self.device)
+
         # self.flux_loss_weight = flux_loss_weight
         # self.hr_loss_weight = hr_loss_weight
 
     def forward(self, x, press):
         fluxes = self.model(x)
+        fluxes = torch.moveaxis(fluxes, -2, -1)
         hr = self.hr_layer([fluxes, press])
         return fluxes, hr
 
@@ -57,28 +62,38 @@ class ThreeDCorrectionModule(pl.LightningModule):
                 if param.requires_grad:
                     self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
 
-    def _normalize(self, x):
+    def _normalize(self, x_features):
         eps = torch.tensor(1.e-8)
-        x = (x - self.x_mean) / (self.x_std + eps)
-        return x
+        x_features = (x_features - self.x_mean) / (self.x_std + eps)
+        return x_features
 
-    def _common_step(self, batch, stage, normalize=False):
+    def _common_step(self, batch, batch_idx, stage, normalize=False):
         """Compute the loss, additional metrics, and log them."""
         x, y, z = batch
+        pressure = x[..., -1]
 
         if normalize:
-            x = self._normalize(x)
+            x_ = self._normalize(x[..., :-1])
+        x_ = torch.moveaxis(x_, -2, -1)
 
-        y_flx_hat, y_hr_hat = self(x, press)
-        flux_loss = mean_squared_error(y_flx_hat, y)
+        y_flux_hat, y_hr_hat = self(x_, pressure)
+        flux_loss = mean_squared_error(y_flux_hat, y)
         hr_loss = mean_squared_error(y_hr_hat, z)
-        loss = torch.tesnor(1.e3) * flux_loss + torch.tensor(1.e5) * hr_loss
+        loss = torch.tensor(1.e3) * flux_loss + torch.tensor(1.e5) * hr_loss
+
+        flux_mae = mean_absolute_error(y_flux_hat, y)
+        hr_mae = mean_absolute_error(y_hr_hat, z)
 
         self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(x))
-        return y_flux_hat, y_hr_hat, loss
+        self.log(f"{stage}_flux_loss", flux_loss, prog_bar=True, on_step=True, batch_size=len(x))
+        self.log(f"{stage}_hr_loss", hr_loss, prog_bar=True, on_step=True, batch_size=len(x))
+        self.log(f"{stage}_flux_mae", flux_mae, prog_bar=True, on_step=True, batch_size=len(x))
+        self.log(f"{stage}_hr_mae", hr_mae, prog_bar=True, on_step=True, batch_size=len(x))
+
+        return y_flux_hat, y_hr_hat, flux_mae, hr_mae, loss
 
     def training_step(self, batch, batch_idx):
-        _, _, loss = self._common_step(batch, batch_idx, "train", normalize=self.norm)
+        _, _, _, _, loss = self._common_step(batch, batch_idx, "train", self.norm)
         return loss
 
     def on_after_backward(self):
@@ -88,16 +103,16 @@ class ThreeDCorrectionModule(pl.LightningModule):
         self.weight_histograms_adder()
 
     def validation_step(self, batch, batch_idx):
-        y_flux_hat, y_hr_hat, _ = self._common_step(batch, batch_idx, "val")
+        _, _, _, _, _ = self._common_step(batch, batch_idx, "val", self.norm)
 
     def test_step(self, batch, batch_idx):
-        y_flux_hat, y_hr_hat, _ = self._common_step(batch, batch_idx, "test")
+        _, _, _, _, _ = self._common_step(batch, batch_idx, "test", self.norm)
 
 
-# @MODEL_REGISTRY
+@MODEL_REGISTRY
 class LitUnet1D(ThreeDCorrectionModule):
     """Compile a 1D U-Net, which needs a stats.pt (in the folder of data_path)."""
-    
+
     class HRLayer(Module):
         """
         Layer to calculate heating rates given fluxes and half-level pressures.
@@ -107,16 +122,16 @@ class LitUnet1D(ThreeDCorrectionModule):
         def __init__(self):
             super().__init__()
             self.g_cp = torch.tensor(24 * 3600 * 9.80665 / 1004)
-            
+
         def forward(self, inputs: torch.Tensor) -> torch.Tensor:
             outputs = []
             hlpress = inputs[1]
-            net_press = hlpress[..., 1:, 0] - net_press[..., :-1, 0]
+            net_press = hlpress[..., 1:] - hlpress[..., :-1]
             for i in [0, 2]:
                 netflux = inputs[0][..., i]
                 flux_diff = netflux[..., 1:] - netflux[..., :-1]
                 outputs.append(-self.g_cp * torch.Tensor.divide(flux_diff, net_press))
-            return outputs
+            return torch.stack(outputs, dim=-1)
 
     def __init__(self,
                  data_path: str,
@@ -124,8 +139,9 @@ class LitUnet1D(ThreeDCorrectionModule):
                  out_channels: int,
                  n_levels: int,
                  n_features_root: int,
-                 lr: float):
-        super(LitUnet1D, self).__init__(data_path)
+                 lr: float,
+                 norm: bool):
+        super(LitUnet1D, self).__init__(data_path, norm)
         self.save_hyperparameters()
 
         self.lr = lr

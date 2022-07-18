@@ -69,9 +69,8 @@ class Trainer(pl.Trainer):
 
 
 def main():
-    cli = LightningCLI(trainer_class=Trainer, auto_registry=True)
-    print(cli)
-    # cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
+    cli = LightningCLI(trainer_class=Trainer, parser_kwargs={"parser_mode": "omegaconf"})
+    cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 
 
 if __name__ == '__main__':

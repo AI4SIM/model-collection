@@ -2,28 +2,28 @@ fit:
     model:
         class_path: models.LitUnet1D
         init_args:
-            data_path: /home/jupyter/projects/ai4sim/model-collection/weather_forecast/3dcorrection/unets/data
+            data_path: /home/cbovalo/projects/ai4sim-github/model-collection/weather_forecast/3dcorrection/unets/data/processed
             in_channels: 47
             out_channels: 4
             n_levels: 3
             n_features_root: 32
             lr: .0001
+            norm: True
 
     data:
         class_path: data.LitThreeDCorrectionDataModule
         init_args:
-            data_path: /home/jupyter/projects/ai4sim/model-collection/weather_forecast/3dcorrection/unets/data/processed
-            timestep: 1000
-            patchstep: 1
-            batch_size: 128
-            num_workers: 8
+            data_path: ${fit.model.init_args.data_path}
+            timestep: 3500
+            patchstep: 16
+            batch_size: 32
+            num_workers: 2
             splitting_lengths:
                 - .8
                 - .1
                 - .1
 
     trainer:
-        max_epochs: 5
+        max_epochs: 1
         accelerator: "cpu"
-        devices:
-            - 0
+        devices: "auto"
