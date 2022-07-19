@@ -1,60 +1,56 @@
-FROM nvidia/cuda:11.3.1-cudnn8-devel-ubi8
+##############################################################
+# Temporary image to download necessary files
+##############################################################
 
-LABEL maintainer="Atos AI4Sim"
+FROM ubuntu AS downloader
 
-RUN echo "alias ll='ls -la'" >> /root/.bashrc
+# install required packages
+RUN apt-get update \
+ && apt-get install -y git
 
-ENV https_proxy=http://129.183.4.13:8080
-ENV http_proxy=http://129.183.4.13:8080
+RUN mkdir -p /tmp/ai4sim/
+WORKDIR /tmp/ai4sim/
 
-RUN dnf update -y \
-    && dnf install -y python39 \
-                      git \
-                      wget \
-                      sudo \
-    && dnf clean all \
-    && rm -rf /var/cache/dnf/*
+# clone ai4sim code
+RUN git clone https://github.com/AI4SIM/model-collection.git
 
-RUN ln -snf python3 /usr/bin/python
-RUN ln -snf pip3 /usr/bin/pip
+##############################################################
+# Final image
+##############################################################
 
-# RUN apt-get update -y \
-# && apt-get install -y sudo zsh
+FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
 
-ENV USER mluser
-ENV HOME /home/${USER}
-RUN adduser --create-home ${USER} \
-    && echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-# RUN adduser --disabled-password --gecos "" ${USER} \
-    # && echo "${USER} ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
-USER ${USER}
-WORKDIR ${HOME}
-ENV PATH="${HOME}/.local/bin:${PATH}"
-RUN echo "export PATH=${PATH}:${HOME}/.local/bin" >> ${HOME}/.bashrc
+# install required packages
+RUN apt-get update \
+ && apt-get install -y git \
+ python3.8-dev \
+ python3-pip \
+ build-essential \
+ libssl-dev \
+ libffi-dev
 
-RUN pip install --upgrade pip
-RUN pip install --user wheel
-RUN pip install --user torch==1.10.2+cu113 \
-                       torchvision==0.11.3+cu113 \
-                       torchaudio===0.10.2+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
-RUN pip install --user torch-scatter \
-                       torch-sparse \
-                       torch-cluster \
-                       torch-spline-conv \
-                       torch-geometric -f https://data.pyg.org/whl/torch-1.10.0+cu113.html
-RUN pip install --user h5py \
-                       metaflow \
-                       memory_profiler \
-                       netCDF4 \
-                       notebook \
-                       nvitop \
-                       pytorch-lightning \
-                       PyYAML \
-                       randomname \
-                       torchmetrics \
-                       torch_optimizer
+RUN ln -s /usr/bin/python3.8 /usr/bin/python
+RUN pip install nox
 
-RUN mkdir ${HOME}/.jupyter
-COPY jupyter_server_config.py ${HOME}/.jupyter/
+# create user ai4sim
+ARG uid=1000
+ARG gid=1000
+RUN groupadd -g ${gid} ai4sim \
+  && useradd -u ${uid} -g ${gid} -m -s /bin/bash ai4sim
+
+WORKDIR /home/ai4sim
+
+ARG USE_CASE_PATH=model-collection/weather_forecast/3dcorrection/unets
+
+RUN mkdir -p $USE_CASE_PATH
+
+COPY --from=downloader /tmp/ai4sim/$USE_CASE_PATH $USE_CASE_PATH
+COPY --from=downloader /tmp/ai4sim/model-collection/tools/  ./model-collection/tools/
+
+WORKDIR $USE_CASE_PATH
+RUN python3 -m nox -s dev_dependencies --no-venv
+
+# change user
+USER ai4sim
 
 CMD ["bash"]

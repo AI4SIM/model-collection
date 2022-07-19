@@ -1,23 +1,35 @@
-fit:
-    model:
-        class_path: models.LitUnet1D
-        init_args:
-            in_channels: 47
-            out_channels: 6
-            n_levels: 3
-            n_features_root: 32
-            lr: .0001
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-    data:
-        class_path: data.LitThreeDCorrectionDataModule
-        init_args:
-            timestep: 1000
-            patchstep: 1
-            batch_size: 256
-            num_workers: 0
+model:
+    class_path: models.LitUnet1D
+    init_args:
+        data_path: data/
+        in_channels: 47
+        out_channels: 6
+        n_levels: 3
+        n_features_root: 32
+        lr: .0001
 
-    trainer:
-        max_epochs: 50
-        accelerator: "cpu"
-        devices:
-            - 0
+data:
+    class_path: data.LitThreeDCorrectionDataModule
+    init_args:
+        data_path: data/
+        batch_size: 256
+        num_workers: 0
+        splitting_lengths: [100, 10, 10]
+
+trainer:
+    max_epochs: 50
+    accelerator: "cpu"
+    devices:
+        - 0
