@@ -24,7 +24,7 @@ class TestDataproc(TestCase):
         self.data_path = mkdtemp()
         self.dataproc = ThreeDCorrectionDataproc(
             self.data_path,
-            timestep=3501,
+            timestep=3500,
             patchstep=16,
             num_workers=1)
 

@@ -13,7 +13,7 @@
 import os.path as osp
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 from typing import Tuple, Optional
 import numpy as np
 import dask.array as da
@@ -32,7 +32,7 @@ class ThreeDCorrectionDataset(Dataset):
         Create the dataset from preprocessed/sharded data on disk.
 
         Args:
-            data_path (str): Path to the preprocessed data folder.
+            data_path (str): Path to the preprocessed data folder, e.g. data/processed/
         """
         super().__init__()
 
@@ -47,13 +47,15 @@ class ThreeDCorrectionDataset(Dataset):
     def __getitem__(self, i: int) -> Tuple[np.ndarray]:
         """
         Load data from chunks on disk.
-        Return x, y tuple.
+        Return (x, y) as tensors.
 
         Args:
             i (int): Index of datum to load.
         """
         x = self.x[i].compute()
         y = self.y[i].compute()
+        x = torch.from_numpy(x)
+        y = torch.from_numpy(y)
         return x, y
 
     def __len__(self) -> int:
@@ -68,42 +70,55 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
                  data_path: str,
                  batch_size: int,
                  num_workers: int,
-                 splitting_lengths: list):
+                 splitting_ratios: Tuple[float] = (0.8, 0.1, 0.1)):
         """
         Args:
             data_path (str): Path containing the preprocessed data (by dataproc).
             batch_size (int): Size of the batches produced by the data loaders.
             num_workers (int): Number of workers used.
-            splitting_lengths (list): List of lengths of train, val and test dataset.
+            splitting_ratios (tuple): ratios (summing to 1) of (train, val, test) datasets.
         """
         super().__init__()
         self.data_path = data_path
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.splitting_lengths = splitting_lengths
+        self.splitting_ratios = splitting_ratios
 
     def prepare_data(self):
         self.dataset = ThreeDCorrectionDataset(self.data_path)
 
     def setup(self, stage: Optional[str] = None):
-        self.train_dataset, self.val_dataset, self.test_dataset = random_split(
-            self.dataset, self.splitting_lengths)
+
+        # Define subsets.
+        tr, va, te = self.splitting_ratios
+        l = len(self.dataset)
+        idx = list(range(l))
+        train_idx = idx[:int(tr * l)]
+        val_idx = idx[int(tr * l):int((tr + va) * l)]
+        test_idx = idx[int((tr + va) * l):]
+
+        # Define samplers.
+        self.train_sampler = SubsetRandomSampler(train_idx)
+        self.val_sampler = SubsetRandomSampler(val_idx)
+        self.test_sampler = SubsetRandomSampler(test_idx)
 
     def train_dataloader(self):
         return DataLoader(
-            self.train_dataset,
+            self.dataset,
             batch_size=self.batch_size,
-            shuffle=True,
+            sampler=self.train_sampler,
             num_workers=self.num_workers)
 
     def val_dataloader(self):
         return DataLoader(
-            self.val_dataset,
+            self.dataset,
             batch_size=self.batch_size,
+            sampler=self.val_sampler,
             num_workers=self.num_workers)
 
     def test_dataloader(self):
         return DataLoader(
-            self.test_dataset,
+            self.dataset,
             batch_size=self.batch_size,
+            sampler=self.test_sampler,
             num_workers=self.num_workers)

@@ -29,6 +29,7 @@ class ThreeDCorrectionDataproc:
 
     def __init__(self,
                  root: str,
+                 subset: str = None,
                  timestep: int = 500,
                  patchstep: int = 1,
                  num_workers: int = 16) -> None:
@@ -36,6 +37,8 @@ class ThreeDCorrectionDataproc:
         Preprocess and shard data on disk.
 
         Args:
+            root (str): Path to the root data folder.
+            subset (str): Which subset to download (e.g. "tier-1"), if None download all the data.
             timestep (int): Increment between two outputs (time increment is 12min so
                 step 125 corresponds to an output every 25h).
             patchstep (int): Step of the patchs (16 Earth's regions)
@@ -49,6 +52,7 @@ class ThreeDCorrectionDataproc:
         for path in [self.cached_data_path, self.raw_data_path, self.processed_data_path]:
             os.makedirs(path, exist_ok=True)
 
+        self.subset = subset
         self.timestep = timestep
         self.patchstep = patchstep
         self.num_workers = num_workers
@@ -73,7 +77,7 @@ class ThreeDCorrectionDataproc:
         cml.settings.set("cache-directory", self.cached_data_path)
         cml_ds = cml.load_dataset(
             'maelstrom-radiation',
-            subset='tier-1',
+            subset=self.subset,
             dataset='3dcorrection',
             raw_inputs=False,
             minimal_outputs=False,

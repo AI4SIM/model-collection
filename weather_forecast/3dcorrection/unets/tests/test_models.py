@@ -12,7 +12,7 @@
 
 from unittest import TestCase, main
 from numpy import zeros
-from torch import Tensor, from_numpy
+from torch import Tensor
 from tempfile import mkdtemp
 from shutil import rmtree
 from models import LitUnet1D
@@ -25,14 +25,19 @@ import os.path as osp
 class TestModels(TestCase):
 
     def setUp(self) -> None:
+        self.in_ch = 47
+        self.out_ch = 6
+        self.height = 138
+
         # Creates a temporary environment.
         self.root = mkdtemp()
         self.create_env(self.root)
 
         self.initParam = {
             'data_path': self.root,
-            'in_channels': 47,
-            'out_channels': 6,
+            'normalize': True,
+            'in_channels': self.in_ch,
+            'out_channels': self.out_ch,
             'n_levels': 3,
             'n_features_root': 32,
             'lr': .0001}
@@ -43,24 +48,24 @@ class TestModels(TestCase):
     def create_env(self, root) -> None:
         """Build an environment with stats.pt."""
         torch.save({
-            'x_mean': torch.tensor(np.random.rand(47, 138)),
-            'x_std': torch.tensor(np.random.rand(47, 138)),
+            'x_mean': torch.tensor(np.random.rand(self.in_ch, self.height)),
+            'x_std': torch.tensor(np.random.rand(self.in_ch, self.height)),
             'x_nb': torch.tensor(10),
-            'y_mean': torch.tensor(np.random.rand(6, 138)),
-            'y_std': torch.tensor(np.random.rand(6, 138)),
+            'y_mean': torch.tensor(np.random.rand(self.out_ch, self.height)),
+            'y_std': torch.tensor(np.random.rand(self.out_ch, self.height)),
             'y_nb': torch.tensor(10)
         }, osp.join(root, "stats.pt"))
 
     def test_forward_common_step(self):
-        # Fake data, of dim (n_batchs, n_channels, x).
-        x = from_numpy(zeros((1, 47, 138)))
-        y = from_numpy(zeros((1, 47, 138)))
+        # Fake data, of dim (n_batchs, height, n_channels).
+        x = torch.from_numpy(zeros((1, self.height, self.in_ch)))
+        y = torch.from_numpy(zeros((1, self.height, self.out_ch)))
 
         # Forward.
         test_unet = LitUnet1D(**self.initParam)
         y = test_unet.forward(x)
         self.assertTrue(isinstance(y, Tensor))
-        self.assertEqual(y.shape, (1, 6, 138))
+        self.assertEqual(y.shape, (1, self.out_ch, self.height))
 
         # Common step.
         loss = test_unet._common_step(batch=(x, y), stage="train")

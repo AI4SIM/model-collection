@@ -39,7 +39,7 @@ class TestData(TestCase):
                 data_path=data_path,
                 batch_size=1,
                 num_workers=0,
-                splitting_lengths=[4, 2 , 2])
+                splitting_ratios=(0.5, 0.25, 0.25))
             self.data_module.prepare_data()
 
     def tearDown(self) -> None:
@@ -56,7 +56,7 @@ class TestData(TestCase):
         x = np.random.rand(self.n_data, 4, 138)  # mock inputs.
         y = np.random.rand(self.n_data, 4, 138)  # mock flux outputs.
 
-        # Saved specific datum to check.
+        # Save specific datum to check.
         self.datum1_x = x[1]
         self.datum1_y = y[1]
 
@@ -85,25 +85,9 @@ class TestData(TestCase):
 
     def test_setup(self) -> None:
         self.data_module.setup()
-        # Test the splitting ratios.
-        self.assertEqual(len(self.data_module.train_dataset), 4)
-        self.assertEqual(len(self.data_module.val_dataset), 2)
-        self.assertEqual(len(self.data_module.test_dataset), 2)
-
-    def test_train_dataloader(self) -> None:
-        self.data_module.setup()
-        test_train_dl = self.data_module.train_dataloader()
-        self.assertTrue(isinstance(test_train_dl, DataLoader))
-
-    def test_val_dataloader(self) -> None:
-        self.data_module.setup()
-        test_val_dl = self.data_module.train_dataloader()
-        self.assertTrue(isinstance(test_val_dl, DataLoader))
-
-    def test_test_dataloader(self) -> None:
-        self.data_module.setup()
-        test_test_dl = self.data_module.train_dataloader()
-        self.assertTrue(isinstance(test_test_dl, DataLoader))
+        self.assertTrue(isinstance(self.data_module.train_dataloader(), DataLoader))
+        self.assertTrue(isinstance(self.data_module.val_dataloader(), DataLoader))
+        self.assertTrue(isinstance(self.data_module.test_dataloader(), DataLoader))
 
 
 if __name__ == '__main__':

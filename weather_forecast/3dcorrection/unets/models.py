@@ -14,23 +14,31 @@ import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
 import torch
 from torchmetrics.functional import mean_squared_error
+from typing import Tuple, Union
 import os.path as osp
 from torch_optimizer import AdamP
+import numpy as np
 
 from unet import UNet1D
 
-# TODO: learn the heating rate
+"""
+TODO: improve the preprocessing:
+- learn the heating rate
+- link it in the DAG
+"""
 
 
 class ThreeDCorrectionModule(pl.LightningModule):
     """Create a Lit module for 3dcorrection."""
 
-    def __init__(self, data_path: str):
+    def __init__(self, data_path: str, normalize=False):
         """
         Args:
             data_path (str): Path to folder containing the stats.pt.
+            normalize (bool): Whether or not to normalize during training.
         """
         super().__init__()
+        self.normalize = normalize
 
         stats = torch.load(osp.join(data_path, "stats.pt"))
         self.x_mean = stats["x_mean"].to(self.device)
@@ -38,7 +46,14 @@ class ThreeDCorrectionModule(pl.LightningModule):
         self.x_std = stats["x_std"].to(self.device)
         self.y_std = stats["y_std"].to(self.device)
 
-    def forward(self, x):
+    def forward(self, x: Union[torch.Tensor, np.ndarray]):
+        """
+        Args:
+            x (ndarray | tensor): Input tensor (numpy or tensor).
+        """
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        x, _ = self.preprocess(x)
         return self.model(x)
 
     def weight_histograms_adder(self):
@@ -47,23 +62,39 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
     def gradient_histograms_adder(self):
         global_step = self.global_step
-        if global_step % 50 == 0:  # do not make the tb file huge
+        if global_step % 50 == 0:
             for name, param in self.named_parameters():
                 if param.requires_grad:
                     self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
 
-    def _normalize(self, x, y):
-        eps = torch.tensor(1.e-8)
-        x = (x - self.x_mean) / (self.x_std + eps)
-        y = (y - self.y_mean) / (self.y_std + eps)
+    def preprocess(self,
+                   x: torch.Tensor,
+                   y: torch.Tensor = None,
+                   normalize: bool = False) -> Tuple[torch.Tensor]:
+        """
+        Apply the preprocessing steps inside the network:
+            * Reshaping the data;
+            * Normalizing (if normalize is True).
+        If y is None, then only process x (e.g. forward mode).
+        """
+
+        # Reshaping: (?, spatial, channels) -> (?, channels, spatial)
+        x = torch.moveaxis(x, 1, -1)
+        if y is not None:
+            y = torch.moveaxis(y, 1, -1)
+
+        if normalize:
+            eps = torch.tensor(1.e-8)
+            x = (x - self.x_mean) / (self.x_std + eps)
+            if y is not None:
+                y = (y - self.y_mean) / (self.y_std + eps)
+
         return x, y
 
     def _common_step(self, batch, stage, normalize=False):
         """Compute the loss, additional metrics, and log them."""
         x, y = batch
-
-        if normalize:
-            x, y = self._normalize(x, y)
+        self.preprocess(x, y)
 
         y_hat = self(x)
         loss = mean_squared_error(y_hat, y)
@@ -72,7 +103,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
         return y_hat, loss
 
     def training_step(self, batch, batch_idx):
-        _, loss, _ = self._common_step(batch, batch_idx, "train", normalize=self.norm)
+        _, loss, _ = self._common_step(batch, "train", normalize=self.normalize)
         return loss
 
     def on_after_backward(self):
@@ -82,10 +113,10 @@ class ThreeDCorrectionModule(pl.LightningModule):
         self.weight_histograms_adder()
 
     def validation_step(self, batch, batch_idx):
-        y_hat, _, _ = self._common_step(batch, batch_idx, "val")
+        self._common_step(batch, "val")
 
     def test_step(self, batch, batch_idx):
-        y_hat, _, _ = self._common_step(batch, batch_idx, "test")
+        self._common_step(batch, "test")
 
 
 @MODEL_REGISTRY
@@ -94,12 +125,13 @@ class LitUnet1D(ThreeDCorrectionModule):
 
     def __init__(self,
                  data_path: str,
+                 normalize: bool,
                  in_channels: int,
                  out_channels: int,
                  n_levels: int,
                  n_features_root: int,
                  lr: float):
-        super(LitUnet1D, self).__init__(data_path)
+        super(LitUnet1D, self).__init__(data_path, normalize)
         self.save_hyperparameters()
 
         self.lr = lr
