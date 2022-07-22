@@ -38,9 +38,9 @@ class Trainer(pl.Trainer):
                  callbacks: Union[List[Callback], Callback, None] = None) -> None:
         """
         Args:
-            accelerator (Union[str, Accelerator, None]): type of accelerator to use for training.
-            devices: (Union[List[int], str, int, None]): devices to use for training.
-            max_epochs (int): maximum number of epochs if no early stopping logic is implemented.
+            accelerator (Union[str, Accelerator, None]): Type of accelerator to use for training.
+            devices: (Union[List[int], str, int, None]): Devices to use for training.
+            max_epochs (int): Maximum number of epochs if no early stopping logic is implemented.
         """
         self._devices = devices
         if accelerator == 'cpu':
