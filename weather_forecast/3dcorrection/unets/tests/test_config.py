@@ -10,25 +10,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-model:
-    class_path: models.LitGraphUNet
-    init_args:
-        in_channels: 1
-        hidden_channels: 32
-        out_channels: 1
-        depth: 4
-        pool_ratios: .5
-        lr: .0001
+from unittest import TestCase, main
+from os.path import exists
 
-data:
-    class_path: data.LitCombustionDataModule
-    init_args:
-        batch_size: 1
-        num_workers: 0
-        y_normalizer: 3295.4
+import config
 
-trainer:
-    max_epochs: 1000
-    accelerator: "gpu"
-    devices:
-        - 3
+
+class TestConfig(TestCase):
+
+    def test_paths(self):
+        self.assertTrue(exists(config.experiment_path))
+        self.assertTrue(exists(config.logs_path))
+        self.assertTrue(exists(config.artifacts_path))
+        self.assertTrue(exists(config.plots_path))
+
+
+if __name__ == '__main__':
+    main()

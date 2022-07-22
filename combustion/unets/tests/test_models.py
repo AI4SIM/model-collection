@@ -20,7 +20,6 @@ from torch_optimizer import Optimizer
 class TestModels(TestCase):
 
     def setUp(self) -> None:
-        self.filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
         self.initParam = {
             'in_channels': 1,
             'out_channels': 2,

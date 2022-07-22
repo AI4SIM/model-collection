@@ -14,10 +14,9 @@ from torch import cat, Tensor
 import torch.nn as nn
 
 
-class UNet3D(nn.Module):
+class UNet1D(nn.Module):
     """
-    U-net with "fully" 3D convolutions (assuming isotropicity, learning 3D kernels).
-    Using float64 (double-precision) for physics.
+    1D U-net, using float64 (double-precision) for physics.
     Args:
         inp_ch: Number of channels of the input.
         out_ch: Number of channels of the output.
@@ -69,7 +68,7 @@ class UNet3D(nn.Module):
 
 class DoubleConv(nn.Module):
     """
-    DoubleConv block (3x3x3 conv -> BN -> ReLU) ** 2.
+    DoubleConv block (conv -> BN -> ReLU) ** 2.
     The residual option allows to short-circuit the convolutions
     with an additive residual (ResNet-like).
     """
@@ -78,28 +77,28 @@ class DoubleConv(nn.Module):
         super().__init__()
 
         self.net = nn.Sequential(
-            nn.Conv3d(inp_ch, out_ch, kernel_size=3, padding=1),
-            nn.BatchNorm3d(out_ch),
+            nn.Conv1d(inp_ch, out_ch, kernel_size=3, padding=1),
+            nn.BatchNorm1d(out_ch),
             nn.ReLU(inplace=True),
-            nn.Conv3d(out_ch, out_ch, kernel_size=3, padding=1),
-            nn.BatchNorm3d(out_ch),
+            nn.Conv1d(out_ch, out_ch, kernel_size=3, padding=1),
+            nn.BatchNorm1d(out_ch),
             nn.ReLU(inplace=True))
 
         self.res = None
         if residual:
-            self.res = nn.Conv3d(inp_ch, out_ch, kernel_size=1, bias=False)
+            self.res = nn.Conv1d(inp_ch, out_ch, kernel_size=1, bias=False)
 
     def forward(self, x: Tensor) -> Tensor:
         return self.net(x) + (self.res(x) if self.res is not None else 0)
 
 
 class Downsampler(nn.Module):
-    """Combination of MaxPool3d and DoubleConv in series."""
+    """Combination of MaxPool1d and DoubleConv in series."""
 
     def __init__(self, inp_ch: int, out_ch: int):
         super().__init__()
         self.net = nn.Sequential(
-            nn.MaxPool3d(kernel_size=2, stride=2),
+            nn.MaxPool1d(kernel_size=2, stride=2),
             DoubleConv(inp_ch, out_ch))
 
     def forward(self, x: Tensor) -> Tensor:
@@ -110,7 +109,7 @@ class Upsampler(nn.Module):
     """
     Upsampling (by either bilinear interpolation or transpose convolutions)
     followed by concatenation of feature map from contracting path,
-    followed by double 3x3x3 convolution.
+    followed by double convolution.
     """
 
     def __init__(self, inp_ch: int, out_ch: int, bilinear: bool = False):
@@ -118,12 +117,13 @@ class Upsampler(nn.Module):
         self.upsample = None
         if inp_ch < 2:
             raise ValueError('Input channel ({}) too low.'.format(inp_ch))
+
         if bilinear:
             self.upsample = nn.Sequential(
                 nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
-                nn.Conv3d(inp_ch, inp_ch // 2, kernel_size=1))
+                nn.Conv1d(inp_ch, inp_ch // 2, kernel_size=1))
         else:
-            self.upsample = nn.ConvTranspose3d(inp_ch, inp_ch // 2, kernel_size=2, stride=2)
+            self.upsample = nn.ConvTranspose1d(inp_ch, inp_ch // 2, kernel_size=2, stride=2)
         self.conv = DoubleConv(inp_ch, out_ch)
 
     def forward(self, x1: Tensor, x2: Tensor) -> Tensor:
@@ -131,12 +131,7 @@ class Upsampler(nn.Module):
 
         # Pad x1 to the size of x2.
         d2 = x2.shape[2] - x1.shape[2]
-        d3 = x2.shape[3] - x1.shape[3]
-        d4 = x2.shape[4] - x1.shape[4]
-        pad = [d4 // 2, d4 - d4 // 2,  # from last to first.
-            d3 // 2, d3 - d3 // 2,
-            d2 // 2, d2 - d2 // 2]
-        x1 = nn.functional.pad(x1, pad)
+        x1 = nn.functional.pad(x1, [d2 // 2, d2 - d2 // 2])
 
         x = cat([x2, x1], dim=1)  # concatenate along the channels axis.
         return self.conv(x)
