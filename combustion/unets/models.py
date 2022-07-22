@@ -50,7 +50,7 @@ class CombustionModule(LightningModule):
 
 @MODEL_REGISTRY
 class LitUnet3D(CombustionModule):
-    """Compile a 3D isotropic U-Net with generic volume shapes."""
+    """Lit wrapper to compile a 3D U-net, generic volume shapes."""
 
     def __init__(self, in_channels, out_channels, n_levels, n_features_root, lr):
         super().__init__()

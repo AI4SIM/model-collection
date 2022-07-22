@@ -118,7 +118,6 @@ class Upsampler(nn.Module):
         self.upsample = None
         if inp_ch < 2:
             raise ValueError('Input channel ({}) too low.'.format(inp_ch))
-
         if bilinear:
             self.upsample = nn.Sequential(
                 nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
