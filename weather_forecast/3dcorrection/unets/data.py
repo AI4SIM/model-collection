@@ -93,12 +93,12 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         self.splitting_lengths = splitting_lengths
 
     def prepare_data(self):
-        if not osp.isdir(self.data_path) or len(os.listdir(self.data_path)) == 0:
-            dataproc = ThreeDCorrectionDataproc(config.data_path,
-                                                self.timestep,
-                                                self.patchstep,
-                                                self.num_workers)
-            dataproc.process()
+    #     if not osp.isdir(self.data_path) or len(os.listdir(self.data_path)) == 0:
+    #         dataproc = ThreeDCorrectionDataproc(config.data_path,
+    #                                             self.timestep,
+    #                                             self.patchstep,
+    #                                             self.num_workers)
+    #         dataproc.process()
         self.dataset = ThreeDCorrectionDataset(self.data_path)
 
     def setup(self, stage: Optional[str] = None):

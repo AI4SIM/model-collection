@@ -34,6 +34,7 @@ class Trainer(pl.Trainer):
                  accelerator: Union[str, pl.accelerators.Accelerator, None],
                  devices: Union[List[int], str, int, None],
                  max_epochs: int,
+                 strategy: Union[str, pl.plugins.TrainingTypePlugin, None], 
                  fast_dev_run: Union[int, bool] = False,
                  callbacks: Union[List[Callback], Callback, None] = None) -> None:
         """
@@ -53,6 +54,7 @@ class Trainer(pl.Trainer):
             accelerator=accelerator,
             devices=self._devices,
             max_epochs=max_epochs,
+            strategy=strategy,
             # for some reason, a forward pass happens in the model before datamodule creation.
             # TODO: learn normalizers (mean, std) in a layer
             num_sanity_val_steps=0)
