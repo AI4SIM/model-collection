@@ -23,6 +23,8 @@ import torch
 import config
 from dataproc import ThreeDCorrectionDataproc
 
+# TODO: add specific test set
+# TODO: download ECMWF dataset in prepare_data
 
 class ThreeDCorrectionDataset(Dataset):
     """
@@ -31,7 +33,7 @@ class ThreeDCorrectionDataset(Dataset):
     Load a shard to get a datum (favor neighbour-preserving access over random access).
     """
 
-    def __init__(self, data_path: str) -> None:
+    def __init__(self, root: str) -> None:
         """
         Create the dataset from preprocessed/sharded data on disk.
 
@@ -39,17 +41,18 @@ class ThreeDCorrectionDataset(Dataset):
             data_path (str): Path to the preprocessed data folder.
         """
         super().__init__()
+        self.root = root
 
         # Lazily load and assemble chunks.
-        self.x = da.from_npy_stack(osp.join(data_path, 'x'))
-        self.y = da.from_npy_stack(osp.join(data_path, 'y'))
-        self.z = da.from_npy_stack(osp.join(data_path, 'z'))
+        self.x = da.from_npy_stack(osp.join(self.root, 'processed', 'x'))
+        self.y = da.from_npy_stack(osp.join(self.root, 'processed', 'y'))
+        self.z = da.from_npy_stack(osp.join(self.root, 'processed', 'z'))
 
         # Load number of data.
-        stats = torch.load(osp.join(data_path, "stats.pt"))
+        stats = torch.load(osp.join(self.root, "processed", "stats.pt"))
         self.n_data = stats['x_nb'].item()
 
-    def __getitem__(self, i: int) -> Tuple[np.ndarray]:
+    def __getitem__(self, i: int) -> Tuple[torch.Tensor]:
         """
         Load data from chunks on disk.
         Return x, y tuple.
@@ -63,14 +66,12 @@ class ThreeDCorrectionDataset(Dataset):
 
     def __len__(self) -> int:
         return self.n_data
-
-
+    
 @DATAMODULE_REGISTRY
 class LitThreeDCorrectionDataModule(pl.LightningDataModule):
     """DataModule for the 3dcorrection dataset."""
 
     def __init__(self,
-                 data_path: str,
                  timestep: int,
                  patchstep: int,
                  batch_size: int,
@@ -85,7 +86,6 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         """
         super().__init__()
 
-        self.data_path = data_path
         self.timestep = timestep
         self.patchstep = patchstep
         self.batch_size = batch_size
@@ -93,15 +93,10 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         self.splitting_lengths = splitting_lengths
 
     def prepare_data(self):
-    #     if not osp.isdir(self.data_path) or len(os.listdir(self.data_path)) == 0:
-    #         dataproc = ThreeDCorrectionDataproc(config.data_path,
-    #                                             self.timestep,
-    #                                             self.patchstep,
-    #                                             self.num_workers)
-    #         dataproc.process()
-        self.dataset = ThreeDCorrectionDataset(self.data_path)
+        pass
 
     def setup(self, stage: Optional[str] = None):
+        self.dataset = ThreeDCorrectionDataset(config.data_path)
         length = len(self.dataset)
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(
             self.dataset, [int(length * split) for split in self.splitting_lengths])

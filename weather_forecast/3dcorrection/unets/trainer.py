@@ -46,7 +46,10 @@ class Trainer(pl.Trainer):
         self._devices = devices
         if accelerator == 'cpu':
             self._devices = None
-        logger = TensorBoardLogger(config.logs_path, name=None)
+        logger = TensorBoardLogger(config.logs_path,
+                                   name=None,
+                                   log_graph=False,
+                                   default_hp_metric=False)
 
         super().__init__(
             default_root_dir=config.logs_path,
@@ -55,6 +58,7 @@ class Trainer(pl.Trainer):
             devices=self._devices,
             max_epochs=max_epochs,
             strategy=strategy,
+            callbacks=callbacks,
             # for some reason, a forward pass happens in the model before datamodule creation.
             # TODO: learn normalizers (mean, std) in a layer
             num_sanity_val_steps=0)
@@ -67,12 +71,13 @@ class Trainer(pl.Trainer):
         results = super().test(**kwargs)[0]
         with open(os.path.join(config.artifacts_path, "results.json"), "w") as f:
             json.dump(results, f)
-        torch.save(self.model.net, os.path.join(config.artifacts_path, 'model.pth'))
+
+        torch.save(self.model.state_dict(), os.path.join(config.artifacts_path, "model.pth"))
 
 
 def main():
-    cli = LightningCLI(trainer_class=Trainer, parser_kwargs={"parser_mode": "omegaconf"})
-    cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
+    cli = LightningCLI(trainer_class=Trainer, save_config_overwrite=True)
+    cli.trainer.test(model=cli.model, datamodule=cli.datamodule, ckpt_path="best")
 
 
 if __name__ == '__main__':

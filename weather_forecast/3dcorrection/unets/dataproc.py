@@ -184,8 +184,10 @@ class ThreeDCorrectionDataproc:
 
         stats = {}
         a = da.from_npy_stack(x_path)
+        m, s = da.compute(da.mean(a, axis=0), da.std(a, axis=0), num_workers=self.num_workers)
         # Last feature should not be normalized as it is used to compute the heating rate ie pressure
-        m, s = da.compute(da.mean(a[..., :-1], axis=0), da.std(a[..., :-1], axis=0), num_workers=self.num_workers)
+        m[..., -1] = 0.
+        s[..., -1] = 1.
 
         name = a.name.split("/")[-1]
         stats.update({

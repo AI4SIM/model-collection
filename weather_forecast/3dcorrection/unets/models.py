@@ -19,9 +19,10 @@ from torchmetrics import MeanAbsoluteError
 import os.path as osp
 from torch_optimizer import AdamP
 
+import config
 from unet import UNet1D
+from layers import HRLayer, Normalization
 
-# TODO: learn the heating rate
 # TODO: learning rate scheduler (cosine annealing with warm restart)
 
 
@@ -29,7 +30,6 @@ class ThreeDCorrectionModule(pl.LightningModule):
     """Create a Lit module for 3dcorrection."""
 
     def __init__(self,
-                 data_path: str,
                  norm: bool,
                  flux_loss_weight: float,
                  hr_loss_weight: float):
@@ -39,37 +39,23 @@ class ThreeDCorrectionModule(pl.LightningModule):
         """
         super().__init__()
 
-        self.data_path = data_path
         self.norm = norm
         self.flux_loss_weight = torch.tensor(flux_loss_weight)
         self.hr_loss_weight = torch.tensor(hr_loss_weight)
         
         self.mae = MeanAbsoluteError()
-        
-        # if not self.on_gpu:
-        #     device = "cuda:1"
-        # stats = torch.load(osp.join(self.data_path, "stats.pt"))
-        # self.x_mean = stats["x_mean"].to(device)
-        # self.x_std = stats["x_std"].to(device)
-        # print(f"Tensor is on device {self.x_std.get_device()}")
 
-#     def setup(self, stage):
-#         print(f"During setup device is {self.device}")
-#         stats = torch.load(osp.join(self.data_path, "stats.pt"))
-#         self.x_mean = stats["x_mean"].to(self.device)
-#         self.x_std = stats["x_std"].to(self.device)
-        
-#         print(f"Tensor is on device {self.x_std.get_device()}")
+        stats = torch.load(osp.join(config.data_path, "processed", "stats.pt"))
+        self.x_mean = stats["x_mean"]
+        self.x_std = stats["x_std"]
 
-        # self.flux_loss_weight = flux_loss_weight
-        # self.hr_loss_weight = hr_loss_weight
-
-    def forward(self, x, press):
+    def forward(self, x):
         x = self.normalization(x)
-        x = torch.moveaxis(x, -2, -1)
-        fluxes = self.net(x)
+        x_ = x[..., :-1]
+        x_ = torch.moveaxis(x_, -2, -1)
+        fluxes = self.net(x_)
         fluxes = torch.moveaxis(fluxes, -2, -1)
-        hr = self.hr_layer([fluxes, press])
+        hr = self.hr_layer([fluxes, x[..., -1]])
         return fluxes, hr
 
     def weight_histograms_adder(self):
@@ -83,21 +69,12 @@ class ThreeDCorrectionModule(pl.LightningModule):
                 if param.requires_grad:
                     self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
 
-    # def _normalize(self, x_features):
-    #     eps = torch.tensor(1.e-8).to(self.device)
-    #     x_features = (x_features - self.x_mean) / (self.x_std + eps)
-    #     return x_features
-
     def _common_step(self, batch, batch_idx, stage, normalize=False):
         """Compute the loss, additional metrics, and log them."""
+
         x, y, z = batch
-        pressure = x[..., -1]
+        y_flux_hat, y_hr_hat = self(x)
 
-        if normalize:
-            x_ = self._normalize(x[..., :-1])
-        # x_ = torch.moveaxis(x_, -2, -1)
-
-        y_flux_hat, y_hr_hat = self(x_, pressure)
         flux_loss = mean_squared_error(y_flux_hat, y)
         hr_loss = mean_squared_error(y_hr_hat, z)
         loss = self.flux_loss_weight * flux_loss + self.hr_loss_weight * hr_loss
@@ -141,61 +118,24 @@ class ThreeDCorrectionModule(pl.LightningModule):
 class LitUnet1D(ThreeDCorrectionModule):
     """Compile a 1D U-Net, which needs a stats.pt (in the folder of data_path)."""
 
-    class HRLayer(Module):
-        """
-        Layer to calculate heating rates given fluxes and half-level pressures.
-        This could be used to deduce the heating rates within the model so that
-        the outputs can be constrained by both fluxes and heating rates.
-        """
-        def __init__(self):
-            super().__init__()
-            self.g_cp = torch.tensor(24 * 3600 * 9.80665 / 1004)
-
-        def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-            outputs = []
-            hlpress = inputs[1]
-            net_press = hlpress[..., 1:] - hlpress[..., :-1]
-            for i in [0, 2]:
-                netflux = inputs[0][..., i]
-                flux_diff = netflux[..., 1:] - netflux[..., :-1]
-                outputs.append(-self.g_cp * torch.Tensor.divide(flux_diff, net_press))
-            return torch.stack(outputs, dim=-1)
-        
-    class Normalization(Module):
-        EPS = 1.e-12
-
-        def __init__(self, stat_path):
-            super().__init__()
-            stats = torch.load(osp.join(stat_path, "stats.pt"))
-            self.x_mean = stats["x_mean"]
-            self.x_std = stats["x_std"]
-            self.register_buffer("x_mean", self.x_mean)
-            self.register_buffer("x_std", self.x_std)
-        
-        def forward(self, x):
-            return (x - self.x_mean) / (self.x_std + EPS)
-
     def __init__(self,
-                 data_path: str,
                  in_channels: int,
                  out_channels: int,
                  n_levels: int,
                  n_features_root: int,
-                 lr: float,
                  norm: bool,
                  flux_loss_weight: float,
                  hr_loss_weight: float):
-        super(LitUnet1D, self).__init__(data_path, norm, flux_loss_weight, hr_loss_weight)
+        super(LitUnet1D, self).__init__(norm, flux_loss_weight, hr_loss_weight)
         self.save_hyperparameters()
 
-        self.lr = lr
+        self.normalization = Normalization(self.x_mean, self.x_std)
         self.net = UNet1D(
             inp_ch=in_channels,
             out_ch=out_channels,
             n_levels=n_levels,
             n_features_root=n_features_root)
-        self.hr_layer = LitUnet1D.HRLayer()
-        self.normalization = LitUnet1D.Normalization(self.data_path)
+        self.hr_layer = HRLayer()
 
-    def configure_optimizers(self):
-        return AdamP(self.parameters(), lr=self.lr)
+    # def configure_optimizers(self):
+    #     return AdamP(self.parameters(), lr=self.lr)
