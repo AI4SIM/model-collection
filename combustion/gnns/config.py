@@ -19,7 +19,7 @@ import randomname
 
 # CAUTION : A refactoring of this file might be requiered for further development
 # raw_data_path to be adapted to your local data path.
-raw_data_path = "/path/to/your/local/data"
+raw_data_path = "/wksp/ai4sim/raise/pre-processing/unstruc_r2_splitted/"
 #
 
 

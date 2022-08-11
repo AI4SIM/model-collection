@@ -21,6 +21,9 @@ import torch
 import torch_geometric as pyg
 from typing import List
 import yaml
+import itertools
+import time
+import multiprocessing
 
 import config
 
@@ -106,6 +109,7 @@ class R2Dataset(CombustionDataset):
         Create a graph for each volume of data, and saves each graph in a separate file index by
         the order in the raw file names list.
         """
+
         i = 0
         for raw_path in self.raw_paths:
             with h5py.File(raw_path, 'r') as file:
@@ -124,6 +128,7 @@ class R2Dataset(CombustionDataset):
             undirected_index = graph.edge_index
             coordinates = list(g0.nodes())
             coordinates.reverse()
+            
 
             data = pyg.data.Data(
                 x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
@@ -136,6 +141,108 @@ class R2Dataset(CombustionDataset):
             i += 1
 
 
+            
+
+class R2DatasetUnstructured(CombustionDataset):
+    """Class to process data for the R2 Use case."""
+
+    def __init__(self, root: str, y_normalizer: float = None):
+        """Create the Dataset.
+
+        Args:
+            root (str): Path to the root data folder.
+            y_normalizer (str): normalizing value
+        """
+        super().__init__(root, y_normalizer)
+        
+            
+    def process(self) -> None:
+        """
+        Create a graph for each volume of data, and saves each graph in a separate file index by
+        the order in the raw file names list.
+        """
+        
+        print("Warning : This method uses 90 cpu to process all 8900 files")
+              
+        def multiprocessing_files(raw_paths):
+            """
+            Multi processing function
+            """
+            
+            for raw_path in raw_paths:
+                zone_idx = raw_path.split('.')[-2]
+                zone_name = '0000.' + zone_idx
+
+                print("Processing zone:" , zone_name)
+
+                with h5py.File(raw_path, "r") as f:
+                    x = f[f'Base/{zone_name}/GridCoordinates/CoordinateX/ data'][:]
+                    y = f[f'Base/{zone_name}/GridCoordinates/CoordinateY/ data'][:]
+                    z = f[f'Base/{zone_name}/GridCoordinates/CoordinateZ/ data'][:]
+
+                    connect = f[f'Base/{zone_name}/Tetrahedra/ElementConnectivity/ data'][:]
+
+                    c_filt = f[f'Base/{zone_name}/FlowSolution/c_filt/ data'][:]
+                    c_filt_grad = f[f'Base/{zone_name}/FlowSolution/c_filt_grad/ data'][:]
+                    c_grad_filt = f[f'Base/{zone_name}/FlowSolution/c_grad_filt/ data'][:]
+
+                coords = np.stack((x, y, z), axis=-1)
+
+                nmesh = 4  # tetrahedral mesh
+
+                num_el = connect.shape[0] / nmesh
+                r_connect = connect.reshape((int(num_el), nmesh))
+
+                edges = [ list(itertools.permutations(r_connect[i, :], 2)) for i in range(int(num_el)) ]
+
+                flat_list = [item for sublist in edges for item in sublist]
+
+                final_edges = list(set([i for i in flat_list]))
+
+                torch_edges = np.stack(final_edges)
+                torch_edges = torch_edges - 1
+
+                edge_attr = [ np.sum(np.subtract(coords[a], coords[b])**2)**0.5  for a, b in torch_edges ]
+
+                data = pyg.data.Data(
+                    x=torch.tensor(c_filt.reshape(-1, 1), dtype=torch.float),
+                    edge_index=torch.tensor(torch_edges.T, dtype=torch.long),
+                    pos=torch.tensor(np.stack(coords)),
+                    edge_attr=torch.tensor(np.array(edge_attr).reshape(-1,1)),
+                    y=torch.tensor(c_grad_filt.reshape(-1, 1), dtype=torch.float)
+                )
+
+                torch.save(data, os.path.join(self.processed_dir, f'data-{zone_idx}.pt'))
+        
+        
+        proc_map = {}
+        for raw_path in self.raw_paths : 
+            zone_nb = int(int(raw_path.split('.')[-2]) / 100)
+            if zone_nb not in proc_map :
+                proc_map[zone_nb] = []
+                proc_map[zone_nb].append(raw_path)
+            else:
+                proc_map[zone_nb].append(raw_path)
+
+        start_time = time.perf_counter()
+        processes = []
+
+        # Creates processes then starts them
+        for i in range(len(proc_map)):
+            p = multiprocessing.Process(target=multiprocessing_files, args=(proc_map[i],))
+            p.start()
+            processes.append(p)
+
+        # Joins all the processes 
+        for p in processes:
+            p.join()
+
+        finish_time = time.perf_counter()
+
+        print(f"Program finished in {finish_time-start_time} seconds")
+                
+            
+            
 class CnfDataset(CombustionDataset):
     """Class to process data for the CNF Use case."""
 
@@ -213,9 +320,9 @@ class LitCombustionDataModule(pl.LightningDataModule):
 
     def prepare_data(self) -> None:
         """Not used."""
-        CombustionDataset(config.data_path, self.y_normalizer)
+        # CombustionDataset(config.data_path, self.y_normalizer)
 
-    def setup(self, stage: str, data_path=config.data_path, raw_data_path=config.data_path) -> None:
+    def setup(self, stage: str, data_path=config.data_path, raw_data_path=config.raw_data_path) -> None:
         """Create the main Dataset and splits the train, test and validation Datasets from the main
         Dataset. Currently the repartition is respectively, 80%, 10% and 10% from the main Dataset
         size. Creates symbolic links from origin data.
@@ -226,9 +333,10 @@ class LitCombustionDataModule(pl.LightningDataModule):
         Raises:
             ValueError: if the main dataset is too small and leads to have an empty dataset.
         """
+        
         config.LinkRawData(raw_data_path, data_path)
 
-        dataset = R2Dataset(data_path, y_normalizer=self.y_normalizer).shuffle()
+        dataset = R2DatasetUnstructured(data_path, y_normalizer=self.y_normalizer).shuffle()
         dataset_size = len(dataset)
 
         self.val_dataset = dataset[int(dataset_size * 0.9):]

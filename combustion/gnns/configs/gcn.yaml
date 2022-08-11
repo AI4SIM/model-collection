@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 model:
     class_path: models.LitGCN
     init_args:
@@ -40,4 +41,4 @@ trainer:
           min_delta: 0.0
     devices:
         - 3
-    with_mlflow: False
+        

@@ -12,7 +12,7 @@
 # limitations under the License.
 
 # Launch a training
-python trainer.py --configs configs/default.yaml
+python trainer.py --config configs/default.yaml
 
 # TODO: Create a script to launch inference
 # TODO: Experiment with TorchScript

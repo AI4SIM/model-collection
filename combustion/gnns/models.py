@@ -106,29 +106,29 @@ class CombustionModule(pl.LightningModule):
 
         return batch.y, y_hat
 
-    def test_epoch_end(self, outputs: list) -> None:
-        """Gather all the outputs from the test_step to plot the test Dataset.
+#     def test_epoch_end(self, outputs: list) -> None:
+#         """Gather all the outputs from the test_step to plot the test Dataset.
 
-        Args:
-            outputs (List[Tuple[torch.Tensor]]): all batches containing a pair of
-                (ground truth, prediction)
-        """
-        ys = list()
-        y_hats = list()
+#         Args:
+#             outputs (List[Tuple[torch.Tensor]]): all batches containing a pair of
+#                 (ground truth, prediction)
+#         """
+#         ys = list()
+#         y_hats = list()
 
-        for out in outputs:
-            ys.append(out[0])
-            y_hats.append(out[1])
+#         for out in outputs:
+#             ys.append(out[0])
+#             y_hats.append(out[1])
 
-        self.ys = np.asarray([t.cpu().numpy().reshape((-1,) + self.grid_shape) for t in ys])
-        self.y_hats = np.asarray([t.cpu().numpy().reshape((-1,) + self.grid_shape) for t in y_hats])
+#         self.ys = np.asarray([t.cpu().numpy().reshape((-1,) + self.grid_shape) for t in ys])
+#         self.y_hats = np.asarray([t.cpu().numpy().reshape((-1,) + self.grid_shape) for t in y_hats])
 
-        self.plotter = plotters.Plotter(self.model.__class__.__name__, self.grid_shape)
-        self.plotter.cross_section(self.plotter.zslice, self.ys, self.y_hats)
-        self.plotter.dispersion_plot(self.ys, self.y_hats)
-        self.plotter.histo(self.ys, self.y_hats)
-        self.plotter.histo2d(self.ys, self.y_hats)
-        self.plotter.boxplot(self.ys, self.y_hats)
+#         self.plotter = plotters.Plotter(self.model.__class__.__name__, self.grid_shape)
+#         self.plotter.cross_section(self.plotter.zslice, self.ys, self.y_hats)
+#         self.plotter.dispersion_plot(self.ys, self.y_hats)
+#         self.plotter.histo(self.ys, self.y_hats)
+#         self.plotter.histo2d(self.ys, self.y_hats)
+#         self.plotter.boxplot(self.ys, self.y_hats)
 
     def configure_optimizers(self) -> optim.Optimizer:
         """Set the model optimizer.
