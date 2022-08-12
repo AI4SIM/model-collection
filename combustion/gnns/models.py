@@ -120,8 +120,14 @@ class CombustionModule(pl.LightningModule):
             ys.append(out[0])
             y_hats.append(out[1])
 
-        self.ys = np.asarray([t.cpu().numpy().reshape((-1,) + self.grid_shape) for t in ys])
-        self.y_hats = np.asarray([t.cpu().numpy().reshape((-1,) + self.grid_shape) for t in y_hats])
+        ys = torch.stack(ys)
+        y_hats = torch.stack(y_hats)
+
+        self.ys = self.all_gather(ys)
+        self.y_hats = self.all_gather(y_hats)
+
+        self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
+        self.y_hats = self.y_hats.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
 
         self.plotter = plotters.Plotter(self.model.__class__.__name__, self.grid_shape)
         self.plotter.cross_section(self.plotter.zslice, self.ys, self.y_hats)
