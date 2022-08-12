@@ -183,8 +183,8 @@ class InferencePthGnn(Inferer):
             undirected_index = graph.edge_index
 
             self.data = pyg.data.Data(
-                x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
-                edge_index=torch.tensor(undirected_index, dtype=torch.long)
+                x=feat.reshape(-1, 1).clone().detach().type(torch.FloatTensor),
+                edge_index=undirected_index.clone().detach().type(torch.LongTensor),
             )
 
             if save:
@@ -197,7 +197,7 @@ class InferencePthGnn(Inferer):
         Args:
             save (bool): If the preprocessed data will be saved in a file or not. Default, False.
         """
-        features = self.load_data()
+        features = torch.from_numpy(self.load_data())
         self._create_graph(features, save=save)
 
     def predict(self) -> torch.Tensor:
