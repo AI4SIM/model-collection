@@ -15,13 +15,13 @@ import os
 import logging
 import yaml
 import randomname
+import shutil
 
 
 # CAUTION : A refactoring of this file might be requiered for further development
 # raw_data_path to be adapted to your local data path.
 raw_data_path = "/path/to/your/local/data"
 #
-
 
 root_path = os.path.dirname(os.path.realpath(__file__))
 data_path = os.path.join(root_path, 'data')
@@ -51,6 +51,19 @@ _paths = [
 ]
 for path in _paths:
     os.makedirs(path, exist_ok=True)
+
+
+if os.getenv("AI4SIM_EXPERIMENT_PATH") is None:
+    os.environ["AI4SIM_EXPERIMENT_PATH"] = experiment_path
+    os.environ["AI4SIM_LOGS_PATH"] = logs_path
+    os.environ["AI4SIM_ARTIFACTS_PATH"] = artifacts_path
+    os.environ["AI4SIM_PLOTS_PATH"] = plots_path
+elif os.getenv("AI4SIM_EXPERIMENT_PATH") != experiment_path:
+    shutil.rmtree(experiment_path)
+    experiment_path = os.getenv("AI4SIM_EXPERIMENT_PATH")
+    logs_path = os.getenv("AI4SIM_LOGS_PATH")
+    artifacts_path = os.getenv("AI4SIM_ARTIFACTS_PATH")
+    plots_path = os.getenv("AI4SIM_PLOTS_PATH")
 
 
 logging.basicConfig(filename=os.path.join(logs_path, f'{_experiment_name}.log'),
