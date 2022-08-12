@@ -103,10 +103,10 @@ class LinkRawData:
         if not os.path.exists(self.local_raw_data):
             os.makedirs(self.local_raw_data, exist_ok=True)
 
-        for file in filenames:
+        for filename in filenames:
             os.symlink(
-                os.path.join(self.raw_data_path, file),
-                os.path.join(self.local_raw_data, file)
+                os.path.join(self.raw_data_path, filename),
+                os.path.join(self.local_raw_data, filename)
             )
 
     def rm_old_dataset(self):

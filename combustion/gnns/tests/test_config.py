@@ -58,7 +58,7 @@ class TestConfig(unittest.TestCase):
                 file['filt_8'] = np.zeros((10, 10, 10))
                 file['filt_grad_8'] = np.zeros((10, 10, 10))
                 file['grad_filt_8'] = np.zeros((10, 10, 10))
-        
+
         temp_file_path = os.path.join(tempdir, 'local_data', 'filenames.yaml')
         with open(temp_file_path, 'w') as tmpfile:
             _ = yaml.dump(self.filenames, tmpfile)
@@ -69,12 +69,15 @@ class TestConfig(unittest.TestCase):
             warnings.simplefilter("ignore")
             return config.LinkRawData(raw_path, local_path)
 
-    def test_LinkRawData(self):
+    def test_linkrawdata(self):
         """Test the LinkRawData class."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
 
-            link_raw_data = self.create_obj_rm_warning(os.path.join(tempdir, "raw_data"), os.path.join(tempdir, "local_data"))
+            self.create_obj_rm_warning(
+                os.path.join(tempdir, "raw_data"),
+                os.path.join(tempdir, "local_data")
+            )
             num_files_raw_path = len(os.listdir(os.path.join(tempdir, "raw_data")))
             local_filenames = os.listdir(os.path.join(tempdir, "local_data", "raw"))
             num_files_local_path = len(local_filenames)
