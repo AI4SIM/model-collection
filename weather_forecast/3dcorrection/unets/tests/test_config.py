@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from unittest import TestCase, main
 from os.path import exists
 
@@ -20,9 +21,16 @@ class TestConfig(TestCase):
 
     def test_paths(self):
         self.assertTrue(exists(config.experiment_path))
+        self.assertTrue(os.getenv("AI4SIM_EXPERIMENT_PATH"), config.experiment_path)
+
         self.assertTrue(exists(config.logs_path))
+        self.assertTrue(os.getenv("AI4SIM_LOGS_PATH"), config.logs_path)
+
         self.assertTrue(exists(config.artifacts_path))
+        self.assertTrue(os.getenv("AI4SIM_ARTIFACTS_PATH"), config.artifacts_path)
+
         self.assertTrue(exists(config.plots_path))
+        self.assertTrue(os.getenv("AI4SIM_PLOTS_PATH"), config.plots_path)
 
 
 if __name__ == '__main__':

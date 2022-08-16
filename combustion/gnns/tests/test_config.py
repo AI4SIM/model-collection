@@ -34,6 +34,11 @@ class TestConfig(unittest.TestCase):
         """Test if config creates the correct logs path."""
         self.assertTrue(os.path.exists(config.logs_path))
         self.assertTrue(os.getenv("AI4SIM_LOGS_PATH"), config.logs_path)
+        self.assertTrue(
+            os.path.exists(
+                os.path.join(config.logs_path, f'{config.experiment_path.split("/")[-1]}.log')
+            )
+        )
 
     def test_artifacts_path(self):
         """Test if config creates the correct artifacts path."""

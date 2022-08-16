@@ -65,10 +65,11 @@ elif os.getenv("AI4SIM_EXPERIMENT_PATH") != experiment_path:
     artifacts_path = os.getenv("AI4SIM_ARTIFACTS_PATH")
     plots_path = os.getenv("AI4SIM_PLOTS_PATH")
 
-
-logging.basicConfig(filename=os.path.join(logs_path, f'{_experiment_name}.log'),
-                    filemode='w',
-                    format='%(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    filename=os.path.join(logs_path, f'{experiment_path.split("/")[-1]}.log'),
+    filemode='w',
+    format='%(name)s - %(levelname)s - %(message)s',
+    force=True)
 
 
 class LinkRawData:
