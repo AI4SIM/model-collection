@@ -70,7 +70,7 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
                  data_path: str,
                  batch_size: int,
                  num_workers: int,
-                 splitting_ratios: Tuple[float] = (0.8, 0.1, 0.1)):
+                 splitting_ratios: Tuple[float, float, float] = (0.8, 0.1, 0.1)):
         """
         Args:
             data_path (str): Path containing the preprocessed data (by dataproc).

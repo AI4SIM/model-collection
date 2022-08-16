@@ -10,27 +10,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-model:
-    class_path: models.LitUnet1D
-    init_args:
-        data_path: data/processed/
-        normalize: False
-        in_channels: 47
-        out_channels: 6
-        n_levels: 3
-        n_features_root: 32
-        lr: .0001
+fit:
+    model:
+        class_path: models.LitUnet1D
+        init_args:
+            data_path: data/processed/
+            normalize: False
+            in_channels: 47
+            out_channels: 6
+            n_levels: 3
+            n_features_root: 32
+            lr: .0001
 
-data:
-    class_path: data.LitThreeDCorrectionDataModule
-    init_args:
-        data_path: data/processed/
-        batch_size: 256
-        num_workers: 0
-        splitting_ratio: [0.8, 0.1, 0.1]
+    data:
+        class_path: data.LitThreeDCorrectionDataModule
+        init_args:
+            data_path: data/processed/
+            batch_size: 256
+            num_workers: 0
+            splitting_ratios:
+                - 0.8
+                - 0.1
+                - 0.1
 
-trainer:
-    max_epochs: 50
-    accelerator: "cpu"
-    devices:
-        - 0
+    trainer:
+        max_epochs: 50
+        accelerator: "gpu"
+        devices:
+            - 0

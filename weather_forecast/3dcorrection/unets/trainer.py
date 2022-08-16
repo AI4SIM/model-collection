@@ -45,16 +45,13 @@ class Trainer(pl.Trainer):
         self._devices = devices
         if accelerator == 'cpu':
             self._devices = None
-        logger = TensorBoardLogger(config.logs_path, name=None)
 
         super().__init__(
             default_root_dir=config.logs_path,
-            logger=logger,
+            logger=TensorBoardLogger(config.logs_path, name=None),
             accelerator=accelerator,
             devices=self._devices,
             max_epochs=max_epochs,
-            # for some reason, a forward pass happens in the model before datamodule creation.
-            # TODO: learn normalizers (mean, std) in a layer
             num_sanity_val_steps=0)
 
     def test(self, **kwargs) -> None:
@@ -65,7 +62,7 @@ class Trainer(pl.Trainer):
         results = super().test(**kwargs)[0]
         with open(os.path.join(config.artifacts_path, "results.json"), "w") as f:
             json.dump(results, f)
-        torch.save(self.model.net, os.path.join(config.artifacts_path, 'model.pth'))
+        torch.save(self.model, os.path.join(config.artifacts_path, 'model.pth'))
 
 
 def main():

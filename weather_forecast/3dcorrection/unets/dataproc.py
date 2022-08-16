@@ -46,10 +46,8 @@ class ThreeDCorrectionDataproc:
         """
 
         self.cached_data_path = osp.join(root, 'cached')
-        self.raw_data_path = osp.join(root, 'raw')
         self.processed_data_path = osp.join(root, 'processed')
-
-        for path in [self.cached_data_path, self.raw_data_path, self.processed_data_path]:
+        for path in [self.cached_data_path, self.processed_data_path]:
             os.makedirs(path, exist_ok=True)
 
         self.subset = subset

@@ -16,7 +16,7 @@ import torch.nn as nn
 
 class UNet1D(nn.Module):
     """
-    1D U-net, using float64 (double-precision) for physics.
+    1D U-net, using float32.
     Args:
         inp_ch: Number of channels of the input.
         out_ch: Number of channels of the output.
@@ -49,7 +49,7 @@ class UNet1D(nn.Module):
             f //= 2
 
         layers.append(DoubleConv(f, out_ch))
-        self.layers = nn.ModuleList(layers).double()  # forces double precision for the whole model.
+        self.layers = nn.ModuleList(layers)
 
     def forward(self, x: Tensor) -> Tensor:
         # xi keeps the data at each level, allowing to pass it through skip-connections.

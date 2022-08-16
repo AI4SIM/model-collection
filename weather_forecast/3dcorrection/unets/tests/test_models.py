@@ -26,7 +26,7 @@ class TestModels(TestCase):
 
     def setUp(self) -> None:
         self.in_ch = 47
-        self.out_ch = 6
+        self.out_ch = 4
         self.height = 138
 
         # Creates a temporary environment.
@@ -48,31 +48,32 @@ class TestModels(TestCase):
     def create_env(self, root) -> None:
         """Build an environment with stats.pt."""
         torch.save({
-            'x_mean': torch.tensor(np.random.rand(self.in_ch, self.height)),
-            'x_std': torch.tensor(np.random.rand(self.in_ch, self.height)),
+            'x_mean': torch.tensor(np.random.rand(self.in_ch, self.height).astype('f')),
+            'x_std': torch.tensor(np.random.rand(self.in_ch, self.height).astype('f')),
             'x_nb': torch.tensor(10),
-            'y_mean': torch.tensor(np.random.rand(self.out_ch, self.height)),
-            'y_std': torch.tensor(np.random.rand(self.out_ch, self.height)),
+            'y_mean': torch.tensor(np.random.rand(self.out_ch, self.height).astype('f')),
+            'y_std': torch.tensor(np.random.rand(self.out_ch, self.height).astype('f')),
             'y_nb': torch.tensor(10)
         }, osp.join(root, "stats.pt"))
 
     def test_forward_common_step(self):
-        # Fake data, of dim (n_batchs, height, n_channels).
-        x = torch.from_numpy(zeros((1, self.height, self.in_ch)))
-        y = torch.from_numpy(zeros((1, self.height, self.out_ch)))
+
+        # Fake data, of dim (n_batchs, height, n_channels) to mimick the API.
+        x = torch.from_numpy(zeros((1, self.height, self.in_ch), dtype=np.float32))
+        y = torch.from_numpy(zeros((1, self.height, self.out_ch), dtype=np.float32))
 
         # Forward.
         test_unet = LitUnet1D(**self.initParam)
-        y = test_unet.forward(x)
+        y = test_unet.forward(x, preprocess=True)
         self.assertTrue(isinstance(y, Tensor))
         self.assertEqual(y.shape, (1, self.out_ch, self.height))
 
+        # Fake data, of dim (n_batchs, height, n_channels) to mimick the API.
+        x = torch.from_numpy(zeros((1, self.height, self.in_ch), dtype=np.float32))
+        y = torch.from_numpy(zeros((1, self.height, self.out_ch), dtype=np.float32))
+
         # Common step.
         loss = test_unet._common_step(batch=(x, y), stage="train")
-        self.assertEqual(len(loss), 2)
-
-        # Common step with normalization.
-        loss = test_unet._common_step(batch=(x, y), stage="train", normalize=True)
         self.assertEqual(len(loss), 2)
 
     def test_configure_optimizers(self):

@@ -24,7 +24,6 @@ class TestUnet1D(TestCase):
         return 4 * n_levels + (n_levels - 1 if bilinear else 0)
 
     def test_1d(self):
-
         n_levels = 1
         net = UNet1D(inp_ch=1, out_ch=1, n_levels=n_levels, n_features_root=4)
 
@@ -43,20 +42,20 @@ class TestUnet1D(TestCase):
 
     def test_inference_1d(self):
         net = UNet1D(inp_ch=1, out_ch=1, n_levels=3, n_features_root=4)
-        inp = from_numpy(rand(1, 1, 16))
+        inp = from_numpy(rand(1, 1, 16).astype('f'))
         shp = tuple(net(inp).shape)
         self.assertEqual(shp, (1, 1, 16))
 
     def test_downsampler(self):
-        sampler = Downsampler(inp_ch=4, out_ch=8).double()
-        inp = from_numpy(rand(1, 4, 16))
+        sampler = Downsampler(inp_ch=4, out_ch=8)
+        inp = from_numpy(rand(1, 4, 16).astype('f'))
         shp = tuple(sampler(inp).shape)
         self.assertEqual(shp, (1, 8, 8))
 
     def test_upsampler(self):
-        sampler = Upsampler(inp_ch=8, out_ch=4).double()
-        inp = from_numpy(rand(1, 8, 16))
-        res = from_numpy(rand(1, 4, 32))
+        sampler = Upsampler(inp_ch=8, out_ch=4)
+        inp = from_numpy(rand(1, 8, 16).astype('f'))
+        res = from_numpy(rand(1, 4, 32).astype('f'))
         shp = tuple(sampler(inp, res).shape)
         self.assertEqual(shp, (1, 4, 32))  # last DoubleConv enforces the out_ch.
 

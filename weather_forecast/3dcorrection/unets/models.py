@@ -35,25 +35,30 @@ class ThreeDCorrectionModule(pl.LightningModule):
         """
         Args:
             data_path (str): Path to folder containing the stats.pt.
-            normalize (bool): Whether or not to normalize during training.
+            normalize (bool): Whether or not to normalize.
         """
         super().__init__()
         self.normalize = normalize
 
-        stats = torch.load(osp.join(data_path, "stats.pt"))
-        self.x_mean = stats["x_mean"].to(self.device)
-        self.y_mean = stats["y_mean"].to(self.device)
-        self.x_std = stats["x_std"].to(self.device)
-        self.y_std = stats["y_std"].to(self.device)
+        if normalize:
+            stats = torch.load(osp.join(data_path, "stats.pt"))
+            self.x_mean = stats["x_mean"].to(self.device)
+            self.y_mean = stats["y_mean"].to(self.device)
+            self.x_std = stats["x_std"].to(self.device)
+            self.y_std = stats["y_std"].to(self.device)
 
-    def forward(self, x: Union[torch.Tensor, np.ndarray]):
+    def forward(self,
+                x: Union[torch.Tensor, np.ndarray],
+                preprocess: bool = True):
         """
         Args:
             x (ndarray | tensor): Input tensor (numpy or tensor).
         """
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x)
-        x, _ = self.preprocess(x)
+        if preprocess:
+            x, _ = self.preprocess(x)
+
         return self.model(x)
 
     def weight_histograms_adder(self):
@@ -69,12 +74,11 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
     def preprocess(self,
                    x: torch.Tensor,
-                   y: torch.Tensor = None,
-                   normalize: bool = False) -> Tuple[torch.Tensor]:
+                   y: torch.Tensor = None) -> Tuple[torch.Tensor]:
         """
         Apply the preprocessing steps inside the network:
             * Reshaping the data;
-            * Normalizing (if normalize is True).
+            * Normalizing.
         If y is None, then only process x (e.g. forward mode).
         """
 
@@ -83,7 +87,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
         if y is not None:
             y = torch.moveaxis(y, 1, -1)
 
-        if normalize:
+        if self.normalize:
             eps = torch.tensor(1.e-8)
             x = (x - self.x_mean) / (self.x_std + eps)
             if y is not None:
@@ -91,19 +95,19 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
         return x, y
 
-    def _common_step(self, batch, stage, normalize=False):
+    def _common_step(self, batch, stage):
         """Compute the loss, additional metrics, and log them."""
         x, y = batch
-        self.preprocess(x, y)
+        x, y = self.preprocess(x, y)  # x of shape [?, 47, 138], y of shape [?, 4, 138]
 
-        y_hat = self(x)
+        y_hat = self(x, preprocess=False)
         loss = mean_squared_error(y_hat, y)
 
         self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(x))
         return y_hat, loss
 
     def training_step(self, batch, batch_idx):
-        _, loss, _ = self._common_step(batch, "train", normalize=self.normalize)
+        _, loss = self._common_step(batch, "train")
         return loss
 
     def on_after_backward(self):
