@@ -13,47 +13,65 @@
 from unittest import TestCase, main
 from numpy.random import rand
 from torch import from_numpy
-from unet import UNet3D, Upsampler
+from unet import UNet3D, Downsampler, Upsampler
 
 
-class TestUnet(TestCase):
-    """Testing 3D isotropic U-Nets."""
+class TestUnet3D(TestCase):
+    """Testing 3D U-nets."""
 
-    def test_architecture(self):
+    def n_conv(self, n_levels: int, bilinear: bool = False):
+        # 2 per DoubleConv + 1 per upsampler.
+        return 4 * n_levels + (n_levels - 1 if bilinear else 0)
 
-        def n_Conv3D(n_levels):
-            return 2 * 2 * n_levels + (n_levels - 1)  # 2 per DoubleConv + 1 per upsampler.
+    def test_3d(self):
 
         n_levels = 1
-        net = UNet3D(inp_feat=1, out_feat=1, n_levels=n_levels, n_features_root=4, bilinear=True)
+        bilinear = True
+        net = UNet3D(
+            inp_ch=1,
+            out_ch=1,
+            n_levels=n_levels,
+            n_features_root=4,
+            bilinear=bilinear)
+
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
         self.assertEqual(summary.count("Upsampler"), n_levels - 1)
-        self.assertEqual(summary.count("Conv3d"), n_Conv3D(n_levels))
+        self.assertEqual(summary.count("Conv3d"), self.n_conv(n_levels, bilinear))
 
         n_levels = 5
-        net = UNet3D(inp_feat=1, out_feat=1, n_levels=n_levels, n_features_root=4, bilinear=True)
+        bilinear = True
+        net = UNet3D(
+            inp_ch=1,
+            out_ch=1,
+            n_levels=n_levels,
+            n_features_root=4,
+            bilinear=bilinear)
+
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
         self.assertEqual(summary.count("Upsampler"), n_levels - 1)
-        self.assertEqual(summary.count("Conv3d"), n_Conv3D(n_levels))
+        self.assertEqual(summary.count("Conv3d"), self.n_conv(n_levels, bilinear))
 
-    def test_inference(self):
-        net = UNet3D(inp_feat=1, out_feat=1, n_levels=3, n_features_root=4)
+    def test_inference_3d(self):
+        net = UNet3D(inp_ch=1, out_ch=1, n_levels=3, n_features_root=4)
         n = 32
         inp = from_numpy(rand(1, 1, n, n, n))
-        shp = net(inp).shape
+        shp = tuple(net(inp).shape)
         self.assertEqual(shp, (1, 1, n, n, n))
 
+    def test_downsampler(self):
+        sampler = Downsampler(inp_ch=4, out_ch=8).double()
+        inp = from_numpy(rand(1, 4, 16, 16, 16))
+        shp = tuple(sampler(inp).shape)
+        self.assertEqual(shp, (1, 8, 8, 8, 8))
+
     def test_upsampler(self):
-        inp_ch, out_ch = 2, 1
-        upsampler = Upsampler(inp_ch=inp_ch, out_ch=out_ch)
-        upsampler.double()  # force double precision.
-        n = 32
-        x1 = from_numpy(rand(1, inp_ch, n // 2, n // 2, n // 2))  # deeper level data.
-        x2 = from_numpy(rand(1, out_ch, n, n, n))  # 1 channel coming from the skip connection.
-        y = upsampler(x1, x2)  # 2 sources concatenated.
-        self.assertEqual(y.shape, (1, out_ch, n, n, n))
+        sampler = Upsampler(inp_ch=8, out_ch=4).double()
+        inp = from_numpy(rand(1, 8, 16, 16, 16))
+        res = from_numpy(rand(1, 4, 32, 32, 32))
+        shp = tuple(sampler(inp, res).shape)
+        self.assertEqual(shp, (1, 4, 32, 32, 32))  # last DoubleConv enforces the out_ch.
 
 
 if __name__ == '__main__':

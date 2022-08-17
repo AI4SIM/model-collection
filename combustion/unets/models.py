@@ -14,7 +14,7 @@ from pytorch_lightning import LightningModule
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
 from torch import flatten
 from torch_optimizer import AdamP
-import torchmetrics.functional as func
+from torchmetrics.functional import mean_squared_error, r2_score
 
 from unet import UNet3D
 
@@ -29,8 +29,8 @@ class CombustionModule(LightningModule):
         """Compute the loss, additional metrics, and log them."""
         x, y = batch
         y_hat = self(x)
-        loss = func.mean_squared_error(y_hat, y)
-        r2 = func.r2_score(flatten(y_hat), flatten(y))  # R2 between mesh points.
+        loss = mean_squared_error(y_hat, y)
+        r2 = r2_score(flatten(y_hat), flatten(y))  # R2 between mesh points.
 
         self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(x))
         self.log(f"{stage}_r2", r2, on_step=True, batch_size=len(batch))
@@ -58,8 +58,8 @@ class LitUnet3D(CombustionModule):
 
         self.lr = lr
         self.model = UNet3D(
-            inp_feat=in_channels,
-            out_feat=out_channels,
+            inp_ch=in_channels,
+            out_ch=out_channels,
             n_levels=n_levels,
             n_features_root=n_features_root)
 
