@@ -24,17 +24,20 @@ from utils import RandomCropper3D
 
 class CnfCombustionDataset(Dataset):
 
-    def __init__(self, root, y_normalizer: float = None, subblock_shape: Union[int, tuple] = None):
+    def __init__(self,
+                 root: str,
+                 y_normalizer: float = None,
+                 subblock_shape: Union[int, tuple] = None):
         super().__init__()
         self.root = root
         self.y_normalizer = y_normalizer
         self.random_cropper = RandomCropper3D(subblock_shape) if subblock_shape is not None \
             else None
-        for idx, filename in enumerate(self.raw_filenames):
+        for i, filename in enumerate(self.raw_filenames):
             raw_path = join(self.raw_dir, filename)
-            processed_path = join(self.processed_dir, self.processed_filenames[idx])
+            processed_path = join(self.processed_dir, self.processed_filenames[i])
             if not isfile(processed_path):
-                self.process(idx, raw_path)
+                self.process(i, raw_path)
 
     @property
     def raw_dir(self):
@@ -55,24 +58,30 @@ class CnfCombustionDataset(Dataset):
     def __len__(self):
         return len(self.raw_filenames)
 
-    def __getitem__(self, idx):
-        return load(join(self.processed_dir, self.processed_filenames[idx]))
+    def __getitem__(self, i):
+        return load(join(self.processed_dir, self.processed_filenames[i]))
 
-    def process(self, idx, path) -> None:
-        out_path = join(self.processed_dir, self.processed_filenames[idx])
+    def process(self, i, path) -> None:
         makedirs(self.processed_dir, exist_ok=True)
         with File(path, "r") as file:
             c = tensor(file["/filt_8"][:])
             sigma = tensor(file["/filt_grad_8"][:])  # Or try with surrogate 'grad_filt_8'.
-        c = c[1:, 1:, 1:]  # Crop first boundary (equal to the opposite one).
+
+        # Crop first boundary (equal to the opposite one).
+        c = c[1:, 1:, 1:]
         sigma = sigma[1:, 1:, 1:]
-        if self.random_cropper is not None:  # Randomly crop a subblock.
+
+        # Randomly crop a subblock.
+        if self.random_cropper is not None:
             c, sigma = self.random_cropper(c, sigma)
-        if self.y_normalizer is not None:  # Normalize target.
+
+        if self.y_normalizer is not None:
             sigma = sigma / self.y_normalizer
-        c = c[None, :]  # Add a dummy axis for channels.
+
+        # Add a dummy axis for channels.
+        c = c[None, :]
         sigma = sigma[None, :]
-        save((c, sigma), out_path)
+        save((c, sigma), join(self.processed_dir, self.processed_filenames[i]))
 
 
 @DATAMODULE_REGISTRY
