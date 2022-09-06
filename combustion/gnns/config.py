@@ -12,10 +12,10 @@
 # limitations under the License.
 
 import os
-import logging
+# import logging
 import yaml
 import randomname
-import shutil
+# import shutil
 
 
 # CAUTION : A refactoring of this file might be requiered for further development
@@ -37,39 +37,24 @@ while _randomize_name:
     _experiment_name = randomname.get_name()
     if _experiment_name not in _existing_xps:
         break
+
 experiment_path = os.path.join(experiments_path, _experiment_name)
 
-logs_path = os.path.join(experiment_path, 'logs')
+if os.getenv("AI4SIM_EXPERIMENT_PATH") is None:
+    os.environ["AI4SIM_EXPERIMENT_PATH"] = experiment_path
+else:
+    experiment_path = os.getenv("AI4SIM_EXPERIMENT_PATH")
+
 artifacts_path = os.path.join(experiment_path, 'artifacts')
 plots_path = os.path.join(experiment_path, 'plots')
 
 _paths = [
     experiment_path,
-    logs_path,
     artifacts_path,
     plots_path
 ]
 for path in _paths:
     os.makedirs(path, exist_ok=True)
-
-
-if os.getenv("AI4SIM_EXPERIMENT_PATH") is None:
-    os.environ["AI4SIM_EXPERIMENT_PATH"] = experiment_path
-    os.environ["AI4SIM_LOGS_PATH"] = logs_path
-    os.environ["AI4SIM_ARTIFACTS_PATH"] = artifacts_path
-    os.environ["AI4SIM_PLOTS_PATH"] = plots_path
-elif os.getenv("AI4SIM_EXPERIMENT_PATH") != experiment_path:
-    shutil.rmtree(experiment_path)
-    experiment_path = os.getenv("AI4SIM_EXPERIMENT_PATH")
-    logs_path = os.getenv("AI4SIM_LOGS_PATH")
-    artifacts_path = os.getenv("AI4SIM_ARTIFACTS_PATH")
-    plots_path = os.getenv("AI4SIM_PLOTS_PATH")
-
-logging.basicConfig(
-    filename=os.path.join(logs_path, f'{experiment_path.split("/")[-1]}.log'),
-    filemode='w',
-    format='%(name)s - %(levelname)s - %(message)s',
-    force=True)
 
 
 class LinkRawData:

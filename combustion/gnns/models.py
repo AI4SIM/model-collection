@@ -123,9 +123,11 @@ class CombustionModule(pl.LightningModule):
         ys = torch.stack(ys)
         y_hats = torch.stack(y_hats)
 
+        # Inference/Test should be done on 1 GPU as data would likely be duplicated
         self.ys = self.all_gather(ys)
         self.y_hats = self.all_gather(y_hats)
 
+        # Reshape the outputs to the original grid shape plus the batch dimension
         self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
         self.y_hats = self.y_hats.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
 
