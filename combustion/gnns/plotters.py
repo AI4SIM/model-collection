@@ -170,7 +170,7 @@ class Plotter:
             fig.update_xaxes(title_text="x position")
             fig.update_yaxes(title_text="Total flame surface")
 
-            fig.show()
+            # fig.show()
             if save:
                 fig.write_image(os.path.join(plot_path,
                                              f"total-flame-surface-{self.model_type}-{i}.png"))
@@ -238,6 +238,6 @@ class Plotter:
                               xaxis3=dict(domain=[0.7, 0.97])
                               )
 
-            fig.show()
+            # fig.show()
             if save:
                 fig.write_image(os.path.join(plot_path, f"cross-section-{self.model_type}-{i}.png"))
