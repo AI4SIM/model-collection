@@ -44,10 +44,10 @@ class TestConfig(unittest.TestCase):
 
     def create_env(self, tempdir):
         """Create a test environment and data test."""
-        os.mkdir(os.path.join(tempdir, "raw_data"))
-        os.mkdir(os.path.join(tempdir, "local_data"))
-        os.mkdir(os.path.join(tempdir, "local_data", "raw"))
-        os.mkdir(os.path.join(tempdir, "local_data", "processed"))
+        os.makedirs(os.path.join(tempdir, "raw_data"), exist_ok=True)
+        os.makedirs(os.path.join(tempdir, "local_data"), exist_ok=True)
+        os.makedirs(os.path.join(tempdir, "local_data", "raw"), exist_ok=True)
+        os.makedirs(os.path.join(tempdir, "local_data", "processed"), exist_ok=True)
 
         self.filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
         for file_h5 in self.filenames:

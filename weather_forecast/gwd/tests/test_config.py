@@ -12,6 +12,7 @@
 # limitations under the License.
 
 import os
+import subprocess
 import unittest
 
 import config
@@ -24,26 +25,21 @@ class TestConfigPath(unittest.TestCase):
         """Test if config creates the correct experiment paths."""
         self.assertTrue(os.path.exists(config.experiment_path))
         self.assertTrue(os.getenv("AI4SIM_EXPERIMENT_PATH"), config.experiment_path)
+        # Execute again config.py to ensure experiment_path is given by AISIM_EXPERIMENT_PATH
+        subprocess.run(['python3', os.path.join(os.path.dirname(os.getcwd()), "config.py")])
+        self.assertTrue(config.experiment_path, os.getenv("AI4SIM_EXPERIMENT_PATH"))
 
     def test_logs_path(self):
         """Test if config creates the correct log paths and file."""
         self.assertTrue(os.path.exists(config.logs_path))
-        self.assertTrue(os.getenv("AI4SIM_LOGS_PATH"), config.logs_path)
-        self.assertTrue(
-            os.path.exists(
-                os.path.join(config.logs_path, f'{config.experiment_path.split("/")[-1]}.log')
-            )
-        )
 
     def test_artifacts_path(self):
         """Test if config creates the correct artifacts paths."""
         self.assertTrue(os.path.exists(config.artifacts_path))
-        self.assertTrue(os.getenv("AI4SIM_ARTIFACTS_PATH"), config.artifacts_path)
 
     def test_plots_path(self):
         """Test if config creats the correct paths."""
         self.assertTrue(os.path.exists(config.plots_path))
-        self.assertTrue(os.getenv("AI4SIM_PLOTS_PATH"), config.plots_path)
 
 
 if __name__ == '__main__':
