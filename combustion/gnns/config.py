@@ -45,11 +45,13 @@ if os.getenv("AI4SIM_EXPERIMENT_PATH") is None:
 else:
     experiment_path = os.getenv("AI4SIM_EXPERIMENT_PATH")
 
+logs_path = os.path.join(experiment_path, 'logs')
 artifacts_path = os.path.join(experiment_path, 'artifacts')
 plots_path = os.path.join(experiment_path, 'plots')
 
 _paths = [
     experiment_path,
+    logs_path,
     artifacts_path,
     plots_path
 ]

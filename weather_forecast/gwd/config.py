@@ -12,9 +12,7 @@
 # limitations under the License.
 
 import os
-import logging
 import randomname
-import shutil
 
 root_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -33,6 +31,11 @@ while _randomize_name:
         break
 experiment_path = os.path.join(experiments_path, _experiment_name)
 
+if os.getenv("AI4SIM_EXPERIMENT_PATH") is None:
+    os.environ["AI4SIM_EXPERIMENT_PATH"] = experiment_path
+else:
+    experiment_path = os.getenv("AI4SIM_EXPERIMENT_PATH")
+
 logs_path = os.path.join(experiment_path, 'logs')
 artifacts_path = os.path.join(experiment_path, 'artifacts')
 plots_path = os.path.join(experiment_path, 'plots')
@@ -45,22 +48,3 @@ _paths = [
 ]
 for path in _paths:
     os.makedirs(path, exist_ok=True)
-
-if os.getenv("AI4SIM_EXPERIMENT_PATH") is None:
-    os.environ["AI4SIM_EXPERIMENT_PATH"] = experiment_path
-    os.environ["AI4SIM_LOGS_PATH"] = logs_path
-    os.environ["AI4SIM_ARTIFACTS_PATH"] = artifacts_path
-    os.environ["AI4SIM_PLOTS_PATH"] = plots_path
-elif os.getenv("AI4SIM_EXPERIMENT_PATH") != experiment_path:
-    shutil.rmtree(experiment_path)
-    experiment_path = os.getenv("AI4SIM_EXPERIMENT_PATH")
-    logs_path = os.getenv("AI4SIM_LOGS_PATH")
-    artifacts_path = os.getenv("AI4SIM_ARTIFACTS_PATH")
-    plots_path = os.getenv("AI4SIM_PLOTS_PATH")
-
-logging.basicConfig(
-    filename=os.path.join(logs_path, f'{experiment_path.split("/")[-1]}.log'),
-    filemode='w+',
-    format='%(name)s - %(levelname)s - %(message)s',
-    force=True,
-)
