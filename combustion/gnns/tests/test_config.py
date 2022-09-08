@@ -34,6 +34,10 @@ class TestConfig(unittest.TestCase):
         subprocess.run(['python3', os.path.join(os.path.dirname(os.getcwd()), "config.py")])
         self.assertTrue(config.experiment_path, os.getenv("AI4SIM_EXPERIMENT_PATH"))
 
+    def test_logs_path(self):
+        """Test if config creates the correct logs path."""
+        self.assertTrue(os.path.exists(config.logs_path))
+
     def test_artifacts_path(self):
         """Test if config creates the correct artifacts path."""
         self.assertTrue(os.path.exists(config.artifacts_path))
