@@ -20,15 +20,17 @@ from torchmetrics.functional import mean_squared_error, mean_absolute_error
 from torchmetrics import MeanAbsoluteError
 
 import config
-from layers import HRLayer, Normalization
+from layers import HRLayer, Normalization, PreProcessing
+import torch.nn as nn
+import numpy as np
 
 
 class ThreeDCorrectionModule(pl.LightningModule):
     """Create a Lit module for 3dcorrection."""
 
     def __init__(self,
-                 flux_loss_weight: float,
-                 hr_loss_weight: float):
+                 flux_loss_weight: int,
+                 hr_loss_weight: int):
         """
         Args:
             data_path (str): Path to folder containing the stats.pt.
@@ -40,17 +42,32 @@ class ThreeDCorrectionModule(pl.LightningModule):
         
         self.mae = MeanAbsoluteError()
 
-        stats = torch.load(osp.join(config.data_path, "processed", "stats.pt"))
-        self.x_mean = stats["x_mean"]
-        self.x_std = stats["x_std"]
+        # stats = torch.load(osp.join(config.data_path, "processed", "stats.pt"))
+        self.x_mean = {
+            "sca_inputs": torch.tensor(0),
+            "col_inputs": torch.tensor(0),
+            "hl_inputs": torch.tensor(0),
+            "inter_inputs": torch.tensor(0),
+        }
+        self.x_std = {
+            "sca_inputs": torch.tensor(1),
+            "col_inputs": torch.tensor(1),
+            "hl_inputs": torch.tensor(1),
+            "inter_inputs": torch.tensor(1),
+        }
 
     def forward(self, x):
-        return fluxes + hr
+        x = self.preprocessing(x)
+        x = torch.moveaxis(x, -2, -1)
+        y = self.cnn_1d(x)
+        y = torch.moveaxis(y, -2, -1)
+        return y
+        # return self.cnn_1d(x)
         # x = self.normalization(x)
         # x_ = x[..., :-1]
         # x_ = torch.moveaxis(x_, -2, -1)
         # fluxes = self.net(x_)
-        # fluxes = torch.moveaxis(fluxes, -2, -1)
+        # fluxes = torch.moveaxis(x, -2, -1)
         # hr = self.hr_layer([fluxes, x[..., -1]])
         # return fluxes, hr
 
@@ -69,14 +86,21 @@ class ThreeDCorrectionModule(pl.LightningModule):
         """Compute the loss, additional metrics, and log them."""
 
         x, y = batch
-        y_flux_hat, y_hr_hat = self(x)
+        # y_flux_hat, y_hr_hat = self(x)
+        y_flux_hat = self(x)
 
-        flux_loss = mean_squared_error(y_flux_hat, y)
-        hr_loss = mean_squared_error(y_hr_hat, z)
-        loss = self.flux_loss_weight * flux_loss + self.hr_loss_weight * hr_loss
+        batch_y = ([val.cpu().numpy() for k, val in y.items()
+                   if k in ['delta_sw_diff', 'delta_sw_add', 'delta_lw_diff', 'delta_lw_add']])
+        y_ = torch.tensor(np.array(batch_y))
+        y_ = torch.moveaxis(y_, 0, -1)
+        y_ = y_.to(self.device)
 
-        flux_mae = self.mae(y_flux_hat, y)
-        hr_mae = self.mae(y_hr_hat, z)
+        flux_loss = mean_squared_error(y_flux_hat, y_)
+        # hr_loss = mean_squared_error(y_hr_hat, z)
+        loss = self.flux_loss_weight * flux_loss #+ self.hr_loss_weight * hr_loss
+
+        # flux_mae = self.mae(y_flux_hat, y)
+        # hr_mae = self.mae(y_hr_hat, z)
 
         kwargs = {
             "prog_bar": True,
@@ -87,9 +111,9 @@ class ThreeDCorrectionModule(pl.LightningModule):
         }
         self.log(f"{stage}_loss", loss, **kwargs)
         self.log(f"{stage}_flux_loss", flux_loss, **kwargs)
-        self.log(f"{stage}_hr_loss", hr_loss, **kwargs)
-        self.log(f"{stage}_flux_mae", flux_mae, **kwargs)
-        self.log(f"{stage}_hr_mae", hr_mae, **kwargs)
+        # self.log(f"{stage}_hr_loss", hr_loss, **kwargs)
+        # self.log(f"{stage}_flux_mae", flux_mae, **kwargs)
+        # self.log(f"{stage}_hr_mae", hr_mae, **kwargs)
 
         return loss
 
@@ -111,14 +135,29 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
 
 @MODEL_REGISTRY
-class LitCNN1dAttention(ThreeDCorrectionModule):
-    def __init__(self, kwargs):
-        pass
-    super().__init__()
-    self.save_hyperparameters()
-    
-    self.preprocessing = PreProcessing()
-    self.block_cnn_dilation = BlockCNNDilation()
-    self.mha = MultiHeadAttention()
-    self.block_cnn_regular = BlockCNNRegular()
-    self.cnn_1d = CNN1d()
+class LitCNN(ThreeDCorrectionModule):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        n_levels: int,
+        n_features_root: int,
+        norm: bool,
+        flux_loss_weight: int,
+        hr_loss_weight: int
+    ):
+        # pass
+        print("LITmodel")
+        super().__init__(flux_loss_weight, hr_loss_weight)
+        # self.save_hyperparameters()
+
+        self.preprocessing = PreProcessing(self.x_mean, self.x_std)
+        # self.block_cnn_dilation = BlockCNNDilation()
+        # self.mha = MultiHeadAttention()
+        # self.block_cnn_regular = BlockCNNRegular()
+        # self.cnn_1d = torch.nn.LazyConv1d(
+        self.cnn_1d = torch.nn.LazyConv1d(
+            out_channels=out_channels,
+            kernel_size=5,
+            padding='same'
+        )

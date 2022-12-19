@@ -34,7 +34,7 @@ class Trainer(pl.Trainer):
                  accelerator: Union[str, pl.accelerators.Accelerator, None],
                  devices: Union[List[int], str, int, None],
                  max_epochs: int,
-                 strategy: Union[str, pl.plugins.TrainingTypePlugin, None], 
+                 strategy: Union[str, pl.plugins.TrainingTypePlugin, None] = None,
                  fast_dev_run: Union[int, bool] = False,
                  callbacks: Union[List[Callback], Callback, None] = None) -> None:
         """
@@ -58,7 +58,7 @@ class Trainer(pl.Trainer):
             devices=self._devices,
             max_epochs=max_epochs,
             strategy=strategy,
-            callbacks=callbacks,
+            # callbacks=callbacks,
             # for some reason, a forward pass happens in the model before datamodule creation.
             num_sanity_val_steps=0)
 
@@ -75,7 +75,7 @@ class Trainer(pl.Trainer):
 
 
 def main():
-    cli = LightningCLI(trainer_class=Trainer, save_config_overwrite=True)
+    cli = LightningCLI(trainer_class=Trainer)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule, ckpt_path="best")
 
 

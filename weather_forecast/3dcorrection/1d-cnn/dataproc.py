@@ -49,7 +49,7 @@ class ThreeDCorrectionDataProc:
         xr_dataset = self.download()
         feature_dataset = self.extract_feature(xr_dataset)
         target_dataset = self.extract_target(xr_dataset)
-        self.expand_target(target_dataset)
+        target_dataset = self.expand_target(target_dataset)
 
         print("Done!", file=sys.stderr)
         feature_dataset.close()
@@ -140,3 +140,4 @@ class ThreeDCorrectionDataProc:
         target_ds["delta_sw_add"] = target_ds["flux_dn_sw"] + target_ds["flux_up_sw"]
         target_ds["delta_lw_diff"] = target_ds["flux_dn_lw"] - target_ds["flux_up_lw"]
         target_ds["delta_lw_add"] = target_ds["flux_dn_lw"] + target_ds["flux_up_lw"]
+        return target_ds

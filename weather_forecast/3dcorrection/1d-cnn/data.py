@@ -67,7 +67,8 @@ class ThreeDCorrectionDataset(Dataset):
 
     def __len__(self) -> int:
         return self.ds_feat.dims["column"]
-    
+
+
 @DATAMODULE_REGISTRY
 class LitThreeDCorrectionDataModule(pl.LightningDataModule):
     """DataModule for the 3dcorrection dataset."""
@@ -96,22 +97,21 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         self.splitting_lengths = splitting_lengths
 
     def prepare_data(self):
+        pass
+
+    def setup(self, stage: Optional[str] = None):
         dataproc = ThreeDCorrectionDataProc(config.data_path,
                                             self.date,
                                             self.timestep,
                                             self.patchstep)
         self.feature_ds, self.target_ds = dataproc.process()
 
-    def setup(self, stage: Optional[str] = None):
         self.dataset = ThreeDCorrectionDataset(config.data_path, self.feature_ds, self.target_ds)
         length = len(self.dataset)
         
         if stage == "fit":
-            self.train_dataset, self.val_dataset = random_split(
+            self.train_dataset, self.val_dataset, self.test_dataset = random_split(
                 self.dataset, [int(length * split) for split in self.splitting_lengths])
-        
-        if stage == "test":
-            self.test_dataset = self.dataset
 
     def train_dataloader(self):
         return DataLoader(
@@ -134,3 +134,20 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             num_workers=self.num_workers,
             pin_memory=True)
+
+def main():
+    lit3d = LitThreeDCorrectionDataModule(
+        date = '20200101',
+        timestep = 3500,
+        patchstep = 16,
+        batch_size = 32,
+        num_workers = 4,
+        splitting_lengths = [0.8, 0.2]
+    )
+    lit3d.prepare_data()
+    lit3d.setup(stage='fit')
+    print(lit3d.train_dataset[0])
+
+
+if __name__ == '__main__':
+    main()

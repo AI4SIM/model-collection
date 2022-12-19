@@ -1,0 +1,44 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+model:
+    class_path: models.LitCNN
+    init_args:
+        in_channels: 47
+        out_channels: 4
+        n_levels: 3
+        n_features_root: 32
+        norm: True
+        flux_loss_weight: 1000
+        hr_loss_weight: 10000
+
+optimizer:
+    class_path: torch.optim.AdamW
+    init_args:
+        lr: .0001
+
+data:
+    class_path: data.LitThreeDCorrectionDataModule
+    init_args:
+        date: '20200101'
+        timestep: 3500
+        patchstep: 16
+        batch_size: 32
+        num_workers: 16
+        splitting_lengths: [0.7, 0.2, 0.1]
+
+trainer:
+    max_epochs: 1
+#    strategy: 'ddp_find_unused_parameters_true'
+    accelerator: 'gpu'
+    devices:
+        - 3

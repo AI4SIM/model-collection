@@ -14,6 +14,35 @@ import torch
 from typing import Dict
 from torch.nn import Module, ZeroPad2d
 
+icol_keys = [
+    "q",
+    "o3_mmr",
+    "co2_vmr",
+    "n2o_vmr",
+    "ch4_vmr",
+    "o2_vmr",
+    "cfc11_vmr",
+    "cfc12_vmr",
+    "hcfc22_vmr",
+    "ccl4_vmr",
+    "cloud_fraction",
+    "aerosol_mmr",
+    "q_liquid",
+    "q_ice",
+    "re_liquid",
+    "re_ice",
+]
+ihl_keys = ["temperature_hl", "pressure_hl"]
+iinter_keys = ["overlap_param"]
+isca_keys = [
+    "skin_temperature",
+    "cos_solar_zenith_angle",
+    "sw_albedo",
+    "sw_albedo_direct",
+    "lw_emissivity",
+    "solar_irradiance",
+]
+
 
 # TO TEST
 class HRLayer(Module):
@@ -40,7 +69,7 @@ class Normalization(Module):
     Requires the means and standard deviations of the features.
     They are then saved as registered buffers inside the model.
     """
-    def __init__(self, mean: torch.Tensor, std: torch.Tensor, label: str = "") -> None:
+    def __init__(self, mean: torch.Tensor = None, std: torch.Tensor = None, label: str = "") -> None:
         super().__init__()
         self.mean = mean
         self.std = std
@@ -50,13 +79,14 @@ class Normalization(Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the forward pass."""
-        self.mean = torch.as_tensor(self.mean, dtype=x.dtype, device=x.device)
-        self.std = torch.as_tensor(self.std, dtype=x.dtype, device=x.device)
-        # self.eps = torch.as_tensor(self.eps, dtype=x.dtype, device=x.device)
-        assert x.shape[1:] == self.mean.shape[1:]
-        assert x.shape[1:] == self.std.shape[1:]
-
-        return x.sub(self.mean).div(self.std + self.eps)
+        # self.mean = torch.as_tensor(self.mean, dtype=x.dtype, device=x.device)
+        # self.std = torch.as_tensor(self.std, dtype=x.dtype, device=x.device)
+        # # self.eps = torch.as_tensor(self.eps, dtype=x.dtype, device=x.device)
+        # assert x.shape[1:] == self.mean.shape[1:]
+        # assert x.shape[1:] == self.std.shape[1:]
+        #
+        # return x.sub(self.mean).div(self.std + self.eps)
+        return x
 
 class Layer(Module):
     """
@@ -87,11 +117,11 @@ class ScaLayer(Layer):
             Resulting model forward pass.
         """
         tmp = []
-        for key, value in x.items():
+        for key in isca_keys:
             if key in ["skin_temperature", "cos_solar_zenith_angle", "solar_irradiance"]:
-                inputs = value.unsqueeze(dim=-1)
+                inputs = x[key].unsqueeze(dim=-1)
             else:
-                inputs = value
+                inputs = x[key]
             tmp.append(inputs)                
 
         inputs = torch.cat(tmp, dim=-1)
@@ -114,11 +144,11 @@ class ColLayer(Layer):
             Resulting model forward pass.
         """
         tmp = []
-        for key, value in x.items():
+        for key in icol_keys:
             if key == "aerosol_mmr":
-                inputs = value.permute((0, 2, 1))
+                inputs = x[key].permute((0, 2, 1))
             else:
-                inputs = value.unsqueeze(dim=-1)
+                inputs = x[key].unsqueeze(dim=-1)
             tmp.append(inputs)
         
         inputs = torch.cat(tmp, dim=-1)
@@ -141,7 +171,7 @@ class HLLayer(Layer):
             Resulting model forward pass.
         """
         temperature_hl = x["temperature_hl"].unsqueeze(dim=-1)
-        pressure_hl = x["pressure_hl"].unsquueeze(dim=-1)
+        pressure_hl = x["pressure_hl"].unsqueeze(dim=-1)
         inputs = torch.cat([temperature_hl, pressure_hl], dim=-1)
         inputs = self.normalization(inputs)
         
