@@ -15,12 +15,12 @@ import os
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, MLFlowLogger
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
 from typing import List, Union
+import mlflow
 from mlflow.models.signature import infer_signature
-from mlflow.onnx import log_model
 import itertools
 import onnx
 
@@ -91,12 +91,6 @@ class Trainer(pl.Trainer):
                 used to get a dataset sample.
         """
 
-        # os.environ['GIT_PYTHON_REFRESH'] ='quiet'
-        # os.environ['AWS_ACCESS_KEY_ID'] ='minio'
-        # os.environ['AWS_SECRET_ACCESS_KEY'] ='fmle4mlflow'
-        # os.environ['MLFLOW_S3_ENDPOINT_URL'] ='http://172.16.118.155:9000'
-        # os.environ['MLFLOW_TRACKING_URI'] ='http://172.16.118.155:5000'
-
         # Get a dataset sample with input and output
         dataloader = datamodule.test_dataloader()
         in_data, out_data = next(itertools.islice(dataloader, 0, None))
@@ -131,19 +125,29 @@ class Trainer(pl.Trainer):
         )
 
         # log the ONNX model using MLFlow
-        log_model(
+        mlflow.onnx.log_model(
             onnx_model=onnx.load(onnx_model_path),
             artifact_path='model_with_signature',
             input_example=in_data_np,
-            # registered_model_name="pytorch_ecrad_model",
+            # registered_model_name="pytorch_ecrad_model",  # automatic save in the model registry
             signature=signature,
             pip_requirements='inference_requirements.txt'
         )
 
 
 def main():
-    cli = LightningCLI(trainer_class=Trainer)
-    cli.trainer.test(model=cli.model, datamodule=cli.datamodule, ckpt_path="best")
+    # MLFlow set-up
+    os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
+    os.environ['AWS_ACCESS_KEY_ID'] = 'minio'
+    os.environ['AWS_SECRET_ACCESS_KEY'] = 'fmle4mlflow'
+    os.environ['MLFLOW_S3_ENDPOINT_URL'] = 'http://172.16.118.155:9000'
+    os.environ['MLFLOW_TRACKING_URI'] = 'http://172.16.118.155:5000'
+    os.environ['MLFLOW_EXPERIMENT_NAME'] = "pytorch_ecrad_model"
+
+    mlflow.pytorch.autolog(log_models=False)
+    with mlflow.start_run():
+        cli = LightningCLI(trainer_class=Trainer)
+        cli.trainer.test(model=cli.model, datamodule=cli.datamodule, ckpt_path="best")
 
 
 if __name__ == '__main__':
