@@ -11,17 +11,11 @@
 # limitations under the License.
 
 import dask
-import os
-import torch
-
-import climetlab as cml
-import os.path as osp
-import numpy as np
-import pytorch_lightning as pl
 import xarray as xr
-
-from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
+import torch
 from torch.utils.data import Dataset, DataLoader, random_split
+import pytorch_lightning as pl
+from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 from typing import Dict, Tuple, Optional
 
 import config
@@ -59,7 +53,7 @@ class ThreeDCorrectionDataset(Dataset):
         """
         feat_sample = self.ds_feat.isel({"column": idx})
         targ_sample = self.ds_targ.isel({"column": idx})
-        
+
         features = {k: torch.from_numpy(v.to_numpy()) for k, v in feat_sample.items()}
         targets = {k: torch.from_numpy(v.to_numpy()) for k, v in targ_sample.items()}
         
@@ -135,14 +129,20 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
             pin_memory=True)
 
+    def predict_dataloader(self):
+        return DataLoader(
+            self.val_dataset,
+            pin_memory=True)
+
+
 def main():
     lit3d = LitThreeDCorrectionDataModule(
-        date = '20200101',
-        timestep = 3500,
-        patchstep = 16,
-        batch_size = 32,
-        num_workers = 4,
-        splitting_lengths = [0.8, 0.2]
+        date='20200101',
+        timestep=3500,
+        patchstep=16,
+        batch_size=32,
+        num_workers=4,
+        splitting_lengths=[0.8, 0.2]
     )
     lit3d.prepare_data()
     lit3d.setup(stage='fit')

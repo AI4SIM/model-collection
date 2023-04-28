@@ -10,19 +10,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import numpy as np
 import torch
-import os.path as osp
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
-from torch.nn import Module
 from torchmetrics.functional import mean_squared_error, mean_absolute_error
 from torchmetrics import MeanAbsoluteError
+from typing import Dict
 
-import config
 from layers import HRLayer, Normalization, PreProcessing
-import torch.nn as nn
-import numpy as np
 
 
 class ThreeDCorrectionModule(pl.LightningModule):
@@ -56,11 +52,22 @@ class ThreeDCorrectionModule(pl.LightningModule):
             "inter_inputs": torch.tensor(1),
         }
 
-    def forward(self, x):
+    def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
+        if isinstance(x, list):
+            x = x[0]
+
         x = self.preprocessing(x)
-        x = torch.moveaxis(x, -2, -1)
+        x = torch.moveaxis(x, 1, 2)
+
         y = self.cnn_1d(x)
-        y = torch.moveaxis(y, -2, -1)
+        y = torch.moveaxis(y, 1, 2)
+
+        y = {
+            'delta_sw_diff': y[:, :, 0],
+            'delta_sw_add': y[:, :, 1],
+            'delta_lw_diff': y[:, :, 2],
+            'delta_lw_add': y[:, :, 3]
+        }
         return y
         # return self.cnn_1d(x)
         # x = self.normalization(x)
@@ -89,13 +96,19 @@ class ThreeDCorrectionModule(pl.LightningModule):
         # y_flux_hat, y_hr_hat = self(x)
         y_flux_hat = self(x)
 
-        batch_y = ([val.cpu().numpy() for k, val in y.items()
-                   if k in ['delta_sw_diff', 'delta_sw_add', 'delta_lw_diff', 'delta_lw_add']])
-        y_ = torch.tensor(np.array(batch_y))
-        y_ = torch.moveaxis(y_, 0, -1)
-        y_ = y_.to(self.device)
+        # batch_y = ([val.cpu().numpy() for k, val in y.items()
+        #            if k in ['delta_sw_diff', 'delta_sw_add', 'delta_lw_diff', 'delta_lw_add']])
+        # y_ = torch.tensor(np.array(batch_y))
+        # y_ = torch.moveaxis(y_, 0, -1)
+        # y_ = y_.to(self.device)
+        # flux_loss = mean_squared_error(y_flux_hat, y_)
 
-        flux_loss = mean_squared_error(y_flux_hat, y_)
+        flux_loss_sw_diff = mean_squared_error(y_flux_hat['delta_sw_diff'], y['delta_sw_diff'])
+        flux_loss_sw_add = mean_squared_error(y_flux_hat['delta_sw_add'], y['delta_sw_add'])
+        flux_loss_lw_diff = mean_squared_error(y_flux_hat['delta_lw_diff'], y['delta_lw_diff'])
+        flux_loss_lw_add = mean_squared_error(y_flux_hat['delta_lw_add'], y['delta_lw_add'])
+        flux_loss = (flux_loss_lw_add + flux_loss_lw_diff + flux_loss_sw_add + flux_loss_sw_diff)
+
         # hr_loss = mean_squared_error(y_hr_hat, z)
         loss = self.flux_loss_weight * flux_loss #+ self.hr_loss_weight * hr_loss
 
@@ -147,7 +160,6 @@ class LitCNN(ThreeDCorrectionModule):
         hr_loss_weight: int
     ):
         # pass
-        print("LITmodel")
         super().__init__(flux_loss_weight, hr_loss_weight)
         # self.save_hyperparameters()
 
@@ -156,8 +168,10 @@ class LitCNN(ThreeDCorrectionModule):
         # self.mha = MultiHeadAttention()
         # self.block_cnn_regular = BlockCNNRegular()
         # self.cnn_1d = torch.nn.LazyConv1d(
-        self.cnn_1d = torch.nn.LazyConv1d(
+        self.cnn_1d = torch.nn.Conv1d(
+            in_channels=in_channels,
             out_channels=out_channels,
-            kernel_size=5,
-            padding='same'
+            kernel_size=3,
+            # padding='same' # should not be used because op _convolution_mode not supported by ONNX
+            padding=1
         )

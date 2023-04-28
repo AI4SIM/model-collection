@@ -10,13 +10,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import sys
 import climetlab as cml
 import os.path as osp
 import xarray as xr
-
-from typing import Dict, Tuple, Union
 
 
 class ThreeDCorrectionDataProc:
@@ -71,10 +68,10 @@ class ThreeDCorrectionDataProc:
             patch=list(range(0, 16, self.patchstep)),
             hr_units="k d-1",
         )
-        
+
         xrds = cml_ds.to_xarray()
         xrds.close()
-        
+
         # # Test if directory exists
         # xrds.to_zarr(osp.join(self.processed_path, "3dcorrection.zarr"))
         # zarr_ds = xr.open_zarr(osp.join(self.processed_path, "3dcorrection.zarr"))

@@ -11,37 +11,11 @@
 # limitations under the License.
 
 import torch
-from typing import Dict
 from torch.nn import Module, ZeroPad2d
+from typing import Dict
 
-icol_keys = [
-    "q",
-    "o3_mmr",
-    "co2_vmr",
-    "n2o_vmr",
-    "ch4_vmr",
-    "o2_vmr",
-    "cfc11_vmr",
-    "cfc12_vmr",
-    "hcfc22_vmr",
-    "ccl4_vmr",
-    "cloud_fraction",
-    "aerosol_mmr",
-    "q_liquid",
-    "q_ice",
-    "re_liquid",
-    "re_ice",
-]
 ihl_keys = ["temperature_hl", "pressure_hl"]
 iinter_keys = ["overlap_param"]
-isca_keys = [
-    "skin_temperature",
-    "cos_solar_zenith_angle",
-    "sw_albedo",
-    "sw_albedo_direct",
-    "lw_emissivity",
-    "solar_irradiance",
-]
 
 
 # TO TEST
@@ -55,13 +29,14 @@ class HRLayer(Module):
         super().__init__()
         self.g_cp = torch.tensor(24 * 3600 * 9.80665 / 1004)
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        hlpress = inputs[1]
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        hlpress = x[1]
         net_press = hlpress[..., 1:] - hlpress[..., :-1]
-        netflux = inputs[0][..., 0]
+        netflux = x[0][..., 0]
         flux_diff = netflux[..., 1:] - netflux[..., :-1]
 
         return -self.g_cp * torch.Tensor.divide(flux_diff, net_press)
+
 
 class Normalization(Module):
     """
@@ -88,6 +63,7 @@ class Normalization(Module):
         # return x.sub(self.mean).div(self.std + self.eps)
         return x
 
+
 class Layer(Module):
     """
     Base class for preprocessing the inputs. Normalization is instanciated here.
@@ -101,6 +77,7 @@ class Layer(Module):
 
     def forward(self, x):
         raise NotImplementedError
+
 
 class ScaLayer(Layer):
     """Merge the scalar inputs."""
@@ -116,6 +93,15 @@ class ScaLayer(Layer):
         Returns:
             Resulting model forward pass.
         """
+        isca_keys = [
+            "skin_temperature",
+            "cos_solar_zenith_angle",
+            "sw_albedo",
+            "sw_albedo_direct",
+            "lw_emissivity",
+            "solar_irradiance",
+        ]
+
         tmp = []
         for key in isca_keys:
             if key in ["skin_temperature", "cos_solar_zenith_angle", "solar_irradiance"]:
@@ -128,6 +114,7 @@ class ScaLayer(Layer):
         inputs = self.normalization(inputs)
 
         return inputs
+
 
 class ColLayer(Layer):
     """Merge the column inputs (given on 137 vertical levels)."""
@@ -143,6 +130,25 @@ class ColLayer(Layer):
         Returns:
             Resulting model forward pass.
         """
+        icol_keys = [
+            "q",
+            "o3_mmr",
+            "co2_vmr",
+            "n2o_vmr",
+            "ch4_vmr",
+            "o2_vmr",
+            "cfc11_vmr",
+            "cfc12_vmr",
+            "hcfc22_vmr",
+            "ccl4_vmr",
+            "cloud_fraction",
+            "aerosol_mmr",
+            "q_liquid",
+            "q_ice",
+            "re_liquid",
+            "re_ice",
+        ]
+
         tmp = []
         for key in icol_keys:
             if key == "aerosol_mmr":
@@ -156,12 +162,13 @@ class ColLayer(Layer):
 
         return inputs
 
+
 class HLLayer(Layer):
     """Merge the half-level inputs (given on 138 vertical half-levels)."""
     def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
         super().__init__(mean, std, label="hl_")
 
-    def forward(self, x):
+    def forward(self, x: Dict[str, torch.Tensor]):
         """Compute the forward pass.
         
         Args:
@@ -170,12 +177,14 @@ class HLLayer(Layer):
         Returns:
             Resulting model forward pass.
         """
-        temperature_hl = x["temperature_hl"].unsqueeze(dim=-1)
+        t = "temperature_hl"
+        temperature_hl = x[t].unsqueeze(dim=-1)
         pressure_hl = x["pressure_hl"].unsqueeze(dim=-1)
         inputs = torch.cat([temperature_hl, pressure_hl], dim=-1)
         inputs = self.normalization(inputs)
         
         return inputs
+
 
 class InterLayer(Layer):
     """Normalize the interface input (given on 136 levels)."""
@@ -196,6 +205,7 @@ class InterLayer(Layer):
         
         return inputs
 
+
 class PreProcessing(Module):
     """
     Layer to preprocess the feature tensors:
@@ -213,7 +223,10 @@ class PreProcessing(Module):
         self.col_layer = ColLayer(self.means["col_inputs"], self.stds["col_inputs"])
         self.hl_layer = HLLayer(self.means["hl_inputs"], self.stds["hl_inputs"])
         self.inter_layer = InterLayer(self.means["inter_inputs"], self.stds["inter_inputs"])
-    
+
+        self.zeropad_col = ZeroPad2d((0, 0, 1, 0))
+        self.zeropad_inter = ZeroPad2d((0, 0, 1, 1))
+
     def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
         
@@ -229,8 +242,8 @@ class PreProcessing(Module):
         inter_inputs = self.inter_layer(x)
         
         # Stack properly all the inputs
-        sca_in = sca_inputs.unsqueeze(dim=-1).expand(*sca_inputs.size(), 138).permute(0, 2, 1)
-        col_in = ZeroPad2d((0, 0, 1, 0))(col_inputs)
-        inter_in = ZeroPad2d((0, 0, 1, 1))(inter_inputs)
+        sca_in = sca_inputs.unsqueeze(dim=-1).expand(sca_inputs.size(dim=0), sca_inputs.size(dim=1), 138).permute(0, 2, 1)
+        col_in = self.zeropad_col(col_inputs)
+        inter_in = self.zeropad_inter(inter_inputs)
         
         return torch.cat((sca_in, col_in, hl_inputs, inter_in), dim=-1)
