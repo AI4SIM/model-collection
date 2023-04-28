@@ -32,9 +32,9 @@ data:
         date: '20200101'
         timestep: 3500
         patchstep: 16
-        batch_size: 32
-        num_workers: 16
-        splitting_lengths: [0.7, 0.2, 0.1]
+        batch_size: 8
+        num_workers: 32
+        splitting_lengths: [0.8, 0.1, 0.1]
 
 trainer:
     max_epochs: 1

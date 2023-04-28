@@ -12,12 +12,17 @@
 
 import json
 import os
+
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
 from typing import List, Union
+from mlflow.models.signature import infer_signature
+from mlflow.onnx import log_model
+import itertools
+import onnx
 
 import config
 import data  # noqa: F401 'data' imported but unused
@@ -71,7 +76,69 @@ class Trainer(pl.Trainer):
         with open(os.path.join(config.artifacts_path, "results.json"), "w") as f:
             json.dump(results, f)
 
+        # Save the model with pytorch
         torch.save(self.model.state_dict(), os.path.join(config.artifacts_path, "model.pth"))
+
+        # Save the model with mlflow
+        self.save_mlflow(kwargs['datamodule'])
+
+    def save_mlflow(self, datamodule):
+        """
+        Save the model with MLFlow.
+
+        Args:
+            datamodule (pl.LightningDataModule): a data module with a 'test_dataloader()' method
+                used to get a dataset sample.
+        """
+
+        # os.environ['GIT_PYTHON_REFRESH'] ='quiet'
+        # os.environ['AWS_ACCESS_KEY_ID'] ='minio'
+        # os.environ['AWS_SECRET_ACCESS_KEY'] ='fmle4mlflow'
+        # os.environ['MLFLOW_S3_ENDPOINT_URL'] ='http://172.16.118.155:9000'
+        # os.environ['MLFLOW_TRACKING_URI'] ='http://172.16.118.155:5000'
+
+        # Get a dataset sample with input and output
+        dataloader = datamodule.test_dataloader()
+        in_data, out_data = next(itertools.islice(dataloader, 0, None))
+
+        # Build the mlflow signature of the model, from input and output data
+        in_data_onnx = in_data  # save original data format for ONNX export
+        in_data_np = {k: v.detach().numpy() for k, v in in_data.items()}
+        out_data_np = {k: v.detach().numpy() for k, v in out_data.items() if k in ["delta_sw_diff",
+                                                                                   "delta_sw_add",
+                                                                                   "delta_lw_diff",
+                                                                                   "delta_lw_add"]}
+        signature = infer_signature(
+            in_data_np,
+            out_data_np
+        )
+
+        model = self.model
+
+        _, unconvertible_ops = torch.onnx.utils.unconvertible_ops(model, (in_data_onnx, {}))
+        if unconvertible_ops:
+            UserWarning(f"The model uses some onnx ops are not supported : {unconvertible_ops}. "
+                        "Exporting the model to the onnx could fail.")
+
+        # export the model to ONNX generic format
+        onnx_model_path = "/tmp/test_onnx.onnx"
+        model.to_onnx(
+            file_path=onnx_model_path,
+            input_sample=(in_data_onnx, {}),
+            input_names=list(in_data_np.keys()),
+            output_names=list(out_data_np.keys()),
+            dynamic_axes={k: {0: 'batch_size'} for k in in_data_np.keys()},
+        )
+
+        # log the ONNX model using MLFlow
+        log_model(
+            onnx_model=onnx.load(onnx_model_path),
+            artifact_path='model_with_signature',
+            input_example=in_data_np,
+            # registered_model_name="pytorch_ecrad_model",
+            signature=signature,
+            pip_requirements='inference_requirements.txt'
+        )
 
 
 def main():

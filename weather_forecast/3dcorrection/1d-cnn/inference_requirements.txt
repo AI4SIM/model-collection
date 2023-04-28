@@ -1,15 +1,4 @@
-jsonargparse[signatures]==4.3.0
-numpy==1.21.
-pyyaml==6.0
-randomname==0.1.5
+numpy==1.21.*
 torch==1.13.0+cu116
-torchmetrics==0.5.1
-torch_optimizer==0.1.0
-pytorch-lightning==1.5.7
-climetlab==0.11.9
-climetlab-maelstrom-radiation==0.5.4
-xarray<=2022.3
 mlflow==2.2.2
-onnx==1.12.*
-onnxruntime==1.12.*
-onnxruntime-gpu==1.12.*
+onnxruntime-gpu==1.14.*
