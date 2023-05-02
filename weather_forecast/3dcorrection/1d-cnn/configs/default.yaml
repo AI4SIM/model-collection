@@ -50,6 +50,17 @@ fit:
         strategy: ddp_find_unused_parameters_false
         devices:
             - 1
+        mlflow_setup:
+            tracking:
+                uri: http://127.0.0.1:5000
+                experiment_name: pytorch_ecrad_model
+                model_name: pytorch_ecrad_model
+            storage:
+                s3_endpoint_url: http://127.0.0.1:9000
+                aws_access_key_id: my_id_key
+                aws_secret_access_key: my_secret_key
+            git:
+                git_python_refresh: quiet
 
 test:
     data:

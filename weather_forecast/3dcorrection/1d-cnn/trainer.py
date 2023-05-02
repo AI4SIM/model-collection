@@ -12,17 +12,16 @@
 
 import json
 import os
-
+import itertools
+from typing import List, Dict, Union
+import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.loggers import TensorBoardLogger, MLFlowLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.utilities.cli import LightningCLI
-import torch
-from typing import List, Union
+import onnx
 import mlflow
 from mlflow.models.signature import infer_signature
-import itertools
-import onnx
 
 import config
 import data  # noqa: F401 'data' imported but unused
@@ -41,13 +40,31 @@ class Trainer(pl.Trainer):
                  max_epochs: int,
                  strategy: Union[str, pl.plugins.TrainingTypePlugin, None] = None,
                  fast_dev_run: Union[int, bool] = False,
-                 callbacks: Union[List[Callback], Callback, None] = None) -> None:
+                 callbacks: Union[List[Callback], Callback, None] = None,
+                 mlflow_setup: Dict = None) -> None:
         """
         Args:
             accelerator (Union[str, Accelerator, None]): type of accelerator to use for training.
             devices: (Union[List[int], str, int, None]): devices to use for training.
             max_epochs (int): maximum number of epochs if no early stopping logic is implemented.
         """
+
+        if mlflow_setup is not None:
+            self.with_mlflow = True
+            # MLFlow set-up
+            if mlflow_setup.get('git', None):
+                if mlflow_setup['git'].get('git_python_refresh', None):
+                    os.environ['GIT_PYTHON_REFRESH'] = mlflow_setup['git']['git_python_refresh']
+            os.environ['AWS_ACCESS_KEY_ID'] = mlflow_setup['storage']['aws_access_key_id']
+            os.environ['AWS_SECRET_ACCESS_KEY'] = mlflow_setup['storage']['aws_secret_access_key']
+            os.environ['MLFLOW_S3_ENDPOINT_URL'] = mlflow_setup['storage']['s3_endpoint_url']
+            os.environ['MLFLOW_TRACKING_URI'] = mlflow_setup['tracking']['uri']
+            if mlflow_setup['tracking'].get('experiment_name', None):
+                os.environ['MLFLOW_EXPERIMENT_NAME'] = mlflow_setup['tracking']['experiment_name']
+            self.model_name = mlflow_setup['tracking']['model_name']
+        else:
+            self.with_mlflow = False
+
         self._devices = devices
         if accelerator == 'cpu':
             self._devices = None
@@ -80,7 +97,8 @@ class Trainer(pl.Trainer):
         torch.save(self.model.state_dict(), os.path.join(config.artifacts_path, "model.pth"))
 
         # Save the model with mlflow
-        self.save_mlflow(kwargs['datamodule'])
+        if self.with_mlflow:
+            self.save_mlflow(kwargs['datamodule'])
 
     def save_mlflow(self, datamodule):
         """
@@ -129,26 +147,30 @@ class Trainer(pl.Trainer):
             onnx_model=onnx.load(onnx_model_path),
             artifact_path='model_with_signature',
             input_example=in_data_np,
-            # registered_model_name="pytorch_ecrad_model",  # automatic save in the model registry
+            # registered_model_name=self.model_name,  # automatic save in the model registry
             signature=signature,
             pip_requirements='inference_requirements.txt'
         )
 
 
-def main():
-    # MLFlow set-up
-    os.environ['GIT_PYTHON_REFRESH'] = 'quiet'
-    os.environ['AWS_ACCESS_KEY_ID'] = 'minio'
-    os.environ['AWS_SECRET_ACCESS_KEY'] = 'fmle4mlflow'
-    os.environ['MLFLOW_S3_ENDPOINT_URL'] = 'http://172.16.118.155:9000'
-    os.environ['MLFLOW_TRACKING_URI'] = 'http://172.16.118.155:5000'
-    os.environ['MLFLOW_EXPERIMENT_NAME'] = "pytorch_ecrad_model"
+def run(cli: LightningCLI) -> None:
+    """
+    Run the training script.
 
-    mlflow.pytorch.autolog(log_models=False)
-    with mlflow.start_run():
-        cli = LightningCLI(trainer_class=Trainer)
-        cli.trainer.test(model=cli.model, datamodule=cli.datamodule, ckpt_path="best")
+    Launch the script with "python3.8 trainer.py --config configs/cnn.yaml".
+
+    Args:
+        cli (LightningCLI): the CLI instantiated by the training script.
+    """
+    cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
+    cli.trainer.test(model=cli.model, datamodule=cli.datamodule, ckpt_path="best")
 
 
 if __name__ == '__main__':
-    main()
+    _cli = LightningCLI(trainer_class=Trainer, run=False)
+    if _cli.trainer.with_mlflow:
+        mlflow.pytorch.autolog(log_models=False)
+        with mlflow.start_run():
+            run(_cli)
+    else:
+        run(_cli)
