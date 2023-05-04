@@ -14,6 +14,7 @@ jobs:
           - combustion/unets/
           - weather_forecast/gwd/
           - weather_forecast/3dcorrection/unets/
+          - weather_forecast/3dcorrection/1d-cnn/
       fail-fast: false
 
     steps:
