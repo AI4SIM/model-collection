@@ -25,6 +25,7 @@ class HRLayer(Module):
     This could be used to deduce the heating rates within the model so that
     the outputs can be constrained by both fluxes and heating rates.
     """
+
     def __init__(self) -> None:
         super().__init__()
         self.g_cp = torch.tensor(24 * 3600 * 9.80665 / 1004)
@@ -44,7 +45,11 @@ class Normalization(Module):
     Requires the means and standard deviations of the features.
     They are then saved as registered buffers inside the model.
     """
-    def __init__(self, mean: torch.Tensor = None, std: torch.Tensor = None, label: str = "") -> None:
+
+    def __init__(self,
+                 mean: torch.Tensor = None,
+                 std: torch.Tensor = None,
+                 label: str = "") -> None:
         super().__init__()
         self.mean = mean
         self.std = std
@@ -65,12 +70,11 @@ class Normalization(Module):
 
 
 class Layer(Module):
-    """
-    Base class for preprocessing the inputs. Normalization is instanciated here.
-    """
+    """Base class for preprocessing the inputs. Normalization is instanciated here."""
+
     def __init__(self, mean: dict, std: dict, label: str) -> None:
         super().__init__()
-        
+
         self.mean = mean
         self.std = std
         self.normalization = Normalization(self.mean, self.std, label=label)
@@ -81,15 +85,16 @@ class Layer(Module):
 
 class ScaLayer(Layer):
     """Merge the scalar inputs."""
+
     def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
         super().__init__(mean, std, label="sca_")
 
     def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
-        
+
         Args:
             x: Dictionary containing all the features.
-            
+
         Returns:
             Resulting model forward pass.
         """
@@ -108,7 +113,7 @@ class ScaLayer(Layer):
                 inputs = x[key].unsqueeze(dim=-1)
             else:
                 inputs = x[key]
-            tmp.append(inputs)                
+            tmp.append(inputs)
 
         inputs = torch.cat(tmp, dim=-1)
         inputs = self.normalization(inputs)
@@ -118,15 +123,16 @@ class ScaLayer(Layer):
 
 class ColLayer(Layer):
     """Merge the column inputs (given on 137 vertical levels)."""
+
     def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
         super().__init__(mean, std, label="col_")
 
     def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
-        
+
         Args:
             x: Dictionary containing all the features.
-            
+
         Returns:
             Resulting model forward pass.
         """
@@ -156,7 +162,7 @@ class ColLayer(Layer):
             else:
                 inputs = x[key].unsqueeze(dim=-1)
             tmp.append(inputs)
-        
+
         inputs = torch.cat(tmp, dim=-1)
         inputs = self.normalization(inputs)
 
@@ -165,15 +171,16 @@ class ColLayer(Layer):
 
 class HLLayer(Layer):
     """Merge the half-level inputs (given on 138 vertical half-levels)."""
+
     def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
         super().__init__(mean, std, label="hl_")
 
     def forward(self, x: Dict[str, torch.Tensor]):
         """Compute the forward pass.
-        
+
         Args:
             x: Dictionary containing all the features.
-            
+
         Returns:
             Resulting model forward pass.
         """
@@ -182,27 +189,28 @@ class HLLayer(Layer):
         pressure_hl = x["pressure_hl"].unsqueeze(dim=-1)
         inputs = torch.cat([temperature_hl, pressure_hl], dim=-1)
         inputs = self.normalization(inputs)
-        
+
         return inputs
 
 
 class InterLayer(Layer):
     """Normalize the interface input (given on 136 levels)."""
+
     def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
         super().__init__(mean, std, label="inter_")
 
     def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
-        
+
         Args:
             x: Dictionary containing all the features.
-            
+
         Returns:
             Resulting model forward pass.
         """
         inputs = x["overlap_param"].unsqueeze(dim=-1)
         inputs = self.normalization(inputs)
-        
+
         return inputs
 
 
@@ -213,12 +221,13 @@ class PreProcessing(Module):
         * Normalize them
         * Repeat Vector, Pad and Concatenate
     """
+
     def __init__(self, means: Dict[str, torch.Tensor], stds: Dict[str, torch.Tensor]) -> None:
         super().__init__()
-        
+
         self.means = means
         self.stds = stds
-        
+
         self.sca_layer = ScaLayer(self.means["sca_inputs"], self.stds["sca_inputs"])
         self.col_layer = ColLayer(self.means["col_inputs"], self.stds["col_inputs"])
         self.hl_layer = HLLayer(self.means["hl_inputs"], self.stds["hl_inputs"])
@@ -229,10 +238,10 @@ class PreProcessing(Module):
 
     def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
-        
+
         Args:
             x: Dictionary containing all the features.
-            
+
         Returns:
             Resulting model forward pass.
         """
@@ -240,10 +249,14 @@ class PreProcessing(Module):
         col_inputs = self.col_layer(x)
         hl_inputs = self.hl_layer(x)
         inter_inputs = self.inter_layer(x)
-        
+
         # Stack properly all the inputs
-        sca_in = sca_inputs.unsqueeze(dim=-1).expand(sca_inputs.size(dim=0), sca_inputs.size(dim=1), 138).permute(0, 2, 1)
+        sca_in = sca_inputs.unsqueeze(dim=-1).expand(
+            sca_inputs.size(dim=0),
+            sca_inputs.size(dim=1),
+            138
+        ).permute(0, 2, 1)
         col_in = self.zeropad_col(col_inputs)
         inter_in = self.zeropad_inter(inter_inputs)
-        
+
         return torch.cat((sca_in, col_in, hl_inputs, inter_in), dim=-1)

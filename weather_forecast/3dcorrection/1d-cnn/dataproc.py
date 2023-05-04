@@ -55,7 +55,7 @@ class ThreeDCorrectionDataProc:
         return feature_dataset, target_dataset
 
     def download(self) -> xr.Dataset:
-        """Download the data for 3D correction US and return an xr.Dataset. """
+        """Download the data for 3D correction US and return an xr.Dataset."""
         cml.settings.set("cache-directory", self.raw_path)
         cml_ds = cml.load_dataset(
             "maelstrom-radiation",
@@ -76,7 +76,7 @@ class ThreeDCorrectionDataProc:
         # xrds.to_zarr(osp.join(self.processed_path, "3dcorrection.zarr"))
         # zarr_ds = xr.open_zarr(osp.join(self.processed_path, "3dcorrection.zarr"))
 
-        return xrds # zarr_ds
+        return xrds  # zarr_ds
 
     def extract_feature(self, ds) -> xr.Dataset:
         """Extract and order the features in a new dataset."""
@@ -128,7 +128,7 @@ class ThreeDCorrectionDataProc:
 
         for key in target_keys:
             target_ds[key] = ds[key]
-        
+
         return target_ds
 
     def expand_target(self, target_ds: xr.Dataset) -> None:

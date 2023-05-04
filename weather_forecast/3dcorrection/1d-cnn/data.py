@@ -19,7 +19,7 @@ from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 from typing import Dict, Tuple, Optional
 
 import config
-from dataproc import ThreeDCorrectionDataProc 
+from dataproc import ThreeDCorrectionDataProc
 
 
 class ThreeDCorrectionDataset(Dataset):
@@ -28,7 +28,7 @@ class ThreeDCorrectionDataset(Dataset):
     Based on preprocessed sharded data (from dataproc).
     Load a shard to get a datum (favor neighbour-preserving access over random access).
     """
-    
+
     dask.config.set(scheduler='synchronous')
 
     def __init__(self, root: str, ds_feat: xr.Dataset, ds_targ: xr.Dataset) -> None:
@@ -56,7 +56,7 @@ class ThreeDCorrectionDataset(Dataset):
 
         features = {k: torch.from_numpy(v.to_numpy()) for k, v in feat_sample.items()}
         targets = {k: torch.from_numpy(v.to_numpy()) for k, v in targ_sample.items()}
-        
+
         return features, targets
 
     def __len__(self) -> int:
@@ -102,7 +102,7 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
 
         self.dataset = ThreeDCorrectionDataset(config.data_path, self.feature_ds, self.target_ds)
         length = len(self.dataset)
-        
+
         if stage == "fit":
             self.train_dataset, self.val_dataset, self.test_dataset = random_split(
                 self.dataset, [int(length * split) for split in self.splitting_lengths])

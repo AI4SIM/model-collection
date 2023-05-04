@@ -10,9 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Dict, List
+from typing import List
 
-import torch 
+import torch
 from torch.nn import Module, LazyConv1d, MultiheadAttention
 from layers import PreProcessing, HRLayer
 
@@ -20,27 +20,29 @@ from layers import PreProcessing, HRLayer
 class Cnn1dAttention(Module):
     def __init__(self) -> None:
         super().__init__()
-        
+
         self.pre_processing = PreProcessing(...)
         self.block_dilation = CNBlockDilation(...)
         self.mha = MultiheadAttention(...)
         self.block_regular = CNBlockRegular(...)
         self.conv1d = LazyConv1d(...)
         self.hr_layer = HRLayer(...)
-        
+
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
         pass
-    
+
+
 class CNBlockDilation(Module):
     def __init__(self) -> None:
         super().__init__()
-        
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         pass
-    
+
+
 class CNBlockRegular(Module):
     def __init__(self) -> None:
         super().__init__()
-    
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         pass

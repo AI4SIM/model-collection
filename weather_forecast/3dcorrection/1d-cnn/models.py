@@ -10,15 +10,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.utilities.cli import MODEL_REGISTRY
-from torchmetrics.functional import mean_squared_error, mean_absolute_error
+from torchmetrics.functional import mean_squared_error
 from torchmetrics import MeanAbsoluteError
 from typing import Dict
 
-from layers import HRLayer, Normalization, PreProcessing
+from layers import PreProcessing
 
 
 class ThreeDCorrectionModule(pl.LightningModule):
@@ -35,7 +34,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
         self.flux_loss_weight = torch.tensor(flux_loss_weight)
         self.hr_loss_weight = torch.tensor(hr_loss_weight)
-        
+
         self.mae = MeanAbsoluteError()
 
         # stats = torch.load(osp.join(config.data_path, "processed", "stats.pt"))
@@ -91,7 +90,6 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
     def _common_step(self, batch, batch_idx, stage):
         """Compute the loss, additional metrics, and log them."""
-
         x, y = batch
         # y_flux_hat, y_hr_hat = self(x)
         y_flux_hat = self(x)
@@ -110,7 +108,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
         flux_loss = (flux_loss_lw_add + flux_loss_lw_diff + flux_loss_sw_add + flux_loss_sw_diff)
 
         # hr_loss = mean_squared_error(y_hr_hat, z)
-        loss = self.flux_loss_weight * flux_loss #+ self.hr_loss_weight * hr_loss
+        loss = self.flux_loss_weight * flux_loss  # + self.hr_loss_weight * hr_loss
 
         # flux_mae = self.mae(y_flux_hat, y)
         # hr_mae = self.mae(y_hr_hat, z)

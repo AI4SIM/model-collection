@@ -48,7 +48,6 @@ class Trainer(pl.Trainer):
             devices: (Union[List[int], str, int, None]): devices to use for training.
             max_epochs (int): maximum number of epochs if no early stopping logic is implemented.
         """
-
         if mlflow_setup is not None:
             self.with_mlflow = True
             # MLFlow set-up
@@ -108,7 +107,6 @@ class Trainer(pl.Trainer):
             datamodule (pl.LightningDataModule): a data module with a 'test_dataloader()' method
                 used to get a dataset sample.
         """
-
         # Get a dataset sample with input and output
         dataloader = datamodule.test_dataloader()
         in_data, out_data = next(itertools.islice(dataloader, 0, None))
