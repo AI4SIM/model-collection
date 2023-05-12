@@ -53,10 +53,14 @@ class Trainer(pl.Trainer):
             # MLFlow set-up
             if mlflow_setup.get('git', None):
                 if mlflow_setup['git'].get('git_python_refresh', None):
+                    # Only required if you do not have git on the training platform.
                     os.environ['GIT_PYTHON_REFRESH'] = mlflow_setup['git']['git_python_refresh']
-            os.environ['AWS_ACCESS_KEY_ID'] = mlflow_setup['storage']['aws_access_key_id']
-            os.environ['AWS_SECRET_ACCESS_KEY'] = mlflow_setup['storage']['aws_secret_access_key']
-            os.environ['MLFLOW_S3_ENDPOINT_URL'] = mlflow_setup['storage']['s3_endpoint_url']
+            # According to the way your tracking server has been deployed, you will be required to
+            # provide artifact access credentials, through additional environment variables
+            # (e.g. AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, MLFLOW_S3_ENDPOINT_URL for an S3
+            # artifact repository).
+            # To avoid using credentials please consider deploying your MLFlow tracking server has
+            # documented here in scenario 5 or 6 : https://mlflow.org/docs/latest/tracking.html.
             os.environ['MLFLOW_TRACKING_URI'] = mlflow_setup['tracking']['uri']
             if mlflow_setup['tracking'].get('experiment_name', None):
                 os.environ['MLFLOW_EXPERIMENT_NAME'] = mlflow_setup['tracking']['experiment_name']
@@ -123,21 +127,19 @@ class Trainer(pl.Trainer):
             out_data_np
         )
 
-        model = self.model
-
-        _, unconvertible_ops = torch.onnx.utils.unconvertible_ops(model, (in_data_onnx, {}))
+        _, unconvertible_ops = torch.onnx.utils.unconvertible_ops(self.model, (in_data_onnx, {}))
         if unconvertible_ops:
-            UserWarning(f"The model uses some onnx ops are not supported : {unconvertible_ops}. "
+            UserWarning(f"The model uses some onnx ops that are not supported : {unconvertible_ops}. "
                         "Exporting the model to the onnx could fail.")
 
         # export the model to ONNX generic format
         onnx_model_path = "/tmp/test_onnx.onnx"
-        model.to_onnx(
+        self.model.to_onnx(
             file_path=onnx_model_path,
             input_sample=(in_data_onnx, {}),
             input_names=list(in_data_np.keys()),
             output_names=list(out_data_np.keys()),
-            dynamic_axes={k: {0: 'batch_size'} for k in in_data_np.keys()},
+            dynamic_axes={k: {0: 'batch_size'} for k in in_data_np.keys()}
         )
 
         # log the ONNX model using MLFlow

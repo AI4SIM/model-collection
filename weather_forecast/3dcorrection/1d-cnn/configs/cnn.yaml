@@ -41,4 +41,11 @@ trainer:
 #    strategy: 'ddp_find_unused_parameters_true'
     accelerator: 'gpu'
     devices:
-        - 3
+        - 0
+    mlflow_setup:
+        tracking:
+            uri: http://172.16.118.155:5000
+            experiment_name: pytorch_to_onnx_ecrad
+            model_name: pytorch_ecrad_model
+        git:
+            git_python_refresh: quiet
