@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import subprocess
 from unittest import TestCase, main
 from os.path import exists
 
@@ -20,6 +22,11 @@ class TestConfig(TestCase):
 
     def test_paths(self):
         self.assertTrue(exists(config.experiment_path))
+        self.assertTrue(os.getenv("AI4SIM_EXPERIMENT_PATH"), config.experiment_path)
+        # Execute again config.py to ensure experiment_path is given by AISIM_EXPERIMENT_PATH
+        subprocess.run(['python3', os.path.join(os.path.dirname(os.getcwd()), "config.py")])
+        self.assertTrue(config.experiment_path, os.getenv("AI4SIM_EXPERIMENT_PATH"))
+
         self.assertTrue(exists(config.logs_path))
         self.assertTrue(exists(config.artifacts_path))
         self.assertTrue(exists(config.plots_path))
