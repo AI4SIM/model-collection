@@ -74,7 +74,7 @@ class TestModel(unittest.TestCase):
 
         data = pyg.data.Data(
             x=torch.tensor(col.reshape(-1, 1), dtype=torch.float),
-            edge_index=torch.tensor(undirected_index, dtype=torch.long),
+            edge_index=undirected_index.clone().detach().type(torch.LongTensor),
             pos=torch.tensor(np.stack(coordinates)),
             y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float))
 

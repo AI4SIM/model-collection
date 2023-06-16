@@ -12,16 +12,16 @@
 # limitations under the License.
 
 import os
-import logging
+# import logging
 import yaml
 import randomname
+# import shutil
 
 
 # CAUTION : A refactoring of this file might be requiered for further development
 # raw_data_path to be adapted to your local data path.
 raw_data_path = "/path/to/your/local/data"
 #
-
 
 root_path = os.path.dirname(os.path.realpath(__file__))
 data_path = os.path.join(root_path, 'data')
@@ -37,7 +37,13 @@ while _randomize_name:
     _experiment_name = randomname.get_name()
     if _experiment_name not in _existing_xps:
         break
+
 experiment_path = os.path.join(experiments_path, _experiment_name)
+
+if os.getenv("AI4SIM_EXPERIMENT_PATH") is None:
+    os.environ["AI4SIM_EXPERIMENT_PATH"] = experiment_path
+else:
+    experiment_path = os.getenv("AI4SIM_EXPERIMENT_PATH")
 
 logs_path = os.path.join(experiment_path, 'logs')
 artifacts_path = os.path.join(experiment_path, 'artifacts')
@@ -51,11 +57,6 @@ _paths = [
 ]
 for path in _paths:
     os.makedirs(path, exist_ok=True)
-
-
-logging.basicConfig(filename=os.path.join(logs_path, f'{_experiment_name}.log'),
-                    filemode='w',
-                    format='%(name)s - %(levelname)s - %(message)s')
 
 
 class LinkRawData:
@@ -87,7 +88,14 @@ class LinkRawData:
         with open(temp_file_path, 'w') as file:
             yaml.dump(filenames, file)
 
-        os.symlink(self.raw_data_path, self.local_raw_data)
+        if not os.path.exists(self.local_raw_data):
+            os.makedirs(self.local_raw_data, exist_ok=True)
+
+        for filename in filenames:
+            os.symlink(
+                os.path.join(self.raw_data_path, filename),
+                os.path.join(self.local_raw_data, filename)
+            )
 
     def rm_old_dataset(self):
         """Clean the local_data_path."""

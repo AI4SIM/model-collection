@@ -7,6 +7,7 @@ plotly==5.3.1
 pytorch-lightning==1.5.7
 pyyaml==6.0
 names==0.3.0
+randomname==0.1.5
 torch==1.11.0+cu113
 torchmetrics==0.5.1
 torch-scatter==2.0.9

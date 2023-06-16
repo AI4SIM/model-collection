@@ -107,43 +107,44 @@ def dev_dependencies(session):
             cuda_vers = 'cpu'
 
         # Set the url of precompiled torch version depending on CUDA version
-        if cuda_vers is not "cpu":
+        if cuda_vers != "cpu":
             extra_url = f"https://download.pytorch.org/whl/{cuda_vers}"
 
         # Set the url of precompiled torch-geometric dependencies depending on torch version
         additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}+{cuda_vers}.html"
 
-    session.install("--upgrade", "pip")
-    session.install("-r", req_file,
-                    "-f", additional_url,
-                    "--extra-index-url", extra_url)
+    session.run("python3", "-m", "pip", "install", "--upgrade", "pip")
+    session.run("python3", "-m", "pip", "install",
+                "-r", req_file,
+                "-f", additional_url,
+                "--extra-index-url", extra_url)
 
 
 @nox.session
 def tests(session):
     """Target to run unit tests on the code with pytest, and generate coverage report."""
     dev_dependencies(session)
-    session.install("pytest-cov")
-    session.run("python", "-m", "pytest", "--cache-clear", "--cov=./", "--cov-fail-under=80", "-v")
+    session.run("python3", "-m", "pip", "install", "pytest-cov")
+    session.run("python3", "-m", "pytest", "--cache-clear", "--cov=./", "--cov-fail-under=80", "-v")
     session.notify("coverage_report")
 
 
 @nox.session
 def coverage_report(session):
     """Target to generate coverage report from test results."""
-    session.install("coverage")
+    session.run("python3", "-m", "pip", "install", "coverage")
     session.run("coverage", "xml", "-o", f"{REPORTS_DIR}/pycoverage.xml")
 
 
 @nox.session
 def lint(session):
     """Target to lint the code with flake8."""
-    session.install("flake8")
-    session.install("flake8-docstrings")
-    session.install("flake8-bugbear")
-    session.install("flake8-use-fstring")
-    session.install("flake8-variables-names")
-    session.install("pep8-naming")
+    session.run("python3", "-m", "pip", "install",
+                "flake8",
+                "flake8-docstrings",
+                "flake8-use-fstring",
+                "flake8-variables-names",
+                "pep8-naming")
     session.run("flake8", "--config", FLAKE8_CFG)
 
 

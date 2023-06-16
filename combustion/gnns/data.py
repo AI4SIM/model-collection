@@ -127,7 +127,7 @@ class R2Dataset(CombustionDataset):
 
             data = pyg.data.Data(
                 x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
-                edge_index=torch.tensor(undirected_index, dtype=torch.long),
+                edge_index=undirected_index.clone().detach().type(torch.LongTensor),
                 pos=torch.tensor(np.stack(coordinates)),
                 y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float)
             )
@@ -158,10 +158,9 @@ class CnfDataset(CombustionDataset):
             with h5py.File(raw_path, 'r') as file:
                 feat = file["/filt_8"][:]
 
+                sigma = file["/filt_grad_8"][:]
                 if self.y_normalizer is not None:
-                    sigma = file["/filt_grad_8"][:] / self.y_normalizer
-                else:
-                    sigma = file["/filt_grad_8"][:]
+                    sigma /= self.y_normalizer
 
             x_size, y_size, z_size = feat.shape
             grid_shape = (z_size, y_size, x_size)
@@ -174,7 +173,7 @@ class CnfDataset(CombustionDataset):
 
             data = pyg.data.Data(
                 x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
-                edge_index=torch.tensor(undirected_index, dtype=torch.long),
+                edge_index=undirected_index.type(torch.LongTensor),
                 pos=torch.tensor(np.stack(coordinates)),
                 y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float)
             )

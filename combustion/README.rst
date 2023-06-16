@@ -10,7 +10,7 @@ This third DNS is a short-term transient started from the last field of the seco
 
 Dataset
 -----------------
-The dataset can be (downloaded here)[https://www.coe-raise.eu/open-data], which contains 113 scalar fields for a progress variable (input) and the target value of the flame surface density (output) used in for a LES combustion model. Those fields are obtained from DNS simulations and filtered to match a typical LES simulation. More details on how the dataset is created (in this paper)[https://arxiv.org/abs/1810.03691].
+The dataset can be `downloaded here <https://www.coe-raise.eu/open-data>`_, which contains 113 scalar fields for a progress variable (input) and the target value of the flame surface density (output) used in for a LES combustion model. Those fields are obtained from DNS simulations and filtered to match a typical LES simulation. More details on how the dataset is created in the preprint `Lapeyre et al. (2018) <https://arxiv.org/abs/1810.03691>`_.
 
 Models 
 -----------------
