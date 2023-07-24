@@ -17,88 +17,40 @@ from pytorch_lightning.utilities.cli import MODEL_REGISTRY
 import torch
 import torch.nn as nn
 import torch_geometric as pyg
+from torch_geometric.utils import scatter
 import torch_optimizer as optim
 import torchmetrics.functional as tmf
-from typing import List, Tuple
-
-import config
-
-EPS = torch.tensor(1.0e-8)
+from typing import List, Tuple, Optional
 
 
 class ThreeDCorrectionModule(pl.LightningModule):
     """Contain the mutualizable model logic for the 3dcorrection use-case."""
 
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: torch.Tensor,
+        u: torch.Tensor,
+        batch: Optional[torch.Tensor],
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """Compute the forward pass.
         Args:
             x (torch.Tensor): Node features.
             edge_index (torch.Tensor): Connectivity matrix.
+            edge_attr (torch.Tensor): Edge features.
+            u: (torch.Tensor): Global graph features.
+            batch (torch.Tensor): Batch vector which assigns each node
+                to a specific graph.
 
         Returns:
-            (torch.Tensor): Resulting model forward pass.
+            (torch.Tensor): Resulting model forward pass for node features.
+            (Optional[torch.Tensor]): Resulting model forward for edge features.
         """
-        return self.net(x, edge_index)
-
-    def weight_histograms_adder(self) -> None:
-        """
-        For each variable with requires_grad is True, push the weight histogram
-        into the logger every epoch.
-        """
-        for name, params in self.named_parameters():
-            self.logger.experiment.add_histogram(name, params, self.current_epoch)
-
-    def gradient_histograms_adder(self) -> None:
-        """
-        For each variable with requires_grad is True, push the gradient histogram
-        into the logger (every 50 steps).
-        """
-        global_step = self.global_step
-        if global_step % 50 == 0:  # do not make the tb file huge
-            for name, param in self.named_parameters():
-                if param.requires_grad:
-                    self.logger.experiment.add_histogram(
-                        f"{name}_grad", param.grad, global_step
-                    )
-
-    def _normalize(
-        self, batch: torch.Tensor, batch_size: int, path: str
-    ) -> Tuple[torch.Tensor]:
-        """Load the stats computed when building the Dataset and
-        normalize the features and outputs.
-
-        Args:
-            batch (torch.Tensor): Structure containing node features, node targets
-                and connectivity matrix.
-            batch_size (int): Batch size.
-            path (str): Path the stat file.
-
-        Returns:
-            (Tuple[torch.Tensor]): (node features, node targets, connectivity matrix).
-        """
-        stats = torch.load(os.path.join(path, f"stats-{self.timestep}.pt"))
-        device = self.device
-        x_mean = stats["x_mean"].to(device)
-        y_mean = stats["y_mean"].to(device)
-        x_std = stats["x_std"].to(device)
-        y_std = stats["y_std"].to(device)
-
-        num_output_features = batch.y.size()[-1]
-
-        x = (batch.x.reshape((batch_size, -1, batch.num_features)) - x_mean) / (
-            x_std + EPS.to(device)
-        )
-        y = (batch.y.reshape((batch_size, -1, num_output_features)) - y_mean) / (
-            y_std + EPS.to(device)
-        )
-
-        x = x.reshape(-1, batch.num_features)
-        y = y.reshape(-1, num_output_features)
-
-        return x, batch.y, batch.edge_index
+        return self.net(x, edge_index, edge_attr, u, batch)
 
     def _common_step(
-        self, batch: torch.Tensor, batch_idx: int, stage: str, normalize=False
+        self, batch: torch.Tensor, batch_idx: int, stage: str
     ) -> List[torch.Tensor]:
         """Define the common operations performed on data.
 
@@ -110,102 +62,194 @@ class ThreeDCorrectionModule(pl.LightningModule):
         Returns:
             (List[torch.Tensor]): predictions and metrics
         """
-        batch_size = batch.ptr.size()[0] - 1
-
-        if normalize:
-            x, y, edge_index = self._normalize(batch, batch_size, config.data_path)
-        else:
-            x, y, edge_index = batch.x, batch.y, batch.edge_index
-
-        y_hat = self(x, edge_index)
-        loss = tmf.mean_squared_error(y_hat, y)
-        mae = tmf.mean_absolute_error(y_hat, y)
-
-        self.log(
-            f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=batch_size
-        )
-        self.log(
-            f"{stage}_mae", mae, prog_bar=True, on_step=True, batch_size=batch_size
+        (x, y, z, edge_index, edge_attr, u, batch_) = (
+            batch.x,
+            batch.y,
+            batch.z,
+            batch.edge_index,
+            batch.edge_attr,
+            batch.u,
+            batch.batch,
         )
 
-        return y_hat, loss, mae
+        y_node_hat, y_edge_hat, _ = self(x, edge_index, edge_attr, u, batch_)
+
+        flux_loss = tmf.mean_squared_error(y_node_hat, y)
+        hr_loss = tmf.mean_squared_error(y_edge_hat[::2], z)
+        loss = flux_loss + hr_loss
+
+        flux_mae = tmf.mean_absolute_error(y_node_hat, y)
+        hr_mae = tmf.mean_absolute_error(y_edge_hat[::2], z)
+        mae = flux_mae + hr_mae
+
+        values = {
+            f"{stage}_loss": loss,
+            f"{stage}_flux_loss": flux_loss,
+            f"{stage}_hr_loss": hr_loss,
+            f"{stage}_mae": mae,
+            f"{stage}_flux_mae": flux_mae,
+            f"{stage}_hr_mae": hr_mae,
+        }
+        self.log_dict(
+            values,
+            prog_bar=True,
+            on_step=False,
+            on_epoch=True,
+            sync_dist=True,
+        )
+
+        return y_node_hat, y_edge_hat, loss, mae
 
     def training_step(self, batch, batch_idx):
         """Compute one training step.
         Args:
-            batch (torch.Tensor): Batch containing nodes features and connectivity matrix.
+            batch (torch.Tensor): Batch containing nodes features
+                and connectivity matrix.
             batch_idx (int): Integer displaying index of this batch.
         Returns:
             (torch.Tensor): Loss.
         """
-        _, loss, _ = self._common_step(batch, batch_idx, "train", normalize=self.norm)
+        _, _, loss, _ = self._common_step(batch, batch_idx, "train")
         return loss
-
-    def on_after_backward(self) -> None:
-        """Log the gradient after backward pass."""
-        self.gradient_histograms_adder()
-
-    def training_epoch_end(self, outputs: list) -> None:
-        """Log the weight histograms after each epoch.
-
-        Args:
-            outputs (List[Tuple[torch.Tensor]]): all batches containing a pair of
-                (ground truth, prediction)
-        """
-        self.weight_histograms_adder()
 
     def validation_step(self, batch, batch_idx):
         """Compute one validation step.
 
         Args:
-            batch (torch.Tensor): Batch containing nodes features and connectivity matrix.
+            batch (torch.Tensor): Batch containing nodes features
+                and connectivity matrix.
             batch_idx (int): Batch index.
         """
-        y_hat, _, _ = self._common_step(batch, batch_idx, "val")
+        _, _, _, _ = self._common_step(batch, batch_idx, "val")
 
     def test_step(self, batch, batch_idx):
         """Compute one testing step.
         Args:
-            batch (torch.Tensor): Batch containing x input and y output features.
+            batch (torch.Tensor): Batch containing x input
+                and y output features.
             batch_idx (int): Batch index.
         """
-        y_hat, _, _ = self._common_step(batch, batch_idx, "test")
+        _, _, _, _ = self._common_step(batch, batch_idx, "test")
 
 
 @MODEL_REGISTRY
-class LitGAT(ThreeDCorrectionModule):
-    """Graph-ATtention net as described in the “Graph Attention Networks” paper."""
+class LitMeta(ThreeDCorrectionModule):
+    """
+    PyG implementation of the Graph Network described in Battaglia et al.
+    GlobalModel is implemented but not used as we are not focused on global
+    graph features.
+    """
+
+    class EdgeModel(nn.Module):
+        def __init__(self, edge_in_feat, edge_out_feat, edge_hidden):
+            super().__init__()
+
+            self.edge_in_feat = edge_in_feat
+            self.edge_out_feat = edge_out_feat
+            self.edge_hidden = edge_hidden
+
+            self.edge_mlp = nn.Sequential(
+                nn.Linear(self.edge_in_feat, self.edge_hidden),
+                nn.ELU(),
+                nn.Linear(self.edge_hidden, self.edge_out_feat),
+            )
+
+        def forward(self, src, dst, edge_attr, u, batch):
+            out = torch.cat([src, dst, edge_attr, u[batch]], dim=1)
+            # print(f"[EdgeModel] - Output shape after concatenation : {out.shape}")
+            return self.edge_mlp(out)
+
+    class NodeModel(nn.Module):
+        def __init__(self, node_in_feat, node_out_feat, node_hiddens):
+            super().__init__()
+
+            self.node_in_feat = node_in_feat
+            self.node_out_feat = node_out_feat
+            self.node_hiddens = node_hiddens
+
+            assert len(self.node_hiddens) == 4
+
+            self.node_mlp_1 = nn.Sequential(
+                nn.Linear(self.node_in_feat, self.node_hiddens[0]),
+                nn.ELU(),
+                nn.Linear(self.node_hiddens[0], self.node_hiddens[1]),
+            )
+            self.node_mlp_2 = nn.Sequential(
+                nn.Linear(self.node_hiddens[2], self.node_hiddens[3]),
+                nn.ELU(),
+                nn.Linear(self.node_hiddens[3], self.node_out_feat),
+            )
+
+        def forward(self, x, edge_index, edge_attr, u, batch):
+            row, col = edge_index
+            out = torch.cat([x[row], edge_attr], dim=1)
+            # print(f"[NodeModel] - Output shape after concatenation : {out.shape}")
+            out = self.node_mlp_1(out)
+            out = scatter(out, col, dim=0, dim_size=x.size(0), reduce="mean")
+            # print(f"[NodeModel] - Output shape after scatter : {out.shape}")
+            out = torch.cat([x, out, u[batch]], dim=1)
+            # print(f"[NodeModel] - Output shape after concatenation : {out.shape}")
+            return self.node_mlp_2(out)
+
+    class GlobalModel(nn.Module):
+        def __init__(self, global_in_feat, global_out_feat, global_hidden):
+            super().__init__()
+
+            self.global_in_feat = global_in_feat
+            self.global_out_feat = global_out_feat
+            self.global_hidden = global_hidden
+
+            self.global_mlp = nn.Sequential(
+                nn.Linear(self.global_in_feat, self.global_hidden),
+                nn.ELU(),
+                nn.Linear(self.global_hidden, self.global_out_feat),
+            )
+
+        def forward(self, x, edge_index, edge_attr, u, batch):
+            out = torch.cat(
+                [
+                    u,
+                    scatter(x, batch, dim=0, reduce="mean"),
+                ],
+                dim=1,
+            )
+            print(
+                f"[GlobalModel] - Output shape after scatter and concat : {out.shape}"
+            )
+            return self.global_mlp(out)
 
     def __init__(
         self,
-        in_channels,
-        hidden_channels,
-        out_channels,
-        num_layers,
-        dropout,
-        edge_dim,
-        heads,
-        jk,
+        edge_in_feat,
+        edge_out_feat,
+        edge_hidden,
+        node_in_feat,
+        node_out_feat,
+        node_hiddens,
+        global_in_feat,
+        global_out_feat,
+        global_hidden,
         lr,
-        timestep,
-        norm,
     ):
-        """Init the LitGAT class."""
+        """Init the LitMeta class."""
         super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
-        self.timestep = timestep
-        self.norm = norm
-        self.net = pyg.nn.GAT(
-            in_channels=in_channels,
-            hidden_channels=hidden_channels,
-            out_channels=out_channels,
-            num_layers=num_layers,
-            dropout=dropout,
-            act=nn.SiLU(inplace=True),
-            heads=heads,
-            jk=jk,
+
+        self.edge_model = self.EdgeModel(edge_in_feat, edge_out_feat, edge_hidden)
+
+        self.node_model = self.NodeModel(node_in_feat, node_out_feat, node_hiddens)
+
+        self.global_model = self.GlobalModel(
+            global_in_feat, global_out_feat, global_hidden
+        )
+
+        # self.net = pyg.nn.models.MetaLayer(
+        #     self.edge_model, self.node_model, self.global_model
+        # )
+        self.net = pyg.nn.models.MetaLayer(
+            edge_model=self.edge_model, node_model=self.node_model, global_model=None
         )
 
     def configure_optimizers(self) -> optim.Optimizer:

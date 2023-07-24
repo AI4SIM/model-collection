@@ -1,0 +1,35 @@
+model:
+    class_path: models.LitMeta
+    init_args:
+        edge_in_feat: 50
+        edge_out_feat: 2
+        edge_hidden: 32
+        node_in_feat: 5
+        node_out_feat: 4
+        node_hiddens: 
+            - 16
+            - 32
+            - 52
+            - 16
+        global_in_feat: 20
+        global_out_feat: 2
+        global_hidden: 8
+        lr: 0.0001
+
+data:
+    class_path: data.LitThreeDCorrectionDataModule
+    init_args:
+        timestep: 3501
+        patchstep: 2
+        date: '20200101'
+        subset: tier-1
+        norm: True
+        batch_size: 8
+        num_workers: 2
+
+trainer:
+    max_epochs: 20
+    accelerator: "gpu"
+    strategy: ddp
+    devices:
+        - 1

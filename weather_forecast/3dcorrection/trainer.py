@@ -15,6 +15,8 @@ import json
 import os
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.accelerators import Accelerator
+from pytorch_lightning.strategies import Strategy
 from pytorch_lightning.utilities.cli import LightningCLI
 import torch
 from typing import List, Union
@@ -30,14 +32,17 @@ class Trainer(pl.Trainer):
     writes artifacts by the end of training.
     """
 
-    def __init__(self,
-                 accelerator: Union[str, pl.accelerators.Accelerator, None],
-                 devices: Union[List[int], str, int, None],
-                 max_epochs: int,
-                 # TODO: delete.
-                 # For some reason, those two are mandatory in current version of Lightning.
-                 fast_dev_run: Union[int, bool] = False,
-                 callbacks: Union[List[Callback], Callback, None] = None) -> None:
+    def __init__(
+        self,
+        accelerator: Union[str, Accelerator, None],
+        devices: Union[List[int], str, int, None],
+        strategy: Union[str, Strategy, None],
+        max_epochs: int,
+        # TODO: delete.
+        # For some reason, those two are mandatory in current version of Lightning.
+        fast_dev_run: Union[int, bool] = False,
+        callbacks: Union[List[Callback], Callback, None] = None,
+    ) -> None:
         """
         Args:
             accelerator (Union[str, pl.accelerators.Accelerator, None]): Type of accelerator
@@ -46,7 +51,7 @@ class Trainer(pl.Trainer):
             to use for training.
             max_epochs (int): Maximum number of epochs if no early stopping logic is implemented.
         """
-        if accelerator == 'cpu':
+        if accelerator == "cpu":
             devices = None
 
         logger = pl.loggers.TensorBoardLogger(config.logs_path, name=None)
@@ -55,9 +60,11 @@ class Trainer(pl.Trainer):
             logger=logger,
             accelerator=accelerator,
             devices=devices,
+            strategy=strategy,
             max_epochs=max_epochs,
             # TODO: for some reason, a forward pass happens in the model before datamodule creation.
-            num_sanity_val_steps=0)
+            num_sanity_val_steps=0,
+        )
 
     def test(self, **kwargs) -> None:
         """
@@ -72,15 +79,14 @@ class Trainer(pl.Trainer):
         with open(os.path.join(config.artifacts_path, "results.json"), "w") as f:
             json.dump(results, f)
 
-        torch.save(self.model.net, os.path.join(config.artifacts_path, 'model.pth'))
+        torch.save(self.model.net, os.path.join(config.artifacts_path, "model.pth"))
 
 
 def main():
-
-    cli = LightningCLI(trainer_class=Trainer)
+    cli = LightningCLI(trainer_class=Trainer, run=False)
+    cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     main()

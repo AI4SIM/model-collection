@@ -47,3 +47,11 @@ TARGET = [
     "flux_dn_lw",
     "flux_up_lw",
 ]
+CUSTOM_TARGET = [
+    "hr_sw",
+    "hr_lw",
+    "delta_sw_diff",
+    "delta_sw_add",
+    "delta_lw_diff",
+    "delta_lw_add",
+]

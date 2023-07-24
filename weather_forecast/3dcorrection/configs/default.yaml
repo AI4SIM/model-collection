@@ -19,6 +19,7 @@ fit:
         init_args:
             timestep: 3500
             patchstep: 16
+            subset: None
             batch_size: 64
             num_workers: 0
     
