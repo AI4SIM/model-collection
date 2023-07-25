@@ -20,16 +20,17 @@ data:
     class_path: data.LitThreeDCorrectionDataModule
     init_args:
         timestep: 3501
-        patchstep: 2
+        patchstep: 16
         date: '20200101'
-        subset: tier-1
+        subset: None
         norm: True
-        batch_size: 8
-        num_workers: 2
+        batch_size: 64
+        num_workers: 64
 
 trainer:
     max_epochs: 20
     accelerator: "gpu"
     strategy: ddp
     devices:
+        - 0
         - 1

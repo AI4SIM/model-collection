@@ -80,7 +80,7 @@ class ThreeDCorrectionDataProc:
         """Download the data for 3D correction US and return an xr.Dataset."""
         cml.settings.set("cache-directory", self.raw_path)
 
-        if self.subset is not None:
+        if self.subset != 'None':
             cml_ds = cml.load_dataset(
                 "maelstrom-radiation",
                 dataset="3dcorrection",

@@ -40,6 +40,8 @@ class ThreeDCorrectionDataset(pyg.data.Dataset):
 
     dask.config.set(scheduler="synchronous")
 
+    profile_per_file = 16960 // 8
+
     def __init__(
         self,
         root: str,
@@ -65,8 +67,6 @@ class ThreeDCorrectionDataset(pyg.data.Dataset):
         self.ds_means = ds_means
         self.ds_stds = ds_stds
 
-        super().__init__(root)
-
         self.ds_means["inter_inputs"] = pad(
             self.ds_means["inter_inputs"], (0, 0, 1, 1, 0, 0), "constant", 0
         )
@@ -75,12 +75,14 @@ class ThreeDCorrectionDataset(pyg.data.Dataset):
             self.ds_stds["inter_inputs"], (0, 0, 1, 1, 0, 0), "constant", 1
         )
 
+        super().__init__(root)
+
         # If using lazy loading, uncomment the next line
         # self.process_()
 
     @property
     def processed_file_names(self) -> List[str]:
-        return [f"data-{ii}.pt" for ii in range(self.len())]
+        return [f"data-{ii}.pt" for ii in range(self.len() // self.profile_per_file)]
 
     def build_graph(self, idx) -> pyg.data.Data:
         def normalise(array, norm_key):
@@ -164,20 +166,36 @@ class ThreeDCorrectionDataset(pyg.data.Dataset):
 
         return g
 
+    # TBM: number of profiles to be stored --> config file ?
     def process(self):
+        data_list = []
         for idx in range(self.len()):
-            print(f'Index : {idx}')
+            print(f"Index : {idx}", file=sys.stderr)
             single_graph = self.build_graph(idx)
-            torch.save(single_graph, osp.join(self.processed_dir, f"data-{idx}.pt"))
+            data_list.append(single_graph)
+
+            if idx != 0 and (idx + 1) % self.profile_per_file == 0:
+                file_idx = idx // self.profile_per_file
+                batch = pyg.data.Batch.from_data_list(data_list)
+                batch.batch = None
+                # batch.mini_batch = batch.mini_batch
+                print(
+                    f"Writing batch of graphs into file {file_idx}...", file=sys.stderr
+                )
+                torch.save(batch, osp.join(self.processed_dir, f"data-{file_idx}.pt"))
+                data_list = []
 
     def get(self, idx) -> pyg.data.Data:
-        return torch.load(osp.join(self.processed_dir, f"data-{idx}.pt"))
+        file_idx = idx // (16960 // 8)
+        # print(f"Reading index {idx} from file {file_idx}")
+        batch = torch.load(osp.join(self.processed_dir, f"data-{file_idx}.pt"))
+        return batch.get_example(idx % self.profile_per_file)
         # return self.process_(idx)
 
     # Set the number of profiles manually for testing
     # Should remove it before PR
     def len(self) -> int:
-        return 1000 # self.ds_feature.dims["column"]
+        return self.ds_feature.dims["column"]
 
 
 @DATAMODULE_REGISTRY
@@ -236,30 +254,31 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         # NB: Now, we split the dataset.
         # In the future, we will load different dataset depending on the stage.
 
-        dataproc = ThreeDCorrectionDataProc(
-            config.data_path,
-            self.date,
-            self.timestep,
-            self.patchstep,
-            self.subset,
-            self.norm,
-        )
-        self.features, self.targets = dataproc.process()
-        if self.norm:
-            self.mean_norm, self.std_norm = dataproc.means, dataproc.stds
+        if stage == "fit":
+            dataproc = ThreeDCorrectionDataProc(
+                config.data_path,
+                self.date,
+                self.timestep,
+                self.patchstep,
+                self.subset,
+                self.norm,
+            )
+            self.features, self.targets = dataproc.process()
+            if self.norm:
+                self.mean_norm, self.std_norm = dataproc.means, dataproc.stds
 
-        dataset = ThreeDCorrectionDataset(
-            config.data_path,
-            self.features,
-            self.targets,
-            self.mean_norm,
-            self.std_norm,
-        )
-        length = dataset.len()
+            dataset = ThreeDCorrectionDataset(
+                config.data_path,
+                self.features,
+                self.targets,
+                self.mean_norm,
+                self.std_norm,
+            )
+            length = dataset.len()
 
-        self.test_dataset = dataset[int(0.9 * length):]
-        self.val_dataset = dataset[int(0.8 * length): int(0.9 * length)]
-        self.train_dataset = dataset[: int(0.8 * length)]
+            self.test_dataset = dataset[int(0.9 * length) :]
+            self.val_dataset = dataset[int(0.8 * length) : int(0.9 * length)]
+            self.train_dataset = dataset[: int(0.8 * length)]
 
     def train_dataloader(self) -> torch.utils.data.DataLoader:
         """Return the train DataLoader.
@@ -270,7 +289,7 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         return pyg.loader.DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
-            shuffle=True,
+            shuffle=False,
             num_workers=self.num_workers,
             prefetch_factor=8,
             pin_memory=False,
@@ -288,9 +307,9 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            prefetch_factor=8,
+            prefetch_factor=2,
             pin_memory=False,
-            drop_last=True
+            drop_last=True,
         )
 
     def test_dataloader(self) -> torch.utils.data.DataLoader:
@@ -304,5 +323,5 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            drop_last=True
+            drop_last=True,
         )

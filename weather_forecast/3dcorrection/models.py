@@ -46,6 +46,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
         Returns:
             (torch.Tensor): Resulting model forward pass for node features.
             (Optional[torch.Tensor]): Resulting model forward for edge features.
+            (Optional[torch.Tensor]): Resulting model forward for global graph features.
         """
         return self.net(x, edge_index, edge_attr, u, batch)
 
@@ -96,6 +97,8 @@ class ThreeDCorrectionModule(pl.LightningModule):
             on_step=False,
             on_epoch=True,
             sync_dist=True,
+            rank_zero_only=True,
+            batch_size=batch.batch.max()+1
         )
 
         return y_node_hat, y_edge_hat, loss, mae
@@ -135,7 +138,8 @@ class ThreeDCorrectionModule(pl.LightningModule):
 @MODEL_REGISTRY
 class LitMeta(ThreeDCorrectionModule):
     """
-    PyG implementation of the Graph Network described in Battaglia et al.
+    PyG implementation of the Graph Network described in 
+    Battaglia et al. (https://arxiv.org/pdf/1806.01261.pdf)
     GlobalModel is implemented but not used as we are not focused on global
     graph features.
     """
