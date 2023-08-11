@@ -214,6 +214,7 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         norm: bool,
         batch_size: int,
         num_workers: int,
+        prefetch_factor: int,
     ) -> None:
         """
         Init the LitThreeDCorrectionDataModule class.
@@ -232,6 +233,7 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         self.norm = norm
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.prefetch_factor = prefetch_factor
 
         self.mean_norm = torch.tensor([0.0])
         self.std_norm = torch.tensor([1.0])
@@ -276,8 +278,8 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             )
             length = dataset.len()
 
-            self.test_dataset = dataset[int(0.9 * length) :]
-            self.val_dataset = dataset[int(0.8 * length) : int(0.9 * length)]
+            self.test_dataset = dataset[int(0.9 * length):]
+            self.val_dataset = dataset[int(0.8 * length): int(0.9 * length)]
             self.train_dataset = dataset[: int(0.8 * length)]
 
     def train_dataloader(self) -> torch.utils.data.DataLoader:
@@ -291,8 +293,8 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            prefetch_factor=8,
-            pin_memory=False,
+            prefetch_factor=self.prefetch_factor,
+            pin_memory=True,
             drop_last=True,
         )
 
@@ -307,7 +309,7 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            prefetch_factor=2,
+            prefetch_factor=self.prefetch_factor,
             pin_memory=False,
             drop_last=True,
         )

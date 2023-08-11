@@ -19,12 +19,18 @@ import torch.nn as nn
 import torch_geometric as pyg
 from torch_geometric.utils import scatter
 import torch_optimizer as optim
+from torchmetrics import MeanAbsoluteError, LogCoshError, MeanSquaredError
 import torchmetrics.functional as tmf
 from typing import List, Tuple, Optional
 
 
 class ThreeDCorrectionModule(pl.LightningModule):
     """Contain the mutualizable model logic for the 3dcorrection use-case."""
+
+    def __init__(self):
+
+        super().__init__()
+        self.mae = MeanAbsoluteError()
 
     def forward(
         self,
@@ -75,21 +81,34 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
         y_node_hat, y_edge_hat, _ = self(x, edge_index, edge_attr, u, batch_)
 
-        flux_loss = tmf.mean_squared_error(y_node_hat, y)
-        hr_loss = tmf.mean_squared_error(y_edge_hat[::2], z)
-        loss = flux_loss + hr_loss
+        # Flux loss
+        sw_loss = tmf.mean_squared_error(y_node_hat[..., :2], y[..., :2])  # sw_diff, sw_add
+        lw_loss = tmf.mean_squared_error(y_node_hat[..., 2:], y[..., 2:])  # lw_diff, lw_add
+        # Heating rate loss
+        hr_sw_loss = tmf.mean_squared_error(y_edge_hat[::2, 0], z[..., 0])  # hr_sw
+        hr_lw_loss = tmf.mean_squared_error(y_edge_hat[::2, 1], z[..., 1])  # hr_lw
+        # global loss
+        loss = self.sw_weight * sw_loss + \
+            self.lw_weight * lw_loss + \
+            self.hr_sw_weight * hr_sw_loss + \
+            self.hr_lw_weight * hr_lw_loss
 
-        flux_mae = tmf.mean_absolute_error(y_node_hat, y)
-        hr_mae = tmf.mean_absolute_error(y_edge_hat[::2], z)
-        mae = flux_mae + hr_mae
+        # Metrics
+        sw_mae = self.mae(y_node_hat[..., :2], y[..., :2])  # sw_diff, sw_add
+        lw_mae = self.mae(y_node_hat[..., 2:], y[..., 2:])  # lw_diff, lw_add
+        hr_sw_mae = self.mae(y_edge_hat[::2, 0], z[..., 0])
+        hr_lw_mae = self.mae(y_edge_hat[::2, 1], z[..., 1])
 
         values = {
             f"{stage}_loss": loss,
-            f"{stage}_flux_loss": flux_loss,
-            f"{stage}_hr_loss": hr_loss,
-            f"{stage}_mae": mae,
-            f"{stage}_flux_mae": flux_mae,
-            f"{stage}_hr_mae": hr_mae,
+            f"{stage}_sw_loss": sw_loss,
+            f"{stage}_lw_loss": lw_loss,
+            f"{stage}_hr_sw_loss": hr_sw_loss,
+            f"{stage}_hr_lw_loss": hr_lw_loss,
+            f"{stage}_sw_mae": sw_mae,
+            f"{stage}_lw_mae": lw_mae,
+            f"{stage}_hr_sw_mae": hr_sw_mae,
+            f"{stage}_hr_lw_mae": hr_lw_mae,
         }
         self.log_dict(
             values,
@@ -101,7 +120,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
             batch_size=batch.batch.max()+1
         )
 
-        return y_node_hat, y_edge_hat, loss, mae
+        return y_node_hat, y_edge_hat, loss
 
     def training_step(self, batch, batch_idx):
         """Compute one training step.
@@ -112,8 +131,11 @@ class ThreeDCorrectionModule(pl.LightningModule):
         Returns:
             (torch.Tensor): Loss.
         """
-        _, _, loss, _ = self._common_step(batch, batch_idx, "train")
+        _, _, loss = self._common_step(batch, batch_idx, "train")
         return loss
+
+    def on_train_epoch_end(self):
+        self.mae.reset()
 
     def validation_step(self, batch, batch_idx):
         """Compute one validation step.
@@ -123,7 +145,10 @@ class ThreeDCorrectionModule(pl.LightningModule):
                 and connectivity matrix.
             batch_idx (int): Batch index.
         """
-        _, _, _, _ = self._common_step(batch, batch_idx, "val")
+        _, _, _ = self._common_step(batch, batch_idx, "val")
+
+    def on_validation_epoch_end(self):
+        self.mae.reset()
 
     def test_step(self, batch, batch_idx):
         """Compute one testing step.
@@ -132,7 +157,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
                 and y output features.
             batch_idx (int): Batch index.
         """
-        _, _, _, _ = self._common_step(batch, batch_idx, "test")
+        _, _, _ = self._common_step(batch, batch_idx, "test")
 
 
 @MODEL_REGISTRY
@@ -154,7 +179,7 @@ class LitMeta(ThreeDCorrectionModule):
 
             self.edge_mlp = nn.Sequential(
                 nn.Linear(self.edge_in_feat, self.edge_hidden),
-                nn.ELU(),
+                nn.GELU(),
                 nn.Linear(self.edge_hidden, self.edge_out_feat),
             )
 
@@ -175,12 +200,12 @@ class LitMeta(ThreeDCorrectionModule):
 
             self.node_mlp_1 = nn.Sequential(
                 nn.Linear(self.node_in_feat, self.node_hiddens[0]),
-                nn.ELU(),
+                nn.GELU(),
                 nn.Linear(self.node_hiddens[0], self.node_hiddens[1]),
             )
             self.node_mlp_2 = nn.Sequential(
                 nn.Linear(self.node_hiddens[2], self.node_hiddens[3]),
-                nn.ELU(),
+                nn.GELU(),
                 nn.Linear(self.node_hiddens[3], self.node_out_feat),
             )
 
@@ -205,7 +230,7 @@ class LitMeta(ThreeDCorrectionModule):
 
             self.global_mlp = nn.Sequential(
                 nn.Linear(self.global_in_feat, self.global_hidden),
-                nn.ELU(),
+                nn.GELU(),
                 nn.Linear(self.global_hidden, self.global_out_feat),
             )
 
@@ -217,9 +242,9 @@ class LitMeta(ThreeDCorrectionModule):
                 ],
                 dim=1,
             )
-            print(
-                f"[GlobalModel] - Output shape after scatter and concat : {out.shape}"
-            )
+            # print(
+            #     f"[GlobalModel] - Output shape after scatter and concat : {out.shape}"
+            # )
             return self.global_mlp(out)
 
     def __init__(
@@ -234,12 +259,20 @@ class LitMeta(ThreeDCorrectionModule):
         global_out_feat,
         global_hidden,
         lr,
+        sw_weight,
+        lw_weight,
+        hr_sw_weight,
+        hr_lw_weight,
     ):
         """Init the LitMeta class."""
         super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
+        self.sw_weight = sw_weight
+        self.lw_weight = lw_weight
+        self.hr_sw_weight = hr_sw_weight
+        self.hr_lw_weight = hr_lw_weight
 
         self.edge_model = self.EdgeModel(edge_in_feat, edge_out_feat, edge_hidden)
 
@@ -253,7 +286,7 @@ class LitMeta(ThreeDCorrectionModule):
         #     self.edge_model, self.node_model, self.global_model
         # )
         self.net = pyg.nn.models.MetaLayer(
-            edge_model=self.edge_model, node_model=self.node_model, global_model=None
+            edge_model=self.edge_model, node_model=self.node_model, global_model=self.global_model
         )
 
     def configure_optimizers(self) -> optim.Optimizer:
