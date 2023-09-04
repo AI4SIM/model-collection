@@ -38,3 +38,10 @@ trainer:
     strategy: ddp
     devices:
         - 1
+    mlflow_setup:
+        tracking:
+            uri: http://172.16.118.155:5000
+            experiment_name: gnn_ecrad
+            model_name: gnn_ecrad_model
+        git:
+            git_python_refresh: quiet
