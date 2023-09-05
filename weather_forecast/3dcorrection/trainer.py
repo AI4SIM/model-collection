@@ -13,6 +13,7 @@
 
 import json
 import os
+import itertools
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
 from pytorch_lightning.accelerators import Accelerator
@@ -104,6 +105,63 @@ class Trainer(pl.Trainer):
             json.dump(results, f)
 
         torch.save(self.model.net, os.path.join(config.artifacts_path, "model.pth"))
+
+        # Save the model with mlflow
+        if self.with_mlflow:
+            self.save_mlflow(kwargs['datamodule'])
+
+    def save_mlflow(self, datamodule):
+        """
+        Save the model with MLFlow.
+
+        Args:
+            datamodule (pl.LightningDataModule): a data module with a 'test_dataloader()' method
+                used to get a dataset sample.
+        """
+        # Get a dataset sample with input and output
+        dataloader = datamodule.test_dataloader()
+        graph = next(itertools.islice(dataloader, 0, None))
+
+        # Build the mlflow signature of the model, from input and output data
+        in_data = {k: v for k, v in graph.to_dict().items() if k in ["x",
+                                                                     "edge_index",
+                                                                     "edge_attr",
+                                                                     "u",
+                                                                     "batch"]}
+
+        in_data_onnx = in_data # save original data format for ONNX export
+        in_data_np = {k: v.detach().numpy() for k, v in in_data.items() if k != "batch"}
+        out_data_np = {k: v.detach().numpy() for k, v in graph.to_dict().items() if k in ["y", "z"]}
+
+        signature = infer_signature(
+            in_data_np,
+            out_data_np
+        )
+
+        _, unconvertible_ops = torch.onnx.utils.unconvertible_ops(self.model, in_data_onnx)
+        if unconvertible_ops:
+            UserWarning(f"The model uses some onnx ops that are not supported : {unconvertible_ops}. "
+                        "Exporting the model to the onnx could fail.")
+
+        # export the model to ONNX generic format
+        onnx_model_path = "/tmp/test_onnx.onnx"
+        self.model.to_onnx(
+            file_path=onnx_model_path,
+            input_sample=in_data_onnx,
+            input_names=list(in_data_np.keys()),
+            output_names=list(out_data_np.keys()),
+            dynamic_axes={k: {0: 'batch_size'} for k in in_data_np.keys()}
+        )
+
+        # log the ONNX model using MLFlow
+        mlflow.onnx.log_model(
+            onnx_model=onnx.load(onnx_model_path),
+            artifact_path='model_with_signature',
+            input_example=in_data_np,
+            # registered_model_name=self.model_name,  # automatic save in the model registry
+            signature=signature,
+            pip_requirements='inference_requirements.txt'
+        )
 
 
 def run(cli: LightningCLI) -> None:
