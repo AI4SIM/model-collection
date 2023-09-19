@@ -23,7 +23,7 @@ import torch
 from typing import List, Union, Dict
 import onnx
 import mlflow
-from mlflow.models.signature import infer_signature
+from mlflow.models.signature import infer_signature, ModelSignature
 
 import config
 import data  # noqa: F401 'data' imported but not used
@@ -120,23 +120,42 @@ class Trainer(pl.Trainer):
         """
         # Get a dataset sample with input and output
         dataloader = datamodule.test_dataloader()
-        graph = next(itertools.islice(dataloader, 0, None))
+        batch = next(itertools.islice(dataloader, 0, None))
 
         # Build the mlflow signature of the model, from input and output data
-        in_data = {k: v for k, v in graph.to_dict().items() if k in ["x",
+        in_data = {k: v for k, v in batch.to_dict().items() if k in ["x",
                                                                      "edge_index",
                                                                      "edge_attr",
                                                                      "u",
                                                                      "batch"]}
 
         in_data_onnx = in_data # save original data format for ONNX export
-        in_data_np = {k: v.detach().numpy() for k, v in in_data.items() if k != "batch"}
-        out_data_np = {k: v.detach().numpy() for k, v in graph.to_dict().items() if k in ["y", "z"]}
+        in_data_np = {k: v.detach().numpy() for k, v in in_data.items()}
+        out_data_np = {k: v.detach().numpy() for k, v in batch.to_dict().items() if k in ["y", "z"]}
 
-        signature = infer_signature(
-            in_data_np,
-            out_data_np
-        )
+        # signature = infer_signature(
+        #     in_data_np,
+        #     out_data_np
+        # )
+
+        dict_signature = {
+            "inputs":
+                """[{"name": "x", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 3]}},
+                    {"name": "edge_index", "type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [2, -1]}},
+                    {"name": "edge_attr", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 27]}},
+                    {"name": "u", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 17]}},
+                    {"name": "batch", "type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]""",
+            "outputs":
+                """[
+                    {"name": "delta_sw_diff", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 138]}},
+                    {"name": "delta_sw_add", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 138]}},
+                    {"name": "delta_lw_diff", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 138]}},
+                    {"name": "delta_lw_add", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 138]}},
+                    {"name": "hr_sw", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 137]}},
+                    {"name": "hr_lw", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 137]}}
+                ]"""
+        }
+        signature = ModelSignature.from_dict(dict_signature)
 
         _, unconvertible_ops = torch.onnx.utils.unconvertible_ops(self.model, in_data_onnx)
         if unconvertible_ops:
@@ -150,7 +169,7 @@ class Trainer(pl.Trainer):
             input_sample=in_data_onnx,
             input_names=list(in_data_np.keys()),
             output_names=list(out_data_np.keys()),
-            dynamic_axes={k: {0: 'batch_size'} for k in in_data_np.keys()}
+            dynamic_axes={k: {0: 'batch_size'} if k != "edge_index" else {1: 'batch_size'} for k in in_data_np.keys()}
         )
 
         # log the ONNX model using MLFlow
