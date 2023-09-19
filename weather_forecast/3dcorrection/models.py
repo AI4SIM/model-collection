@@ -238,7 +238,7 @@ class LitMeta(ThreeDCorrectionModule):
             out = torch.cat(
                 [
                     u,
-                    scatter(x, batch, dim=0, reduce="mean"),
+                    scatter(x, batch, dim=0, dim_size=u.size(0), reduce="mean"),
                 ],
                 dim=1,
             )
