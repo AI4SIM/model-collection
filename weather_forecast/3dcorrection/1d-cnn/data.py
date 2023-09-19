@@ -100,6 +100,9 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
                                             self.patchstep)
         self.feature_ds, self.target_ds = dataproc.process()
 
+        self.feature_ds = self.feature_ds.isel({"column": list(range(10))})
+        self.target_ds = self.target_ds.isel({"column": list(range(10))})
+
         self.dataset = ThreeDCorrectionDataset(config.data_path, self.feature_ds, self.target_ds)
         length = len(self.dataset)
 

@@ -127,6 +127,15 @@ class Trainer(pl.Trainer):
             out_data_np
         )
 
+        # export the model as TorchScript
+        scripted_pytorch_model = torch.jit.script(self.model)
+        mlflow.pytorch.log_model(scripted_pytorch_model,
+                                 'torchscript_with_signature',
+                                 input_example=in_data_np,
+                                 signature=signature,
+                                 pip_requirements='inference_requirements.txt'
+        )
+
         _, unconvertible_ops = torch.onnx.utils.unconvertible_ops(self.model, (in_data_onnx, {}))
         if unconvertible_ops:
             UserWarning(f"The model uses some onnx ops that are not supported : {unconvertible_ops}. "

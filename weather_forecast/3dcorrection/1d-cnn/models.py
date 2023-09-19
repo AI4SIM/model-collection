@@ -51,7 +51,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
             "inter_inputs": torch.tensor(1),
         }
 
-    def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def forward(self, x: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         if isinstance(x, list):
             x = x[0]
 
