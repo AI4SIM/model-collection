@@ -133,13 +133,12 @@ class Trainer(pl.Trainer):
                                  'torchscript_with_signature',
                                  input_example=in_data_np,
                                  signature=signature,
-                                 pip_requirements='inference_requirements.txt'
-        )
+                                 pip_requirements='inference_requirements.txt')
 
         _, unconvertible_ops = torch.onnx.utils.unconvertible_ops(self.model, (in_data_onnx, {}))
         if unconvertible_ops:
-            UserWarning(f"The model uses some onnx ops that are not supported : {unconvertible_ops}. "
-                        "Exporting the model to the onnx could fail.")
+            UserWarning("The model uses some onnx ops that are not supported : "
+                        f"{unconvertible_ops}. Exporting the model to the onnx could fail.")
 
         # export the model to ONNX generic format
         onnx_model_path = "/tmp/test_onnx.onnx"
