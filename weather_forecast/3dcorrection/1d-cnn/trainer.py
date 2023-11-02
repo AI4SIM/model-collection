@@ -14,6 +14,13 @@ import json
 import os
 import itertools
 from typing import List, Dict, Union
+
+os.environ["COMET_URL_OVERRIDE"]="http://10.0.0.79/clientlib/"
+
+import comet_ml
+from comet_ml import Experiment
+from comet_ml.integration.pytorch import log_model
+
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.base import Callback
@@ -22,6 +29,7 @@ from pytorch_lightning.utilities.cli import LightningCLI
 import onnx
 import mlflow
 from mlflow.models.signature import infer_signature
+# from pytorch_lightning.loggers import CometLogger
 
 import config
 import data  # noqa: F401 'data' imported but unused
@@ -75,6 +83,14 @@ class Trainer(pl.Trainer):
                                    name=None,
                                    log_graph=False,
                                    default_hp_metric=False)
+        # comet_logger = CometLogger(api_key='bxM3F7ojMhEengftxJlotPTZa')
+
+        ## Create an experiment with your api key
+        self.experiment = Experiment(
+            api_key='bxM3F7ojMhEengftxJlotPTZa',
+            project_name="ecrad-test",
+            # workspace="Comet evaluation",
+        )
 
         super().__init__(
             default_root_dir=config.logs_path,
@@ -98,6 +114,9 @@ class Trainer(pl.Trainer):
 
         # Save the model with pytorch
         torch.save(self.model.state_dict(), os.path.join(config.artifacts_path, "model.pth"))
+
+        # log_model(self.experiment, self.model, model_name="ecrad-cnn")
+        # self.experiment.log_model("ecrad-cnn", os.path.join(config.artifacts_path, "model.pth"))
 
         # Save the model with mlflow
         if self.with_mlflow:

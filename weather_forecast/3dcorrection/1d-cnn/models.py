@@ -132,11 +132,11 @@ class ThreeDCorrectionModule(pl.LightningModule):
         loss = self._common_step(batch, batch_idx, "train")
         return loss
 
-    def on_after_backward(self):
-        self.gradient_histograms_adder()
+    # def on_after_backward(self):
+    #     self.gradient_histograms_adder()
 
-    def training_epoch_end(self, outputs):
-        self.weight_histograms_adder()
+    # def training_epoch_end(self, outputs):
+    #     self.weight_histograms_adder()
 
     def validation_step(self, batch, batch_idx):
         _ = self._common_step(batch, batch_idx, "val")
