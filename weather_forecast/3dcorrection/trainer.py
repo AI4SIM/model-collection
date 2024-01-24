@@ -15,10 +15,10 @@ import json
 import os
 import itertools
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.callback import Callback
 from pytorch_lightning.accelerators import Accelerator
 from pytorch_lightning.strategies import Strategy
-from pytorch_lightning.utilities.cli import LightningCLI
+from pytorch_lightning.cli import LightningCLI
 import torch
 from typing import List, Union, Dict
 import onnx
@@ -128,34 +128,18 @@ class Trainer(pl.Trainer):
                                                                      "edge_attr",
                                                                      "u",
                                                                      "batch"]}
+        in_data['edge_index'] = in_data['edge_index'].T  # Transpose to have the dynamic axis in dim 0
 
+        out_data = self.model(**in_data)
         in_data_onnx = in_data # save original data format for ONNX export
         in_data_np = {k: v.detach().numpy() for k, v in in_data.items()}
-        out_data_np = {k: v.detach().numpy() for k, v in batch.to_dict().items() if k in ["y", "z"]}
+        out_data_np = {k: v.detach().numpy() for k, v in out_data.items()}
+        print({k: v.shape for k, v in out_data.items()})
 
-        # signature = infer_signature(
-        #     in_data_np,
-        #     out_data_np
-        # )
-
-        dict_signature = {
-            "inputs":
-                """[{"name": "x", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 3]}},
-                    {"name": "edge_index", "type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [2, -1]}},
-                    {"name": "edge_attr", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 27]}},
-                    {"name": "u", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 17]}},
-                    {"name": "batch", "type": "tensor", "tensor-spec": {"dtype": "int64", "shape": [-1]}}]""",
-            "outputs":
-                """[
-                    {"name": "delta_sw_diff", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 138]}},
-                    {"name": "delta_sw_add", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 138]}},
-                    {"name": "delta_lw_diff", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 138]}},
-                    {"name": "delta_lw_add", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 138]}},
-                    {"name": "hr_sw", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 137]}},
-                    {"name": "hr_lw", "type": "tensor", "tensor-spec": {"dtype": "float32", "shape": [-1, 137]}}
-                ]"""
-        }
-        signature = ModelSignature.from_dict(dict_signature)
+        signature = infer_signature(
+            in_data_np,
+            out_data_np
+        )
 
         _, unconvertible_ops = torch.onnx.utils.unconvertible_ops(self.model, in_data_onnx)
         if unconvertible_ops:
@@ -163,13 +147,14 @@ class Trainer(pl.Trainer):
                         "Exporting the model to the onnx could fail.")
 
         # export the model to ONNX generic format
+        dynamic_axes={elem["name"]: {elem["tensor-spec"]["shape"].index(-1): 'batch_size'} for elem in signature.inputs.to_dict()}
         onnx_model_path = "/tmp/test_onnx.onnx"
         self.model.to_onnx(
             file_path=onnx_model_path,
             input_sample=in_data_onnx,
             input_names=list(in_data_np.keys()),
             output_names=list(out_data_np.keys()),
-            dynamic_axes={k: {0: 'batch_size'} if k != "edge_index" else {1: 'batch_size'} for k in in_data_np.keys()}
+            dynamic_axes=dynamic_axes
         )
 
         # log the ONNX model using MLFlow
@@ -179,6 +164,9 @@ class Trainer(pl.Trainer):
             input_example=in_data_np,
             # registered_model_name=self.model_name,  # automatic save in the model registry
             signature=signature,
+            onnx_session_options={'graph_optimization_level': 99,
+                                  'intra_op_num_threads': 1,
+                                  'inter_op_num_threads': 1},
             pip_requirements='inference_requirements.txt'
         )
 
@@ -187,7 +175,7 @@ def run(cli: LightningCLI) -> None:
     """
     Run the training script.
 
-    Launch the script with "python3.8 trainer.py --config configs/cnn.yaml".
+    Launch the script with "python3.8 trainer.py --config configs/gn.yaml".
 
     Args:
         cli (LightningCLI): the CLI instantiated by the training script.

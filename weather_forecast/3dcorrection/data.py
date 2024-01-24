@@ -17,13 +17,11 @@ from typing import Dict, List, Optional
 import dask
 import sys
 import torch
-import climetlab as cml
 import numpy as np
 import pytorch_lightning as pl
 import torch_geometric as pyg
 import xarray as xr
 
-from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
 from torch.nn.functional import pad
 from dataproc import ThreeDCorrectionDataProc
 
@@ -39,8 +37,6 @@ class ThreeDCorrectionDataset(pyg.data.Dataset):
     """
 
     dask.config.set(scheduler="synchronous")
-
-    profile_per_file = 16960 // 8
 
     def __init__(
         self,
@@ -74,6 +70,8 @@ class ThreeDCorrectionDataset(pyg.data.Dataset):
         self.ds_stds["inter_inputs"] = pad(
             self.ds_stds["inter_inputs"], (0, 0, 1, 1, 0, 0), "constant", 1
         )
+
+        self.profile_per_file = self.len() // 8
 
         super().__init__(root)
 
@@ -186,7 +184,7 @@ class ThreeDCorrectionDataset(pyg.data.Dataset):
                 data_list = []
 
     def get(self, idx) -> pyg.data.Data:
-        file_idx = idx // (16960 // 8)
+        file_idx = idx // self.profile_per_file
         # print(f"Reading index {idx} from file {file_idx}")
         batch = torch.load(osp.join(self.processed_dir, f"data-{file_idx}.pt"))
         return batch.get_example(idx % self.profile_per_file)
@@ -198,7 +196,6 @@ class ThreeDCorrectionDataset(pyg.data.Dataset):
         return self.ds_feature.dims["column"]
 
 
-@DATAMODULE_REGISTRY
 class LitThreeDCorrectionDataModule(pl.LightningDataModule):
     """
     Create a datamodule structure for use un a PyTorch Lightning Trainer. Basically a wrapper

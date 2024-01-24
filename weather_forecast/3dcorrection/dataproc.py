@@ -22,16 +22,6 @@ from typing import Tuple
 
 import keys
 
-import tensorflow
-cpu = tensorflow.config.list_physical_devices('CPU')
-gpus = tensorflow.config.list_physical_devices('GPU')
-try:
-    tensorflow.config.set_visible_devices([], 'GPU')
-    tensorflow.config.set_visible_devices(cpu, 'CPU')
-    # tensorflow.config.experimental.set_memory_growth(gpus[0], True)
-except:
-    print("Something wrong happened...")
-
 
 class ThreeDCorrectionDataProc:
     """

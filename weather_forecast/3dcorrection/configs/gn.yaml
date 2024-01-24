@@ -35,7 +35,7 @@ data:
 trainer:
     max_epochs: 100
     accelerator: "gpu"
-    strategy: ddp
+    strategy: auto
     devices:
         - 1
     mlflow_setup:

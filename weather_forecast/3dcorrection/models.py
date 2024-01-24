@@ -13,7 +13,6 @@
 
 import os
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.cli import MODEL_REGISTRY
 import torch
 import torch.nn as nn
 import torch_geometric as pyg
@@ -54,7 +53,21 @@ class ThreeDCorrectionModule(pl.LightningModule):
             (Optional[torch.Tensor]): Resulting model forward for edge features.
             (Optional[torch.Tensor]): Resulting model forward for global graph features.
         """
-        return self.net(x, edge_index, edge_attr, u, batch)
+        edge_index = edge_index.T # Transpose to restore initial dimensions (cf _common_step())
+        y_node_hat, y_edge_hat, _ = self.net(x, edge_index, edge_attr, u, batch)
+
+        dict_out = {
+            'delta_sw_diff': y_node_hat[..., 0],
+            'delta_sw_add': y_node_hat[..., 1],
+            'delta_lw_diff': y_node_hat[..., 2],
+            'delta_lw_add': y_node_hat[..., 3],
+            'hr_sw': y_edge_hat[::2, 0],
+            'hr_lw': y_edge_hat[::2, 1]
+        }
+        batch_size = batch.max()+1
+        dict_out = {k: v.reshape(batch_size, -1) for k, v in dict_out.items()}
+
+        return dict_out
 
     def _common_step(
         self, batch: torch.Tensor, batch_idx: int, stage: str
@@ -79,14 +92,19 @@ class ThreeDCorrectionModule(pl.LightningModule):
             batch.batch,
         )
 
-        y_node_hat, y_edge_hat, _ = self(x, edge_index, edge_attr, u, batch_)
+        batch_size = batch_.max()+1
+        edge_index = edge_index.T # Transpose to have the dynamic axis in dim 0
+        out = self(x, edge_index, edge_attr, u, batch_)
 
+        # reshape outputs to isolated bactch size
+        y = y.reshape(batch_size, -1, y.shape[-1])
+        z = z.reshape(batch_size, -1, z.shape[-1])
         # Flux loss
-        sw_loss = tmf.mean_squared_error(y_node_hat[..., :2], y[..., :2])  # sw_diff, sw_add
-        lw_loss = tmf.mean_squared_error(y_node_hat[..., 2:], y[..., 2:])  # lw_diff, lw_add
+        sw_loss = tmf.mean_squared_error(torch.stack([out["delta_sw_diff"], out["delta_sw_add"]], dim=-1), y[..., :2])  # delta_sw_diff, delta_sw_add
+        lw_loss = tmf.mean_squared_error(torch.stack([out["delta_lw_diff"], out["delta_lw_add"]], dim=-1), y[..., 2:])  # delta_lw_diff, delta_lw_add
         # Heating rate loss
-        hr_sw_loss = tmf.mean_squared_error(y_edge_hat[::2, 0], z[..., 0])  # hr_sw
-        hr_lw_loss = tmf.mean_squared_error(y_edge_hat[::2, 1], z[..., 1])  # hr_lw
+        hr_sw_loss = tmf.mean_squared_error(out["hr_sw"], z[..., 0])  # hr_sw
+        hr_lw_loss = tmf.mean_squared_error(out["hr_lw"], z[..., 1])  # hr_lw
         # global loss
         loss = self.sw_weight * sw_loss + \
             self.lw_weight * lw_loss + \
@@ -94,10 +112,10 @@ class ThreeDCorrectionModule(pl.LightningModule):
             self.hr_lw_weight * hr_lw_loss
 
         # Metrics
-        sw_mae = self.mae(y_node_hat[..., :2], y[..., :2])  # sw_diff, sw_add
-        lw_mae = self.mae(y_node_hat[..., 2:], y[..., 2:])  # lw_diff, lw_add
-        hr_sw_mae = self.mae(y_edge_hat[::2, 0], z[..., 0])
-        hr_lw_mae = self.mae(y_edge_hat[::2, 1], z[..., 1])
+        sw_mae = self.mae(torch.stack([out["delta_sw_diff"], out["delta_sw_add"]], dim=-1), y[..., :2])  # sw_diff, sw_add
+        lw_mae = self.mae(torch.stack([out["delta_lw_diff"], out["delta_lw_add"]], dim=-1), y[..., 2:])  # lw_diff, lw_add
+        hr_sw_mae = self.mae(out["hr_sw"], z[..., 0])
+        hr_lw_mae = self.mae(out["hr_lw"], z[..., 1])
 
         values = {
             f"{stage}_loss": loss,
@@ -117,10 +135,10 @@ class ThreeDCorrectionModule(pl.LightningModule):
             on_epoch=True,
             sync_dist=True,
             rank_zero_only=True,
-            batch_size=batch.batch.max()+1
+            batch_size=batch_size
         )
 
-        return y_node_hat, y_edge_hat, loss
+        return out, loss
 
     def training_step(self, batch, batch_idx):
         """Compute one training step.
@@ -131,7 +149,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
         Returns:
             (torch.Tensor): Loss.
         """
-        _, _, loss = self._common_step(batch, batch_idx, "train")
+        _, loss = self._common_step(batch, batch_idx, "train")
         return loss
 
     def on_train_epoch_end(self):
@@ -145,7 +163,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
                 and connectivity matrix.
             batch_idx (int): Batch index.
         """
-        _, _, _ = self._common_step(batch, batch_idx, "val")
+        _, _ = self._common_step(batch, batch_idx, "val")
 
     def on_validation_epoch_end(self):
         self.mae.reset()
@@ -157,10 +175,9 @@ class ThreeDCorrectionModule(pl.LightningModule):
                 and y output features.
             batch_idx (int): Batch index.
         """
-        _, _, _ = self._common_step(batch, batch_idx, "test")
+        _, _ = self._common_step(batch, batch_idx, "test")
 
 
-@MODEL_REGISTRY
 class LitMeta(ThreeDCorrectionModule):
     """
     PyG implementation of the Graph Network described in 
@@ -210,7 +227,8 @@ class LitMeta(ThreeDCorrectionModule):
             )
 
         def forward(self, x, edge_index, edge_attr, u, batch):
-            row, col = edge_index
+            row = edge_index[0]
+            col = edge_index[1]
             out = torch.cat([x[row], edge_attr], dim=1)
             # print(f"[NodeModel] - Output shape after concatenation : {out.shape}")
             out = self.node_mlp_1(out)
