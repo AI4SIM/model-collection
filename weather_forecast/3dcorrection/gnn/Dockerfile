@@ -18,7 +18,7 @@ RUN git clone https://github.com/AI4SIM/model-collection.git
 # Final image
 ##############################################################
 
-FROM nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
+FROM nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04
 
 # install required packages
 RUN apt-get update \

@@ -33,11 +33,11 @@ data:
         prefetch_factor: 4
 
 trainer:
-    max_epochs: 100
+    max_epochs: 1
     accelerator: "gpu"
     strategy: auto
     devices:
-        - 1
+        - 2
     mlflow_setup:
         tracking:
             uri: http://172.16.118.155:5000
