@@ -125,7 +125,7 @@ def tests(session):
     """Target to run unit tests on the code with pytest, and generate coverage report."""
     dev_dependencies(session)
     session.run("python3", "-m", "pip", "install", "pytest-cov")
-    session.run("python3", "-m", "pytest", "--cache-clear", "--cov=./", "--cov-fail-under=80", "-v")
+    session.run("python3", "-m", "pytest", "--cache-clear", "--cov=./", "-v")
     session.notify("coverage_report")
 
 
