@@ -40,4 +40,3 @@ trainer:
           min_delta: 0.0
     devices:
         - 3
-    with_mlflow: False
