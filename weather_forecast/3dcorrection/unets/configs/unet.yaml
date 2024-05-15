@@ -27,7 +27,7 @@ data:
         data_path: data/processed/
         batch_size: 256
         num_workers: 0
-        splitting_ratio: [0.8, 0.1, 0.1]
+        splitting_ratios: [0.8, 0.1, 0.1]
 
 trainer:
     max_epochs: 50
