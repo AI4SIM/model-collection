@@ -162,6 +162,13 @@ def docs(session):
 
 
 @nox.session
+def generate_synthetic_data(session):
+    """Target to generate synthetic data related to the use case. This target will call the 
+    python script called: generate_synthetic_data.py located under tests folder."""
+    
+    
+
+@nox.session
 def download_data(session):
     """Target to download the data required to train the use-case models (not yet implemented)."""
     # Step 1: chose between wget or a python tool to dowload data
