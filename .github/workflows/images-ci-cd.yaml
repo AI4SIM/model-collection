@@ -70,6 +70,7 @@ jobs:
           file: "./${{ matrix.docker-path }}/Dockerfile"
           build-args: |
             PYTHON_VERS=${{ env.PYTHON_VERSION }}
+            USE_CASE_PATH=${{ matrix.docker-path }}
           push: true
           tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._1 }}"
           labels: ${{ steps.meta.outputs.labels }}
