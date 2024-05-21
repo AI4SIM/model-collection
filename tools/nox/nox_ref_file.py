@@ -167,7 +167,7 @@ def download_data(session):
     # Step 1: chose between wget or a python tool to dowload data
         # if the data is access in a special way (climatlab for example) use the
         # download function coded in pylightning data module (prepare_data)
-    session.run("python3", "-m", "pip", "install", "climetlab==0.20.1", "climetlab-maelstrom-radiation==0.7.5")    
+    # session.run("python3", "-m", "pip", "install", "climetlab==0.20.1", "climetlab-maelstrom-radiation==0.7.5")    
     # Step 2: check that data exists 
     # Step 3: check that the data is not corrupted    
     raise NotImplementedError("This target is not yet implemented.")
