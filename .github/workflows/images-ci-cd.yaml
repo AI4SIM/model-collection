@@ -60,9 +60,10 @@ jobs:
           limit: -1
 
       - name: Build and push Docker images
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+        uses: docker/build-push-action@v5
         with:
-          context: ${{ matrix.docker-path }}
+          context: .
+          file: "./${{ matrix.docker-path }}/Dockerfile"
           push: true
           tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._1 }}"
           labels: ${{ steps.meta.outputs.labels }}
