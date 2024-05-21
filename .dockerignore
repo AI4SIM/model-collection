@@ -1,0 +1,32 @@
+# Byte-compiled / optimized / DLL files
+**/__pycache__
+**/*.pyc
+
+# Build tool
+**/.nox/
+**/.ci-reports/
+
+# Unit test / coverage reports
+**/.pytest_cache
+**/.coverage
+**/.coverage.*
+**/coverage.xml
+
+# Jupyter Notebook
+**/.ipynb_checkpoints
+
+# Environments
+**/.env
+**/.venv
+**/env/
+**/venv/
+**/ENV/
+**/env.bak/
+**/venv.bak/
+**/.vscode
+
+# Data
+**/data/
+
+# Experiments
+**/experiments/
