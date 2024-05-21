@@ -59,11 +59,17 @@ jobs:
           separator: ":"
           limit: -1
 
+      - name: Retrieve the supported python version
+        run: |
+          echo "PYTHON_VERSION=$(cat ${{ matrix.docker-path }}/PYTHON_VERSION)" >> $GITHUB_ENV
+
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
         with:
           context: .
           file: "./${{ matrix.docker-path }}/Dockerfile"
+          build-args: |
+            PYTHON_VERS=${{ env.PYTHON_VERSION }}
           push: true
           tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._1 }}"
           labels: ${{ steps.meta.outputs.labels }}

@@ -12,18 +12,19 @@ ARG DOCKER_REGISTRY=docker.io
 FROM ${DOCKER_REGISTRY}/nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
 
 ARG USE_CASE_PATH=combustion/gnns
+ARG PYTHON_VERS
 
 # install required packages
 RUN apt-get update \
  && apt-get install -y \
-  python3.8-dev \
+  python${PYTHON_VERS}-dev \
   python3-pip \
   build-essential \
   libssl-dev \
   libffi-dev \
   vim
 
-RUN ln -s /usr/bin/python3.8 /usr/bin/python
+RUN ln -s /usr/bin/python${PYTHON_VERS} /usr/bin/python
 RUN pip install nox
 
 # create user ai4sim
