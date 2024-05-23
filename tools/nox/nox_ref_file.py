@@ -164,11 +164,9 @@ def docs(session):
 @nox.session
 def generate_synthetic_data(session):
     """Target to generate synthetic data related to the use case."""
-    session.run("python3", "-m", "pip", "install",
-                "numpy==1.21.2",
-                "h5py==3.4.0",
-                "pyyaml==6.0",
-                "randomname==0.1.5")
+    session.run("python3", "-m", "pip", "install", "--upgrade", "pip")    
+    req_file = "tests/requirements_data.txt"
+    session.run("python3", "-m", "pip", "install","-r", req_file)
     session.run("python3", "tests/generate_synthetic_data.py")
     
 
