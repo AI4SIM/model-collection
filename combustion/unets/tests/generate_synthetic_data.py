@@ -10,68 +10,34 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import TestCase, main
-from os.path import join, exists
-from os import mkdir, listdir
+from os.path import join
+from os import makedirs, listdir
 from h5py import File
-#from data import CnfCombustionDataset, CnfCombustionDataModule
 from yaml import dump
 from tempfile import mkdtemp
 from shutil import rmtree
 from numpy import zeros
-#from torch.utils.data import DataLoader
-#from warnings import catch_warnings, simplefilter
 
 
-class TestData(TestCase):
+def create_data(tempdir):
+    """Create data folder with fake raw data"""
+    filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
+    makedirs(join(tempdir, "data","raw"))
+    folder = join(tempdir, "data", "raw")
 
-    def setUp(self) -> None:
-        """Generate fake data from the real data footprint"""
-        self.filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
-        self.data_module_params = {
-            'batch_size': 1,
-            'num_workers': 0,
-            'y_normalizer': 342.553,
-            'splitting_lengths': [1, 1, 1],
-            'subblock_shape': (32, 16, 16)}
+    for file_h5 in filenames:
+        with File(join(tempdir, "data", "raw", file_h5), 'w') as f:
+            f['filt_8'] = zeros((10, 10, 10))
+            f['filt_grad_8'] = zeros((10, 10, 10))
+            f['grad_filt_8'] = zeros((10, 10, 10))
 
-        # Creates a temporary environment.
-        self.dir = mkdtemp()
-        self.create_env(self.dir)
-
-    def tearDown(self) -> None:
-      """Clean the folder tree when the test is over"""
-        rmtree(self.dir)
-
-    def create_env(self, tempdir):
-      """Create data folder with the raw data"""
-        mkdir(join(tempdir, "data"))
-        
-        # Check data folder creation
-        folder = join(tempdir, "data")
-        self.assertTrue(folder, f"{fodler} has been correctly created")
-        
-        mkdir(join(tempdir, "data", "raw"))
-        
-        # Check data raw folder creation
-        folder = join(tempdir, "data", "raw")
-        self.assertTrue(folder, f"{fodler} has been correctly created")
-
-        for file_h5 in self.filenames:
-            with File(join(tempdir, "data", "raw", file_h5), 'w') as f:
-                f['filt_8'] = zeros((10, 10, 10))
-                f['filt_grad_8'] = zeros((10, 10, 10))
-                f['grad_filt_8'] = zeros((10, 10, 10))
-
-        temp_file_path = join(tempdir, 'data', 'filenames.yaml')
-        with open(temp_file_path, 'w') as tmpfile:
-            dump(self.filenames, tmpfile)
-            
-        # Check filenames.yaml creation     
-        file = join(tempdir, 'data', 'filenames.yaml')
-        self.assertTrue(file, f"{file} has been correctly created")    
-
-        
+    temp_file_path = join(tempdir, 'data', 'filenames.yaml')
+    with open(temp_file_path, 'w') as tmpfile:
+        dump(filenames, tmpfile)
+    
+    file = join(tempdir, 'data', 'filenames.yaml')
 
 if __name__ == '__main__':
-    main()
+   tempdir = mkdtemp(prefix="test") 
+   create_data(tempdir)
+   #rmtree(tempdir)
