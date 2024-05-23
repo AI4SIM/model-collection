@@ -10,19 +10,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from os.path import join
-from os import makedirs, listdir
+from os.path import join, exists
+from os import makedirs, listdir, environ
 from h5py import File
-from yaml import dump
+from yaml import dump, safe_load
 from tempfile import mkdtemp
 from shutil import rmtree
 from numpy import zeros
 
 
+def read_config(file: str) -> str:
+    """Read the data fake config file"""
+    with open(file, 'r') as file:
+        data = safe_load(file)
+         
+    return data['data']['test_path']
+
 def create_data(tempdir):
     """Create data folder with fake raw data"""
     filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
-    makedirs(join(tempdir, "data","raw"))
+    
+    if (not exists(tempdir)):
+        makedirs(join(tempdir, "data","raw"))
     folder = join(tempdir, "data", "raw")
 
     for file_h5 in filenames:
@@ -38,6 +47,8 @@ def create_data(tempdir):
     file = join(tempdir, 'data', 'filenames.yaml')
 
 if __name__ == '__main__':
-   tempdir = mkdtemp(prefix="test") 
-   create_data(tempdir)
-   #rmtree(tempdir)
+    file = 'tests/configs/data.yaml'
+    tempdir = read_config(file)
+    #tempdir = mkdtemp(prefix="test") 
+    create_data(tempdir)
+    #rmtree(tempdir)
