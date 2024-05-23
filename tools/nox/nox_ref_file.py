@@ -118,6 +118,8 @@ def dev_dependencies(session):
                 "-r", req_file,
                 "-f", additional_url,
                 "--extra-index-url", extra_url)
+    if "purge" in session.posargs:
+        session.run("python3", "-m", "pip", "cache", "purge")
 
 
 @nox.session

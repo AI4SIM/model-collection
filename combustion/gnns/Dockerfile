@@ -22,22 +22,20 @@ RUN apt-get update \
   build-essential \
   libssl-dev \
   libffi-dev \
-  vim
-
-RUN ln -s /usr/bin/python${PYTHON_VERS} /usr/bin/python
-RUN pip install nox
+  vim \
+ && apt-get clean
 
 # create user ai4sim
 ARG uid=1000
 ARG gid=1000
+ARG AI4SIM_HOME=/home/ai4sim
 RUN groupadd -g ${gid} ai4sim \
-  && useradd -u ${uid} -g ${gid} -m -s /bin/bash ai4sim
+  && useradd -u ${uid} -g ${gid} -m -s /bin/bash ai4sim \
+  && chown -R ai4sim:ai4sim ${AI4SIM_HOME}
 
 # Retrieve use-case related files
-ARG AI4SIM_HOME=/home/ai4sim
-ADD ${USE_CASE_PATH} ${AI4SIM_HOME}/${USE_CASE_PATH}
-ADD tools ${AI4SIM_HOME}/tools
-RUN chown -R ai4sim:ai4sim ${AI4SIM_HOME}
+ADD --chown=ai4sim:ai4sim ${USE_CASE_PATH} ${AI4SIM_HOME}/${USE_CASE_PATH}
+ADD --chown=ai4sim:ai4sim tools ${AI4SIM_HOME}/tools
 
 # change user
 USER ai4sim
@@ -45,6 +43,7 @@ ENV PATH=${PATH}:/home/ai4sim/.local/bin
 
 # Install all the python dependencies in the environment
 WORKDIR ${AI4SIM_HOME}/${USE_CASE_PATH}
-RUN python3 -m nox -s dev_dependencies --no-venv
+RUN pip install nox \
+ && python3 -m nox -s dev_dependencies --no-venv -- purge
 
 CMD ["bash"]
