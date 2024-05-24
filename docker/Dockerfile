@@ -11,7 +11,7 @@ ARG DOCKER_REGISTRY=docker.io
 
 FROM ${DOCKER_REGISTRY}/nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
 
-ARG USE_CASE_PATH=combustion/unets
+ARG USE_CASE_PATH
 ARG PYTHON_VERS
 
 # install required packages
@@ -44,6 +44,6 @@ ENV PATH=${PATH}:/home/ai4sim/.local/bin
 # Install all the python dependencies in the environment
 WORKDIR ${AI4SIM_HOME}/${USE_CASE_PATH}
 RUN pip install nox \
- && python3 -m nox -s dev_dependencies --no-venv -- purge
+ && python3 -m nox -s dev_dependencies --no-venv -- force_GPU_support purge
 
 CMD ["bash"]
