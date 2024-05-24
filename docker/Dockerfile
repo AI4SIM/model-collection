@@ -4,12 +4,14 @@
 
 # Possibility to point to your own docker registry 
 ARG DOCKER_REGISTRY=docker.io
+ARG UBUNTU_IMAGE_NAME
+ARG UBUNTU_IMAGE_TAG
 
 ##############################################################
 # Final image
 ##############################################################
 
-FROM ${DOCKER_REGISTRY}/nvidia/cuda:11.3.1-cudnn8-runtime-ubuntu20.04
+FROM ${DOCKER_REGISTRY}/${UBUNTU_IMAGE_NAME}:${UBUNTU_IMAGE_TAG}
 
 ARG USE_CASE_PATH
 ARG PYTHON_VERS
