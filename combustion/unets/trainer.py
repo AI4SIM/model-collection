@@ -62,7 +62,8 @@ class Trainer(Trainer):
 
 
 def main():
-    cli = LightningCLI(trainer_class=Trainer)
+    cli = LightningCLI(trainer_class=Trainer, run=False)
+    cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 
 
