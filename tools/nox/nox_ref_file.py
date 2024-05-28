@@ -185,6 +185,6 @@ def download_data(session):
 @nox.session
 def train(session):
     """Target to launch a basic training of the use-case (not yet implemented)."""
-    # Step 1: before training call download_data(session)
-    # Step 2: call a run.sh or implement in session section the training (just 1 epoch)  
-    raise NotImplementedError("This target is not yet implemented.")
+    generate_synthetic_data(session)
+    dev_dependencies(session)  
+    session.run('bash','run.sh','external=True')
