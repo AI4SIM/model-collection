@@ -18,11 +18,11 @@ jobs:
 
     strategy:
       matrix:
-        docker-path:
-          - combustion/gnns/
-          - combustion/unets/
-          - weather_forecast/gwd/
-          - weather_forecast/3dcorrection/unets/
+        use-case:
+          - combustion/gnns
+          - combustion/unets
+          - weather_forecast/gwd
+          - weather_forecast/3dcorrection/unets
       fail-fast: false
 
     steps:
@@ -47,7 +47,7 @@ jobs:
         uses: xom9ikk/split@v1
         id: split_path
         with:
-          string: ${{ matrix.docker-path }}
+          string: ${{ matrix.use-case }}
           separator: /
           limit: -1
 
@@ -59,10 +59,22 @@ jobs:
           separator: ":"
           limit: -1
 
-      - name: Build and push Docker images
-        uses: docker/build-push-action@ad44023a93711e3deb337508980b4b5e9bcdc5dc
+      - name: Read use-case env.yaml file
+        uses: pietrobolcato/action-read-yaml@1.1.0
+        id: uc_env
         with:
-          context: ${{ matrix.docker-path }}
+          config: ${{ matrix.use-case }}/env.yaml
+
+      - name: Build and push Docker images
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: "./docker/Dockerfile"
+          build-args: |
+            UBUNTU_IMAGE_NAME=${{ steps.uc_env.outputs['ubuntu_base_image.name'] }}
+            UBUNTU_IMAGE_TAG=${{ steps.uc_env.outputs['ubuntu_base_image.tag'] }}
+            PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
+            USE_CASE_PATH=${{ matrix.use-case }}
           push: true
           tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._1 }}"
           labels: ${{ steps.meta.outputs.labels }}

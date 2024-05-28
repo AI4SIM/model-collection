@@ -31,20 +31,17 @@ TODO: improve the preprocessing:
 class ThreeDCorrectionModule(pl.LightningModule):
     """Create a Lit module for 3dcorrection."""
 
-    def __init__(self, data_path: str, normalize=False):
+    def __init__(self, data_path: str):
         """
         Args:
             data_path (str): Path to folder containing the stats.pt.
             normalize (bool): Whether or not to normalize during training.
         """
         super().__init__()
-        self.normalize = normalize
 
         stats = torch.load(osp.join(data_path, "stats.pt"))
-        self.x_mean = stats["x_mean"].to(self.device)
-        self.y_mean = stats["y_mean"].to(self.device)
-        self.x_std = stats["x_std"].to(self.device)
-        self.y_std = stats["y_std"].to(self.device)
+        self.register_buffer("x_mean", stats["x_mean"], persistent=True)
+        self.register_buffer("x_std", stats["x_std"], persistent=True)
 
     def forward(self, x: Union[torch.Tensor, np.ndarray]):
         """
@@ -53,8 +50,13 @@ class ThreeDCorrectionModule(pl.LightningModule):
         """
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x)
-        x, _ = self.preprocess(x)
-        return self.model(x)
+        x = self.normalize(x)
+
+        x = torch.moveaxis(x, 1, -1)
+        y_hat = self.model(x)
+        y_hat = torch.moveaxis(y_hat, 1, -1)
+
+        return y_hat
 
     def weight_histograms_adder(self):
         for name, params in self.named_parameters():
@@ -67,34 +69,20 @@ class ThreeDCorrectionModule(pl.LightningModule):
                 if param.requires_grad:
                     self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
 
-    def preprocess(self,
-                   x: torch.Tensor,
-                   y: torch.Tensor = None,
-                   normalize: bool = False) -> Tuple[torch.Tensor]:
+    def normalize(self,
+                   x: torch.Tensor) -> Tuple[torch.Tensor]:
         """
-        Apply the preprocessing steps inside the network:
-            * Reshaping the data;
-            * Normalizing (if normalize is True).
+        Normalize nside the network.
         If y is None, then only process x (e.g. forward mode).
         """
+        eps = torch.tensor(1.e-8)
+        x = (x - self.x_mean) / (self.x_std + eps)
 
-        # Reshaping: (?, spatial, channels) -> (?, channels, spatial)
-        x = torch.moveaxis(x, 1, -1)
-        if y is not None:
-            y = torch.moveaxis(y, 1, -1)
+        return x
 
-        if normalize:
-            eps = torch.tensor(1.e-8)
-            x = (x - self.x_mean) / (self.x_std + eps)
-            if y is not None:
-                y = (y - self.y_mean) / (self.y_std + eps)
-
-        return x, y
-
-    def _common_step(self, batch, stage, normalize=False):
+    def _common_step(self, batch, stage):
         """Compute the loss, additional metrics, and log them."""
         x, y = batch
-        self.preprocess(x, y)
 
         y_hat = self(x)
         loss = mean_squared_error(y_hat, y)
@@ -103,7 +91,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
         return y_hat, loss
 
     def training_step(self, batch, batch_idx):
-        _, loss, _ = self._common_step(batch, "train", normalize=self.normalize)
+        _, loss = self._common_step(batch, "train")
         return loss
 
     def on_after_backward(self):
@@ -125,13 +113,12 @@ class LitUnet1D(ThreeDCorrectionModule):
 
     def __init__(self,
                  data_path: str,
-                 normalize: bool,
                  in_channels: int,
                  out_channels: int,
                  n_levels: int,
                  n_features_root: int,
                  lr: float):
-        super(LitUnet1D, self).__init__(data_path, normalize)
+        super(LitUnet1D, self).__init__(data_path)
         self.save_hyperparameters()
 
         self.lr = lr

@@ -79,8 +79,10 @@ def _is_cuda_available() -> bool:
         out = subprocess.run("nvidia-smi", stdout=subprocess.DEVNULL)
         if out.returncode == 0:
             return True
+        warnings.warn("nvidia-smi command failed. Cuda not available.")
         return False
-    except FileNotFoundError:
+    except FileNotFoundError as exc:
+        warnings.warn(f"Cuda not available : {exc}.")
         return False
 
 
@@ -95,16 +97,19 @@ def dev_dependencies(session):
     if torch_vers:
         # If cuda is not available force the CPU mode of torch
         if not _is_cuda_available():
-            warnings.warn("Cuda not available, torch version forced to CPU mode.")
-            with open(req_file, "r+") as file:
-                req = file.read()
-                req = req.replace(f"torch=={torch_vers}+{cuda_vers}", f"torch=={torch_vers}")
+            if "force_GPU_support" in session.posargs:
+                warnings.warn("Torch version forced to GPU mode.")
+            else:
+                warnings.warn("Torch version forced to CPU mode.")
+                with open(req_file, "r+") as file:
+                    req = file.read()
+                    req = req.replace(f"torch=={torch_vers}+{cuda_vers}", f"torch=={torch_vers}")
 
-                # Create a temporary requirement file updated with cpu forced torch version
-                req_file = tempfile.NamedTemporaryFile().name
-                with open(req_file, "w+") as new_req:
-                    new_req.writelines(req)
-            cuda_vers = 'cpu'
+                    # Create a temporary requirement file updated with cpu forced torch version
+                    req_file = tempfile.NamedTemporaryFile().name
+                    with open(req_file, "w+") as new_req:
+                        new_req.writelines(req)
+                cuda_vers = 'cpu'
 
         # Set the url of precompiled torch version depending on CUDA version
         if cuda_vers != "cpu":
@@ -118,6 +123,8 @@ def dev_dependencies(session):
                 "-r", req_file,
                 "-f", additional_url,
                 "--extra-index-url", extra_url)
+    if "purge" in session.posargs:
+        session.run("python3", "-m", "pip", "cache", "purge")
 
 
 @nox.session

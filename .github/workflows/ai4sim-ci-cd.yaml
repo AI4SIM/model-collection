@@ -9,24 +9,26 @@ jobs:
     strategy:
       matrix:
         use-case:
-          - combustion/gnns/
-          - combustion/unets/
-          - weather_forecast/gwd/
-          - weather_forecast/3dcorrection/unets/
+          - combustion/gnns
+          - combustion/unets
+          - weather_forecast/gwd
+          - weather_forecast/3dcorrection/unets
       fail-fast: false
 
     steps:
     - name: Checkout sources
       uses: actions/checkout@v2
 
-    - name: Retrieve the supported python version
-      run: |
-        echo "PYTHON_VERSION=$(cat ${{ matrix.use-case }}/PYTHON_VERSION)" >> $GITHUB_ENV
+    - name: Read use-case env.yaml file
+      uses: pietrobolcato/action-read-yaml@1.1.0
+      id: uc_env
+      with:
+        config: ${{ matrix.use-case }}/env.yaml
 
-    - name: Set up Python ${{ env.PYTHON_VERSION }}
+    - name: Set up Python ${{ steps.uc_env.outputs['python_version'] }}
       uses: actions/setup-python@v2
       with:
-        python-version: ${{ env.PYTHON_VERSION }}
+        python-version: ${{ steps.uc_env.outputs['python_version'] }}
 
     - name: Install nox build tool
       run: pip3 install nox
@@ -42,7 +44,7 @@ jobs:
     - name: Coverage Commentator
       uses: 5monkeys/cobertura-action@master
       with:
-        path: ${{ matrix.use-case }}.ci-reports/pycoverage.xml
+        path: ${{ matrix.use-case }}/.ci-reports/pycoverage.xml
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         minimum_coverage: 0
         fail_below_threshold: false

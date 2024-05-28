@@ -11,8 +11,7 @@
 # limitations under the License.
 
 from unittest import TestCase, main
-from numpy import zeros
-from torch import Tensor
+from torch import Tensor, zeros, rand
 from tempfile import mkdtemp
 from shutil import rmtree
 from models import LitUnet1D
@@ -35,7 +34,6 @@ class TestModels(TestCase):
 
         self.initParam = {
             'data_path': self.root,
-            'normalize': True,
             'in_channels': self.in_ch,
             'out_channels': self.out_ch,
             'n_levels': 3,
@@ -48,31 +46,27 @@ class TestModels(TestCase):
     def create_env(self, root) -> None:
         """Build an environment with stats.pt."""
         torch.save({
-            'x_mean': torch.tensor(np.random.rand(self.in_ch, self.height)),
-            'x_std': torch.tensor(np.random.rand(self.in_ch, self.height)),
+            'x_mean': rand(self.height, self.in_ch),
+            'x_std': rand(self.height, self.in_ch),
             'x_nb': torch.tensor(10),
-            'y_mean': torch.tensor(np.random.rand(self.out_ch, self.height)),
-            'y_std': torch.tensor(np.random.rand(self.out_ch, self.height)),
+            'y_mean': rand(self.height, self.out_ch),
+            'y_std': rand(self.height, self.out_ch),
             'y_nb': torch.tensor(10)
         }, osp.join(root, "stats.pt"))
 
     def test_forward_common_step(self):
         # Fake data, of dim (n_batchs, height, n_channels).
-        x = torch.from_numpy(zeros((1, self.height, self.in_ch)))
-        y = torch.from_numpy(zeros((1, self.height, self.out_ch)))
+        x = zeros((1, self.height, self.in_ch))
+        y = zeros((1, self.height, self.out_ch))
 
         # Forward.
         test_unet = LitUnet1D(**self.initParam)
-        y = test_unet.forward(x)
-        self.assertTrue(isinstance(y, Tensor))
-        self.assertEqual(y.shape, (1, self.out_ch, self.height))
+        y_hat = test_unet.forward(x)
+        self.assertTrue(isinstance(y_hat, Tensor))
+        self.assertEqual(y_hat.shape, (1, self.height, self.out_ch))
 
         # Common step.
         loss = test_unet._common_step(batch=(x, y), stage="train")
-        self.assertEqual(len(loss), 2)
-
-        # Common step with normalization.
-        loss = test_unet._common_step(batch=(x, y), stage="train", normalize=True)
         self.assertEqual(len(loss), 2)
 
     def test_configure_optimizers(self):
