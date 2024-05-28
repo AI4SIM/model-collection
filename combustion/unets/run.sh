@@ -12,3 +12,4 @@
 # limitations under the License.
 
 python3 trainer.py --config tests/configs/data.yaml
+rm -r data/
