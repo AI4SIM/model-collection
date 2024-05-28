@@ -11,8 +11,7 @@
 # limitations under the License.
 
 from unittest import TestCase, main
-from numpy.random import rand
-from torch import from_numpy
+from torch import from_numpy, rand
 from unet import UNet1D, Downsampler, Upsampler
 
 
@@ -43,20 +42,20 @@ class TestUnet1D(TestCase):
 
     def test_inference_1d(self):
         net = UNet1D(inp_ch=1, out_ch=1, n_levels=3, n_features_root=4)
-        inp = from_numpy(rand(1, 1, 16))
+        inp = rand(1, 1, 16)
         shp = tuple(net(inp).shape)
         self.assertEqual(shp, (1, 1, 16))
 
     def test_downsampler(self):
-        sampler = Downsampler(inp_ch=4, out_ch=8).double()
-        inp = from_numpy(rand(1, 4, 16))
+        sampler = Downsampler(inp_ch=4, out_ch=8)
+        inp = rand(1, 4, 16)
         shp = tuple(sampler(inp).shape)
         self.assertEqual(shp, (1, 8, 8))
 
     def test_upsampler(self):
-        sampler = Upsampler(inp_ch=8, out_ch=4).double()
-        inp = from_numpy(rand(1, 8, 16))
-        res = from_numpy(rand(1, 4, 32))
+        sampler = Upsampler(inp_ch=8, out_ch=4)
+        inp = rand(1, 8, 16)
+        res = rand(1, 4, 32)
         shp = tuple(sampler(inp, res).shape)
         self.assertEqual(shp, (1, 4, 32))  # last DoubleConv enforces the out_ch.
 

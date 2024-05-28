@@ -106,7 +106,7 @@ class ThreeDCorrectionDataproc:
 
         features = [
             'sca_inputs', 'col_inputs', 'hl_inputs', 'inter_inputs',
-            'flux_dn_sw', 'flux_up_sw', 'flux_dn_lw', 'flux_up_lw']
+            'flux_dn_sw', 'flux_up_sw', 'flux_dn_lw', 'flux_up_lw', 'hr_sw', 'hr_lw']
         dataset_len = xr_array.dims['column']
         n_shards = 53 * 2 ** 6
         self.shard_size = dataset_len // n_shards
@@ -130,6 +130,8 @@ class ThreeDCorrectionDataproc:
             data['flux_up_sw'][..., np.newaxis],
             data['flux_dn_lw'][..., np.newaxis],
             data['flux_up_lw'][..., np.newaxis],
+            pad_tensor(data['hr_sw'][..., np.newaxis], (1, 0)),
+            pad_tensor(data['hr_lw'][..., np.newaxis], (1, 0)),
         ], axis=-1)
 
         return x, y
