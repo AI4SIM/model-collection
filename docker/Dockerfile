@@ -46,6 +46,6 @@ ENV PATH=${PATH}:/home/ai4sim/.local/bin
 # Install all the python dependencies in the environment
 WORKDIR ${AI4SIM_HOME}/${USE_CASE_PATH}
 RUN pip install nox \
- && python3 -m nox -s dev_dependencies --no-venv -- force_GPU_support purge
+ && python3 -m nox -s dev_dependencies --no-venv -- purge
 
 CMD ["bash"]
