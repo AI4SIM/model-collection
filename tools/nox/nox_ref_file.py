@@ -95,22 +95,6 @@ def dev_dependencies(session):
     additional_url = ''
     extra_url = ''
     if torch_vers:
-        # If cuda is not available force the CPU mode of torch
-        if not _is_cuda_available():
-            if "force_GPU_support" in session.posargs:
-                warnings.warn("Torch version forced to GPU mode.")
-            else:
-                warnings.warn("Torch version forced to CPU mode.")
-                with open(req_file, "r+") as file:
-                    req = file.read()
-                    req = req.replace(f"torch=={torch_vers}+{cuda_vers}", f"torch=={torch_vers}")
-
-                    # Create a temporary requirement file updated with cpu forced torch version
-                    req_file = tempfile.NamedTemporaryFile().name
-                    with open(req_file, "w+") as new_req:
-                        new_req.writelines(req)
-                cuda_vers = 'cpu'
-
         # Set the url of precompiled torch version depending on CUDA version
         if cuda_vers != "cpu":
             extra_url = f"https://download.pytorch.org/whl/{cuda_vers}"
