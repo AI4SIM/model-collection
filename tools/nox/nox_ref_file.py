@@ -165,9 +165,9 @@ def docs(session):
 def generate_synthetic_data(session):
     """Target to generate synthetic data related to the use case."""
     session.run("python3", "-m", "pip", "install", "--upgrade", "pip")    
-    req_file = "tests/requirements_data.txt"
+    req_file = "ci/requirements_data.txt"
     session.run("python3", "-m", "pip", "install","-r", req_file)
-    session.run("python3", "tests/generate_synthetic_data.py")
+    session.run("python3", "ci/generate_synthetic_data.py")
     
 
 @nox.session
@@ -177,8 +177,8 @@ def download_data(session):
 
 
 @nox.session
-def train(session):
+def train_test(session):
     """Target to launch a basic training of the use-case (not yet implemented)."""
     generate_synthetic_data(session)
     dev_dependencies(session)  
-    session.run('bash','run.sh','external=True')
+    session.run('bash','./ci/run.sh')
