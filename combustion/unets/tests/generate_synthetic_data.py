@@ -17,35 +17,34 @@ from yaml import dump, safe_load
 from tempfile import mkdtemp
 from shutil import rmtree, move
 from numpy import zeros
+import sys 
+
+import os, sys
+
+sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
+
+import config
 
 
-def create_data(tempdir):
-    """Create data folder with fake raw data"""
-    filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
+def create_data():
+    """Create data folder with fake raw data """
     
-    if (not exists(join(tempdir,'data'))):
-        makedirs(join(tempdir, "data","raw"))
-    folder = join(tempdir, "data", "raw")
-
-    for file_h5 in filenames:
-        with File(join(tempdir, "data", "raw", file_h5), 'w') as f:
-            f['filt_8'] = zeros((320, 160, 160))
-            f['filt_grad_8'] = zeros((320, 160, 160))
-            f['grad_filt_8'] = zeros((320, 160, 160))
-
-    temp_file_path = join(tempdir, 'data', 'filenames.yaml')
-    with open(temp_file_path, 'w') as tmpfile:
-        dump(filenames, tmpfile)
+    filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5']
     
-    file = join(tempdir, 'data', 'filenames.yaml')
+    if (not exists(config.data_path)):
+        makedirs(join(config.data_path, "raw"))
+        for file_h5 in filenames:
+            with File(join(config.data_path, "raw", file_h5), 'w') as f:
+                f['filt_8'] = zeros((320, 160, 160))
+                f['filt_grad_8'] = zeros((320, 160, 160))
+                f['grad_filt_8'] = zeros((320, 160, 160))
+
+        temp_file_path = join(config.data_path, 'filenames.yaml')
+        with open(temp_file_path, 'w') as tmpfile:
+            dump(filenames, tmpfile)
+    else:
+        raise Exception(f"Remove manually {config.data_path}")     
 
 if __name__ == '__main__':
     
-    tempdir = dirname(realpath(__file__))
-    create_data(tempdir)
-    dst = "/".join(tempdir.split("/")[:-1])
-
-    # Before moving check if dst folder exists
-    if (exists(join(dst,'data'))):
-         rmtree(join(dst,'data'))
-    move(join(tempdir,'data'), dst)    
+    create_data()
