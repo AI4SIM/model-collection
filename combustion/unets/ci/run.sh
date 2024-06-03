@@ -11,5 +11,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-python3 trainer.py --config tests/configs/data.yaml
+python3 trainer.py --config configs/data.yaml
 rm -r data/
