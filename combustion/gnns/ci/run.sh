@@ -11,5 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-python3 trainer.py --config configs/data.yaml
+python3 trainer.py --config configs/gat_test.yaml
+python3 trainer.py --config configs/gcn_test.yaml
+python3 trainer.py --config configs/gin_test.yaml
+python3 trainer.py --config configs/gunet_test.yaml
 rm -r data/
