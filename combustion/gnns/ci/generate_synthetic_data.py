@@ -35,9 +35,10 @@ def create_data():
         makedirs(join(config.data_path, "raw"))
         for file_h5 in filenames:
             with File(join(config.data_path, "raw", file_h5), 'w') as f:
-                f['filt_8'] = zeros((320, 160, 160))
-                f['filt_grad_8'] = zeros((320, 160, 160))
-                f['grad_filt_8'] = zeros((320, 160, 160))
+                f['filt_8'] = zeros((10, 10, 10))
+                f['filt_grad_8'] = zeros((10, 10, 10))
+                f['grad_filt_8'] = zeros((10, 10, 10))
+
 
         temp_file_path = join(config.data_path, 'filenames.yaml')
         with open(temp_file_path, 'w') as tmpfile:
