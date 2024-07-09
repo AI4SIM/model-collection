@@ -45,7 +45,7 @@ ENV PATH=${PATH}:/home/ai4sim/.local/bin
 
 # Install all the python dependencies in the environment
 WORKDIR ${AI4SIM_HOME}/${USE_CASE_PATH}
-RUN pip install nox \
+RUN pip install $(grep nox== ${AI4SIM_HOME}/${USE_CASE_PATH}/requirements.txt) \
  && python3 -m nox -s dev_dependencies --no-venv -- purge
 
 CMD ["bash"]
