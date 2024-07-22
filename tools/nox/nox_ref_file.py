@@ -18,10 +18,6 @@ This file is generic and aims at:
 # limitations under the License.
 
 import os
-import subprocess
-from pathlib import Path
-import tempfile
-import warnings
 import nox
 
 REPORTS_DIR = ".ci-reports/"
@@ -32,22 +28,26 @@ FLAKE8_CFG = os.path.join(ROOT_PATH, 'tools', 'flake8', 'flake8.cfg')
 nox.options.sessions = ["lint", "tests"]
 
 
-def _create_file(file_path: str) -> Path:
-    """Create the report directory if it does not exists.
+def _wheel_version(wheel: str, req_file: str = 'requirements.txt') -> str:
+    """Extract the version of a wheel from a requirement.txt, if it is present.
 
     Args:
-        file_path (str): the path of the file to be created.
+        req_file (str): path of the input requirement.txt file.
 
     Returns:
-        (pathlib.Path): the created file path.
+        (str): the pip version extracted from the requirement.txt file if torch is present,
+            an empty string otherwise.
     """
-    path = Path(file_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    return path
+    version = ''
+    with open(req_file, encoding='utf-8') as file:
+        for line in file.readlines():
+            if f"{wheel}==" in line:
+                version = line.rstrip()
+    return version
 
 
 def _torch_version(req_file: str = 'requirements.txt') -> str:
-    """Extract the torch version from a requirement.txt, if it is present.
+    """Extract the torch version and its cuda support from a requirement.txt, if it is present.
 
     Args:
         req_file (str): path of the input requirement.txt file.
@@ -58,33 +58,21 @@ def _torch_version(req_file: str = 'requirements.txt') -> str:
     """
     version = ''
     cuda = ''
-    with open(req_file, encoding='utf-8') as file:
-        for line in file.readlines():
-            if "torch==" in line:
-                version = line.rstrip().split('==')[1]
-                if "+" not in version:
-                    cuda = "cpu"
-                else:
-                    version, cuda = version.split('+')
+    version = _wheel_version("torch", req_file).split('==')[1]
+    if "+" not in version:
+        cuda = "cpu"
+    else:
+        version, cuda = version.split('+')
     return version, cuda
 
-
-def _is_cuda_available() -> bool:
-    """Execute the nvidia-smi command to test if cuda is available.
-
-    Returns:
-        (bool): True if cuda is available.
-    """
-    try:
-        out = subprocess.run("nvidia-smi", stdout=subprocess.DEVNULL)
-        if out.returncode == 0:
-            return True
-        warnings.warn("nvidia-smi command failed. Cuda not available.")
-        return False
-    except FileNotFoundError as exc:
-        warnings.warn(f"Cuda not available : {exc}.")
-        return False
-
+@nox.session
+def base_dependencies(session):
+    """Target to install the basics python requirements."""
+    req_file = "requirements.txt"
+    session.run("python3", "-m", "pip", "install",
+                _wheel_version("pip", req_file),
+                _wheel_version("wheel", req_file),
+                _wheel_version("setuptools", req_file))
 
 @nox.session
 def dev_dependencies(session):
@@ -95,22 +83,6 @@ def dev_dependencies(session):
     additional_url = ''
     extra_url = ''
     if torch_vers:
-        # If cuda is not available force the CPU mode of torch
-        if not _is_cuda_available():
-            if "force_GPU_support" in session.posargs:
-                warnings.warn("Torch version forced to GPU mode.")
-            else:
-                warnings.warn("Torch version forced to CPU mode.")
-                with open(req_file, "r+") as file:
-                    req = file.read()
-                    req = req.replace(f"torch=={torch_vers}+{cuda_vers}", f"torch=={torch_vers}")
-
-                    # Create a temporary requirement file updated with cpu forced torch version
-                    req_file = tempfile.NamedTemporaryFile().name
-                    with open(req_file, "w+") as new_req:
-                        new_req.writelines(req)
-                cuda_vers = 'cpu'
-
         # Set the url of precompiled torch version depending on CUDA version
         if cuda_vers != "cpu":
             extra_url = f"https://download.pytorch.org/whl/{cuda_vers}"
@@ -118,7 +90,10 @@ def dev_dependencies(session):
         # Set the url of precompiled torch-geometric dependencies depending on torch version
         additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}+{cuda_vers}.html"
 
-    session.run("python3", "-m", "pip", "install", "--upgrade", "pip")
+    # Install base python dependencies
+    base_dependencies(session)
+
+    # Install use-case python dependencies
     session.run("python3", "-m", "pip", "install",
                 "-r", req_file,
                 "-f", additional_url,
@@ -130,6 +105,7 @@ def dev_dependencies(session):
 @nox.session
 def tests(session):
     """Target to run unit tests on the code with pytest, and generate coverage report."""
+    # Install use-case python dependencies
     dev_dependencies(session)
     session.run("python3", "-m", "pip", "install", "pytest-cov")
     session.run("python3", "-m", "pytest", "--cache-clear", "--cov=./", "-v")
@@ -146,6 +122,8 @@ def coverage_report(session):
 @nox.session
 def lint(session):
     """Target to lint the code with flake8."""
+    # Install base python dependencies
+    base_dependencies(session)
     session.run("python3", "-m", "pip", "install",
                 "flake8",
                 "flake8-docstrings",

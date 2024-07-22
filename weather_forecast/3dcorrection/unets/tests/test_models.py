@@ -17,7 +17,6 @@ from shutil import rmtree
 from models import LitUnet1D
 from torch_optimizer import Optimizer
 import torch
-import numpy as np
 import os.path as osp
 
 

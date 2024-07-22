@@ -117,7 +117,7 @@ class Upsampler(nn.Module):
         super().__init__()
         self.upsample = None
         if inp_ch < 2:
-            raise ValueError('Input channel ({}) too low.'.format(inp_ch))
+            raise ValueError(f'Input channel ({inp_ch}) too low.')
         if bilinear:
             self.upsample = nn.Sequential(
                 nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
@@ -134,8 +134,8 @@ class Upsampler(nn.Module):
         d3 = x2.shape[3] - x1.shape[3]
         d4 = x2.shape[4] - x1.shape[4]
         pad = [d4 // 2, d4 - d4 // 2,  # from last to first.
-            d3 // 2, d3 - d3 // 2,
-            d2 // 2, d2 - d2 // 2]
+               d3 // 2, d3 - d3 // 2,
+               d2 // 2, d2 - d2 // 2]
         x1 = nn.functional.pad(x1, pad)
 
         x = cat([x2, x1], dim=1)  # concatenate along the channels axis.
