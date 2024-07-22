@@ -65,6 +65,14 @@ def _torch_version(req_file: str = 'requirements.txt') -> str:
         version, cuda = version.split('+')
     return version, cuda
 
+@nox.session
+def base_dependencies(session):
+    """Target to install the basics python requirements."""
+    req_file = "requirements.txt"
+    session.run("python3", "-m", "pip", "install",
+                _wheel_version("pip", req_file),
+                _wheel_version("wheel", req_file),
+                _wheel_version("setuptools", req_file))
 
 @nox.session
 def dev_dependencies(session):
@@ -82,10 +90,10 @@ def dev_dependencies(session):
         # Set the url of precompiled torch-geometric dependencies depending on torch version
         additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}+{cuda_vers}.html"
 
-    session.run("python3", "-m", "pip", "install",
-                _wheel_version("pip", req_file),
-                _wheel_version("wheel", req_file),
-                _wheel_version("setuptools", req_file))
+    # Install base python dependencies
+    base_dependencies(session)
+
+    # Install use-case python dependencies
     session.run("python3", "-m", "pip", "install",
                 "-r", req_file,
                 "-f", additional_url,
@@ -97,6 +105,7 @@ def dev_dependencies(session):
 @nox.session
 def tests(session):
     """Target to run unit tests on the code with pytest, and generate coverage report."""
+    # Install use-case python dependencies
     dev_dependencies(session)
     session.run("python3", "-m", "pip", "install", "pytest-cov")
     session.run("python3", "-m", "pytest", "--cache-clear", "--cov=./", "-v")
@@ -113,6 +122,8 @@ def coverage_report(session):
 @nox.session
 def lint(session):
     """Target to lint the code with flake8."""
+    # Install base python dependencies
+    base_dependencies(session)
     session.run("python3", "-m", "pip", "install",
                 "flake8",
                 "flake8-docstrings",
