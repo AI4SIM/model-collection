@@ -140,12 +140,23 @@ def docs(session):
 
 
 @nox.session
+def generate_synthetic_data(session):
+    """Target to generate synthetic data related to the use case."""
+    session.run("python3", "-m", "pip", "install", "--upgrade", "pip")    
+    req_file = "ci/requirements_data.txt"
+    session.run("python3", "-m", "pip", "install","-r", req_file)
+    session.run("python3", "ci/generate_synthetic_data.py")
+    
+
+@nox.session
 def download_data(session):
-    """Target to download the data required to train the use-case models (not yet implemented)."""
+    """Target to download the data required to train the use-case models (not yet implemented).""" 
     raise NotImplementedError("This target is not yet implemented.")
 
 
 @nox.session
-def train(session):
+def train_test(session):
     """Target to launch a basic training of the use-case (not yet implemented)."""
-    raise NotImplementedError("This target is not yet implemented.")
+    generate_synthetic_data(session)
+    dev_dependencies(session)  
+    session.run('bash','./ci/run.sh')
