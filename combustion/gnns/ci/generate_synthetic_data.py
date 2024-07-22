@@ -10,12 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from os.path import join, exists, dirname,  realpath
-from os import makedirs, listdir
+from os.path import join, exists
+from os import makedirs
 from h5py import File
-from yaml import dump, safe_load
-from tempfile import mkdtemp
-from shutil import rmtree, move
+from yaml import dump
+from shutil import rmtree
 from numpy import zeros
 import sys 
 
@@ -28,7 +27,6 @@ import config
 
 def create_data():
     """Create data folder with fake raw data """
-    
     filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5']
     
     if (not exists(config.data_path)):
