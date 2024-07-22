@@ -14,21 +14,18 @@ from os.path import join, exists
 from os import makedirs
 from h5py import File
 from yaml import dump
-from shutil import rmtree
 from numpy import zeros
-import sys 
-
-import os, sys
+import sys
+import config
+import os
 
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
 
-import config
-
 
 def create_data():
-    """Create data folder with fake raw data """
+    """Create data folder with fake raw data"""
     filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5']
-    
+
     if (not exists(config.data_path)):
         makedirs(join(config.data_path, "raw"))
         for file_h5 in filenames:
@@ -37,13 +34,13 @@ def create_data():
                 f['filt_grad_8'] = zeros((10, 10, 10))
                 f['grad_filt_8'] = zeros((10, 10, 10))
 
-
         temp_file_path = join(config.data_path, 'filenames.yaml')
         with open(temp_file_path, 'w') as tmpfile:
             dump(filenames, tmpfile)
     else:
-        raise Exception(f"Remove manually {config.data_path}")     
+        raise Exception(f"Remove manually {config.data_path}")
+
 
 if __name__ == '__main__':
-    
+
     create_data()
