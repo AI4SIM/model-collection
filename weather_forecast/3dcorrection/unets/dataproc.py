@@ -44,7 +44,6 @@ class ThreeDCorrectionDataproc:
             patchstep (int): Step of the patchs (16 Earth's regions)
             num_workers (int): Number of workers.
         """
-
         self.cached_data_path = osp.join(root, 'cached')
         self.raw_data_path = osp.join(root, 'raw')
         self.processed_data_path = osp.join(root, 'processed')
@@ -65,7 +64,6 @@ class ThreeDCorrectionDataproc:
             * Reshard and convert to Numpy;
             * Compute stats multi-threaded fashion.
         """
-
         xr_array = self.download()
         x, y = self.build_features(xr_array)
         x_path, y_path = self.reshard(x, y)
@@ -73,7 +71,6 @@ class ThreeDCorrectionDataproc:
 
     def download(self) -> xr.DataArray:
         """Download the data for 3D Correction UC and return an xr.Array."""
-
         cml.settings.set("cache-directory", self.cached_data_path)
         cml_ds = cml.load_dataset(
             'maelstrom-radiation',
@@ -94,14 +91,13 @@ class ThreeDCorrectionDataproc:
             * Rechunk on row dimension;
             * Finally lazily build (x, y).
         """
-
         def broadcast_features(arr: da.Array, sz: int) -> da.Array:
             """Repeat a scalar in a vector."""
             a = da.repeat(arr, sz, axis=-1)
             return da.moveaxis(a, -2, -1)
 
         def pad_tensor(arr: da.Array, pads: Tuple) -> da.Array:
-            """Pads zeros to the vertical axis (n_before, n_after)."""
+            """Pad zeros to the vertical axis (n_before, n_after)."""
             return da.pad(arr, ((0, 0), pads, (0, 0)))
 
         features = [
@@ -137,8 +133,7 @@ class ThreeDCorrectionDataproc:
         return x, y
 
     def purgedirs(self, paths: Union[str, list]) -> Union[str, list]:
-        """Removes all content of directories in paths."""
-
+        """Remove all content of directories in paths."""
         if isinstance(paths, str):
             paths = [paths]
 
@@ -155,7 +150,6 @@ class ThreeDCorrectionDataproc:
         Reshard the arrays by rechunking on memory,
         store the chunks on disk in Numpy file format (.npy)
         """
-
         # Chunk on the zeroth axis.
         x_chunked = da.rechunk(x, chunks=(self.shard_size, *x.shape[1:]))
         y_chunked = da.rechunk(y, chunks=(self.shard_size, *y.shape[1:]))
@@ -169,8 +163,7 @@ class ThreeDCorrectionDataproc:
         return x_path, y_path
 
     def compute_stats(self, x_path: str, y_path: str) -> Dict[str, np.array]:
-        """Computes stats: mean and standard deviation for features of x and y."""
-
+        """Compute stats: mean and standard deviation for features of x and y."""
         stats = {}
         for a in [da.from_npy_stack(x_path), da.from_npy_stack(y_path)]:
             m = da.mean(a, axis=0).compute(num_workers=self.num_workers)
@@ -186,6 +179,6 @@ class ThreeDCorrectionDataproc:
 
 
 if __name__ == '__main__':
-    import config
-    dataproc = ThreeDCorrectionDataproc(config.data_path)
+    import config  # noqa: F401 'config' imported but unused
+    dataproc = ThreeDCorrectionDataproc("/tmp")
     dataproc.process()

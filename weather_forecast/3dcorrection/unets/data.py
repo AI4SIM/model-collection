@@ -91,11 +91,11 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
 
         # Define subsets.
         tr, va, te = self.splitting_ratios
-        l = len(self.dataset)
-        idx = list(range(l))
-        train_idx = idx[:int(tr * l)]
-        val_idx = idx[int(tr * l):int((tr + va) * l)]
-        test_idx = idx[int((tr + va) * l):]
+        length = len(self.dataset)
+        idx = list(range(length))
+        train_idx = idx[:int(tr * length)]
+        val_idx = idx[int(tr * length):int((tr + va) * length)]
+        test_idx = idx[int((tr + va) * length):]
 
         # Define samplers.
         self.train_sampler = SubsetRandomSampler(train_idx)

@@ -12,15 +12,13 @@
 # limitations under the License.
 
 import os
-# import logging
 import yaml
 import randomname
-# import shutil
 
 
 # CAUTION : A refactoring of this file might be requiered for further development
 # raw_data_path to be adapted to your local data path.
-raw_data_path = "/path/to/your/local/data"
+source_raw_data_path = "/path/to/your/local/data"
 #
 
 root_path = os.path.dirname(os.path.realpath(__file__))
@@ -62,28 +60,29 @@ for path in _paths:
 class LinkRawData:
     """Link dataset to the use case."""
 
-    def __init__(self, raw_data_path, data_path):
-        """Link the raw_data_path to the data_path, if it does not already exists."""
-        self.raw_data_path = raw_data_path
+    def __init__(self, source_raw_data_path, data_path):
+        """Link the source_raw_data_path in the data_path, if it does not already exists."""
+        self.source_raw_data_path = source_raw_data_path
         self.local_data_path = data_path
         self.local_raw_data = os.path.join(self.local_data_path, 'raw')
 
-        if os.path.exists(self.local_raw_data):
-            try:
-                if len(os.listdir(self.local_raw_data)) == 0 \
-                        or os.readlink(self.local_raw_data) != self.raw_data_path:
-                    self.rm_old_dataset()
-                    self.symlink_dataset()
-                else:
+        if os.path.exists(self.source_raw_data_path):
+            if os.path.exists(self.local_raw_data):
+                try:
+                    if len(os.listdir(self.local_raw_data)) == 0 \
+                            or os.readlink(self.local_raw_data) != self.source_raw_data_path:
+                        self.rm_old_dataset()
+                        self.symlink_dataset()
+                    else:
+                        pass
+                except OSError:
                     pass
-            except OSError:
-                pass
-        else:
-            self.symlink_dataset()
+            else:
+                self.symlink_dataset()
 
     def symlink_dataset(self):
-        """Create the filenames.yaml file from the content of the raw_data_path."""
-        filenames = os.listdir(self.raw_data_path)
+        """Create the filenames.yaml file from the content of the source_raw_data_path."""
+        filenames = os.listdir(self.source_raw_data_path)
         temp_file_path = os.path.join(self.local_data_path, 'filenames.yaml')
         with open(temp_file_path, 'w') as file:
             yaml.dump(filenames, file)
@@ -93,7 +92,7 @@ class LinkRawData:
 
         for filename in filenames:
             os.symlink(
-                os.path.join(self.raw_data_path, filename),
+                os.path.join(self.source_raw_data_path, filename),
                 os.path.join(self.local_raw_data, filename)
             )
 
