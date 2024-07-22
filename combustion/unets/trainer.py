@@ -66,5 +66,6 @@ def main():
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 
+
 if __name__ == '__main__':
     main()
