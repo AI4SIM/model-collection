@@ -11,8 +11,8 @@ jobs:
         use-case:
           - combustion/gnns
           - combustion/unets
-          - weather_forecast/gwd
           - weather_forecast/3dcorrection/unets
+          - weather_forecast/gravity-wave-drag/cnns
       fail-fast: false
 
     steps:
