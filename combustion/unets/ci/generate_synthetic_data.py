@@ -10,27 +10,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from os.path import join, exists, dirname,  realpath
-from os import makedirs, listdir
+from os.path import join, exists
+from os import makedirs
 from h5py import File
-from yaml import dump, safe_load
-from tempfile import mkdtemp
-from shutil import rmtree, move
+from yaml import dump
 from numpy import zeros
-import sys 
-
-import os, sys
+import sys
+import config
+import os
 
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
 
-import config
-
 
 def create_data():
-    """Create data folder with fake raw data """
-    
+    """Create data folder with fake raw data"""
     filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5']
-    
+
     if (not exists(config.data_path)):
         makedirs(join(config.data_path, "raw"))
         for file_h5 in filenames:
@@ -43,8 +38,9 @@ def create_data():
         with open(temp_file_path, 'w') as tmpfile:
             dump(filenames, tmpfile)
     else:
-        raise Exception(f"Remove manually {config.data_path}")     
+        raise Exception(f"Remove manually {config.data_path}")
+
 
 if __name__ == '__main__':
-    
+
     create_data()
