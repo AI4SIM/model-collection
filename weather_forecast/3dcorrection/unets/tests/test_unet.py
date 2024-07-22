@@ -11,7 +11,7 @@
 # limitations under the License.
 
 from unittest import TestCase, main
-from torch import from_numpy, rand
+from torch import rand
 from unet import UNet1D, Downsampler, Upsampler
 
 

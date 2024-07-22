@@ -31,7 +31,7 @@ jobs:
         python-version: ${{ steps.uc_env.outputs['python_version'] }}
 
     - name: Install nox build tool
-      run: pip3 install nox
+      run: pip3 install $(grep nox== ${{ matrix.use-case }}/requirements.txt)
 
     - name: Analysing the code with flake8
       working-directory: ${{ matrix.use-case }}

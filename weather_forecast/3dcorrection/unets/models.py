@@ -70,7 +70,7 @@ class ThreeDCorrectionModule(pl.LightningModule):
                     self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
 
     def normalize(self,
-                   x: torch.Tensor) -> Tuple[torch.Tensor]:
+                  x: torch.Tensor) -> Tuple[torch.Tensor]:
         """
         Normalize nside the network.
         If y is None, then only process x (e.g. forward mode).
