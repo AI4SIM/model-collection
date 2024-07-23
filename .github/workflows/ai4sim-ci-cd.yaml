@@ -9,8 +9,8 @@ jobs:
     strategy:
       matrix:
         use-case:
-          - combustion/gnns
-          - combustion/unets
+          - cfd/combustion/gnns
+          - cfd/combustion/unets
           - weather_forecast/gravity-wave-drag/cnns
           - weather_forecast/ecrad-3d-correction/unets
       fail-fast: false
