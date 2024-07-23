@@ -19,10 +19,10 @@ jobs:
     strategy:
       matrix:
         use-case:
-          - combustion/gnns
-          - combustion/unets
-          - weather_forecast/gwd
-          - weather_forecast/3dcorrection/unets
+          - cfd/combustion/gnns
+          - cfd/combustion/unets
+          - weather-forecast/gravity-wave-drag/cnns
+          - weather-forecast/ecrad-3d-correction/unets
       fail-fast: false
 
     steps:
@@ -76,5 +76,5 @@ jobs:
             PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
             USE_CASE_PATH=${{ matrix.use-case }}
           push: true
-          tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._1 }}"
+          tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._0 }}-${{ steps.split_path.outputs._1 }}-${{ steps.split_path.outputs._2 }}"
           labels: ${{ steps.meta.outputs.labels }}
