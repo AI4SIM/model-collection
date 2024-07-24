@@ -16,10 +16,11 @@ from h5py import File
 from yaml import dump
 from numpy import zeros
 import sys
-import config
 import os
 
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
+
+import config  # noqa:
 
 
 def create_data():
