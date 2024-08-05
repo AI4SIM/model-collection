@@ -1,61 +1,73 @@
 ## Philosophy
 
-**Important note: at the moment, lots of code is purely being duplicated, because the focus has been made on the use-case (UC) content. Future works will refactor a bit the repository content to really abstract mutualizable data processing logic.**
-
 This project contains a collection of models developed by the Atos AI4sim R&D team and is intended for research purposes. The current workflow is based entirely on NumPy, PyTorch, Dask and Lightning. Domain-specific librairies can be added, like PyTorch Geometric for graph neural networks.
 
-## Projects architecture
+**The repository is organized as a collection of independant model implementation for various use-cases (UC). You will thus find a lot of duplicated code, because the focus has been made on the projects content. Nevertheless the CI/CD and development tools have been mutualized.**
 
-To take care of the boiler-plate, early stopping, tensorboard logging, training parallelization etc. we integrate directly with PyTorch Lightning. For each new use-case, we use the same code architecture, described below.
+## Collection
 
-In all of the following, an experiment designates a specific training run (hyperparameters) with a specific model (neural architecture) and a specific dataset and splitting strategy.
+The collection of models is developed through partnerships bringing their use-cases.
 
-* *configs/* contains the experiments configuration YAML files, following the Lightning CLI format.
-* *data/* contains the `raw` and `processed` data directories, and normalization factors (and optionally explicit train/val/test split sets).
-* *tests/* contains unit tests modules.
-* *notebooks/* contains example Jupyter notebooks, for pedagogical purposes.
-* *config.py* exposes global paths and path specific to the current experiment.
-* *data.py* contains the dataset and datamodule.
-* *models.py* contains the model ("module"), including training logic. The architecture can be imported from specific librairies or a local module (e.g. unet.py).
-* *plotters.py* takes care of plots generation for the test set.
-* *trainer.py* is the main entrypoint responsible for creating a Trainer object, a CLI, and saving artifacts in the experiment directory.
-* *noxfile.py* is the Nox build tool configuration file that defines all targets available for the UC.
+Currently, the models that have been developed are based on the following use-cases :
 
-Each project is made of two pipelines:
+- Computational Fluid Dynamics
+    - Combustion (with Unets and GNNs), from CERFACS
 
-* Data pipeline: a *DataModule* wraps a Dataset to provide data (with dataloaders, preprocessing...);
-* Model pipeline: a *Module* compiles a neural network architecture with its optimizer.
+- Weather Forecast
+    - Gravity Wave Drag (with CNNs), from ECMWF
+    - 3D Bias Correction (with Unets), from ECMWF
+
+## Projects organization
+
+> In all of the following, an experiment designates a specific training run (hyperparameters) with a specific model (neural architecture) and a specific dataset and splitting strategy.
+
+### Project path tree
+
+All the models are placed in the repository with a path following the rule :
+
+``<domain>``/``<use-case>``/``<NN architecture>``
+
+For example, the code in the path ``cfd/combustion/gnns``, implements some **Graph Neural Network (GNN)** achitectures developed for the **Computational Fluid Dynamics (CFD)**, and applied to a **Combustion** use-case.
+
+### Model project files
+
+To take care of the boiler-plate, early stopping, tensorboard logging, training parallelization etc. we integrate directly with PyTorch Lightning. For each new  model, we use the same code architecture, described below.
+
+All model's implementation should include the following folders and files:
+
+* ``configs/`` contains the experiments configuration YAML files, following the Lightning CLI format.
+* ``tests/`` contains unit tests modules.
+* ``config.py`` exposes global paths and path specific to the current experiment.
+* ``data.py`` contains the dataset and datamodule.
+* ``models.py`` contains the model ("module"), including training logic. The architecture can be imported from specific librairies or a local module (e.g. unet.py).
+* ``trainer.py`` is the main entrypoint responsible for creating a Trainer object, a CLI, and saving artifacts in the experiment directory.
+* ``noxfile.py`` is the Nox build tool configuration file that defines all targets available for the model project.
+
+Optionally it can also include the following folders and files :
+* ``data/`` contains the dataset configuartaion files and will contain the `raw` and `processed` data directories, and normalization factors (and optionally explicit train/val/test split sets), once the dataset as been downloaded and processed.
+* ``notebooks/`` contains example Jupyter notebooks, for pedagogical purposes.
+* ``plotters.py`` takes care of plots generation for the test set.
+
+### Projects architecture
+
+Each model project is made of two pipelines:
+
+* Data pipeline: a **DataModule** wraps a Dataset to provide data (with dataloaders, preprocessing...);
+* Model pipeline: a **Module** compiles a neural network architecture with its optimizer.
 The Trainer plugs both pipelines when called to run an experiment. It can be called by hand (CLI, with config files) or by another abstraction layer (e.g. hyperparameters optimization, meta learning)0
 
-.. image:: docs/project_archi.png
-   :scale: 50 %
-   :alt: Project code architecture
-   :align: center
+
+![Project code architecture](/docs/project_archi.png "Project code architecture")
+
 
 The Dataset can be implemented with various librairies, following the implicit convention that two folders are handled:
 
-* *data/raw* stores the raw data files;
-* *data/processed* stores the data after preprocessing, used for several experiments.
-
-## Collections
-
-Collections are developed through partnerships with the ECMWF, the CERFACS, and INRIA.
-
-* Combustion
-
-    - CNF for Combustion and Flame (with Unets and GNNs)
-    - R2 and R3 are simulations of Aachen's flame, with different resolution
-
-* Weather Forecast
-
-    - Gravity Wave Drag
-    - 3D Bias Correction (with Unets and Attention CNNs)
-
-* WMED, Atmosphere-Oceanic Coupling
+* ``data/raw`` stores the raw data files;
+* ``data/processed`` stores the data after preprocessing, used for several experiments.
 
 ## Quick Start
 
-Each UC can be experimented in an easy and quick way using predifined command exposed through the Nox tool.
+Each model can be experimented in an easy and quick way using predifined command exposed through the Nox tool.
 
 ### Docker
 
