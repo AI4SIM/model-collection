@@ -1,18 +1,18 @@
-Gravity Wave Drag UC
-===============
+# Gravity Wave Drag UC
 
-Description
------------------
+
+## Description
+
 Climate models are complex objects developed over decades and have many components. While the main model renders dynamics (Temperature, Wind speeds, Pressure), models of lesser magnitude substantially refine these predictions by emulating physical processes: radiation, precipitation, evaporation, clouds, as well as Gravity Wave Drag. It caracterizes a phenomenon of vertical propagation of the relief which affects the wind speed over all layers of the atmosphere.
 
-The objective is to substitute the parametrization scheme used in production by a DL model much more efficient at a close-enough accuracy. This experiment is largely inspired from the `work of Chantry et al (2021) <https://agupubs.onlinelibrary.wiley.com/doi/pdfdirect/10.1029/2021MS002477>`_.
+The objective is to substitute the parametrization scheme used in production by a DL model much more efficient at a close-enough accuracy. This experiment is largely inspired from the work of [Chantry et al (2021)](https://agupubs.onlinelibrary.wiley.com/doi/pdfdirect/10.1029/2021MS002477).
 
-Dataset
------------------
-Download the dataset using the Climetlab library developed by ECMWF. An example on how to retrieve the data is largely explained `here <https://git.ecmwf.int/projects/MLFET/repos/maelstrom-nogwd/browse>`_.
+## Dataset
 
-Models
------------------
+Download the dataset using the Climetlab library developed by ECMWF. An example on how to retrieve the data is largely explained [here](https://git.ecmwf.int/projects/MLFET/repos/maelstrom-nogwd/browse).
+
+## Models
+
 X:
 
 * ``u``, ``v`` the horizontal wind velocities
