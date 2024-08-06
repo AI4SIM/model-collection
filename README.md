@@ -1,8 +1,30 @@
+# AI4SIM Model Collection
+
+## Table of contents
+
+
+1. [Philosophy](#philosophy)
+2. [Collection](#collection)
+3. [Project organization](#project-organization)
+    1. [Project path tree](#project-path-tree)
+    2. [Model project files](#model-project-files)
+    2. [Projects architecture](#projects-architecture)
+4. [Experiment a model project](#experiment-a-model-project)
+    1. [Setting-up the environment](#setting-up-the-environment)
+        1. [Docker container](#docker-container)
+        2. [Virtual environment](#virtual-environment)
+    2. [Prepare the dataset](#prepare-the-dataset)
+    3. [Launch the training](#launch-the-training)
+        1. [Docker container](#docker-container)
+        2. [Virtual environment](#virtual-environment)
+
 ## Philosophy
 
 This project contains a collection of models developed by the Atos AI4sim R&D team and is intended for research purposes. The current workflow is based entirely on NumPy, PyTorch, Dask and Lightning. Domain-specific librairies can be added, like PyTorch Geometric for graph neural networks.
 
 **The repository is organized as a collection of independant model implementation for various use-cases (UC). You will thus find a lot of duplicated code, because the focus has been made on the projects content. Nevertheless the CI/CD and development tools have been mutualized.**
+
+This project is licensed under the [APACHE 2.0 license.](http://www.apache.org/licenses/LICENSE-2.0)
 
 ## Collection
 
@@ -17,7 +39,7 @@ Currently, the models that have been developed are based on the following use-ca
     - Gravity Wave Drag (with CNNs), from ECMWF
     - 3D Bias Correction (with Unets), from ECMWF
 
-## Projects organization
+## Project organization
 
 > In all of the following, an experiment designates a specific training run (hyperparameters) with a specific model (neural architecture) and a specific dataset and splitting strategy.
 
@@ -25,7 +47,7 @@ Currently, the models that have been developed are based on the following use-ca
 
 All the models are placed in the repository with a path following the rule :
 
-``<domain>``/``<use-case>``/``<NN architecture>``
+``<domain>/<use-case>/<NN architecture>``
 
 For example, the code in the path ``cfd/combustion/gnns``, implements some **Graph Neural Network (GNN)** achitectures developed for the **Computational Fluid Dynamics (CFD)**, and applied to a **Combustion** use-case.
 
@@ -65,27 +87,92 @@ The Dataset can be implemented with various librairies, following the implicit c
 * ``data/raw`` stores the raw data files;
 * ``data/processed`` stores the data after preprocessing, used for several experiments.
 
-## Quick Start
+## Experiment a model project
 
-Each model can be experimented in an easy and quick way using predifined command exposed through the Nox tool.
+### Setting-up the environment
 
-### Docker
+Each model can be experimented using a python environment dedicated to the project, either in a docker container or on bare metal using a virtual environment.
 
-A docker file is provided to get started. To build the image, run the following command:
-::
-    docker build -t ai4sim .
+#### Docker container
 
-To install the corresponding python requirements for a use-case an entrypoint is implemented. It can be selected by one of the folling [combustion_gnns, combustion_unets, wf_gwd]:
-::
-    docker run -it --rm ai4sim ./script.sh combustion_gnns
+The AI4SIM github CI/CD publishes in the [github registry](https://github.com/AI4SIM/model-collection/pkgs/container/model-collection) a docker image dedicated to each model project proposed in the **Model collection** repository. Each image is built on an public **Ubuntu** base image (e.g. *nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04*). All the model project's requirements have been installed and the model project code has been added in ``/home/ai4sim/<domain>/<use-case>/<NN architecture>``.
 
-To get inside the container:
-::
-    docker run -it --rm -e bash ai4sim
+Each image can be identified using its docker tag, ``<domain>-<use-case>-<NN architecture>``, that is automatically built from the model project path ``<domain>/<use-case>/<NN architecture>``. For example, you can pull the docker images for the ``weather-forecast/ecrad-3d-correction/unets`` model project using :
+
+```
+>> docker pull ghcr.io/ai4sim/model-collection:weather-forecast-ecrad-3d-correction-unets
+```
+
+If you want to experiment the model in a different environmant you can built your own docker image following the instruction descibed in [TBD]().
+
+#### Virtual environment
+
+To experiment a model on bare metal, we suggest to build a python virtual environment that will embed all the python requirements of the targeted model.
+
+You can use a manual installation :
+
+```
+cd <domain>/<use-case>/<NN architecture>
+python3 -m venv your-venv
+source your-venv/bin/activate
+pip install -U $(grep pip== ./requirements.txt)
+pip install -r ./requirements.txt
+```
+
+or, alternatively, you can use the *nox* target ``dev_dependencies`` (cf [Nox targets]()) :
+
+```
+cd <domain>/<use-case>/<NN architecture>
+python3 -m pip install $(grep nox== ./requirements.txt)
+nox -s dev_dependencies
+source dev_dependencies/bin/activate
+```
+
+### Prepare the dataset
+
+You can find, in all model project directories, a ``README.md`` file that describes how to download and prepare the data required to launch a training. Please refer to the corresponding README file :
+
+- Computational Fluid Dynamics
+    - Combustion
+        - [Unets](cfd/combustion/unets/README.md)
+        - [GNNs](cfd/combustion/gnns/README.md)
+
+- Weather Forecast
+    - Gravity Wave Drag 
+        - [CNNs](weather-forecast/ecrad-3d-correction/unets/README.md)
+    - 3D Bias Correction
+        - [Unets](weather-forecast/gravity-wave-drag/cnns/README.md)
+
+### Launch the training
+
+#### Docker container
+
+Using the docker image described at [Setting-up the environment](#setting-up-the-environment), you can launch the training of the model with :
+
+```
+cd <domain>/<use-case>/<NN architecture>
+podman run \
+    -v ./data:/home/ai4sim/<domain>/<use-case>/<NN architecture>/data \
+    -w /home/ai4sim/<domain>/<use-case>/<NN architecture> \
+    ghcr.io/ai4sim/model-collection:<domain>-<use-case>-<NN architecture> \
+    python3 trainer.py --config configs/<training-config>.yaml
+```
+
+#### Virtual environment
+
+Using the python virtual environment built as descirbed in [Setting-up the environment](#setting-up-the-environment), you can launch the training of the model with :
+```
+cd <domain>/<use-case>/<NN architecture>
+python3 trainer.py --config configs/<training-config>.yaml
+```
+
+## Contribute
+
+Contribution to existing models or proposition of new ones are welcomed. Please, develop in your own branch and then open a pull request. 
 
 ### Requirements
 
-The following procedures only require [Nox](https://nox.thea.codes/en/stable/) is a python build tool, that allows to define targets (in a similar way that Make does), to simplify command execution in development and CI/CD pipeline. By default, each nox target is executed, in a specific virtualenv that ensure code partitioning and experiments reproducibility.
+The following procedures only require [Nox](https://nox.thea.codes/en/stable/) a python build tool, that allows to define targets (in a similar way that Make does), to simplify command execution in development and CI/CD pipeline. By default, each nox target is executed, in a specific virtualenv that ensure code partitioning and experiments reproducibility.
 ::
     pip install nox
 
