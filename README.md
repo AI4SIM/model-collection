@@ -64,6 +64,9 @@ All model's implementation should include the following folders and files:
 * ``models.py`` contains the model ("module"), including training logic. The architecture can be imported from specific librairies or a local module (e.g. unet.py).
 * ``trainer.py`` is the main entrypoint responsible for creating a Trainer object, a CLI, and saving artifacts in the experiment directory.
 * ``noxfile.py`` is the Nox build tool configuration file that defines all targets available for the model project.
+* ``env.yaml`` lists the environment requirements, like the Ubuntu docker base image or the Python version.
+* ``requirements.txt`` contains all the python dependencies of the project, generated using the ``pip freeze`` command.
+* ``ci/`` contains all the additional files required to run the functional tests. 
 
 Optionally it can also include the following folders and files :
 * ``data/`` contains the dataset configuartaion files and will contain the `raw` and `processed` data directories, and normalization factors (and optionally explicit train/val/test split sets), once the dataset as been downloaded and processed.
@@ -103,7 +106,7 @@ Each image can be identified using its docker tag, ``<domain>-<use-case>-<NN arc
 >> docker pull ghcr.io/ai4sim/model-collection:weather-forecast-ecrad-3d-correction-unets
 ```
 
-If you want to experiment the model in a different environmant you can built your own docker image following the instruction descibed in [TBD]().
+If you want to experiment the model in a different environment you can build your own docker image following the instruction descibed in [Contribute](#contribute).
 
 #### Virtual environment
 
@@ -119,7 +122,7 @@ pip install -U $(grep pip== ./requirements.txt)
 pip install -r ./requirements.txt
 ```
 
-or, alternatively, you can use the *nox* target ``dev_dependencies`` (cf [Nox targets]()) :
+or, alternatively, you can use the *Nox* target ``dev_dependencies`` (cf [Nox targets]()) :
 
 ```
 cd <domain>/<use-case>/<NN architecture>
@@ -168,40 +171,80 @@ python3 trainer.py --config configs/<training-config>.yaml
 
 ## Contribute
 
-Contribution to existing models or proposition of new ones are welcomed. Please, develop in your own branch and then open a pull request. 
+Contribution to existing models or proposition of new projects are welcome. Please, develop in your own branch, following the below recommendations, and open a pull request to merge your branch on the **main** one. 
 
-### Requirements
+### The *Nox* tool
 
-The following procedures only require [Nox](https://nox.thea.codes/en/stable/) a python build tool, that allows to define targets (in a similar way that Make does), to simplify command execution in development and CI/CD pipeline. By default, each nox target is executed, in a specific virtualenv that ensure code partitioning and experiments reproducibility.
-::
-    pip install nox
+The development mode for all model projects is based on a tool, called *[Nox](https://nox.thea.codes/en/stable/)*.
 
-### Experiment a use case
+*Nox* is a python build tool, that allows to define targets (in a similar way that Make does), to simplify command execution in development and CI/CD pipelines. By default, each *Nox* session (equivalent to a make target) is executed in a specific virtualenv that ensure code partitioning and experiments reproducibility.
 
-Several Nox targets allow to handle easily an experimentation of any use case on a demo dataset and configuration.
+#### Installation
 
-Choose the _Model Collection_ use case you want to experiment and go in.
-::
-    cd weather_forcast/gwd
-There you can display the list of the available targets with
-::
-    nox --list
+*Nox* can be installed using *pip*.
 
-Please note, some of them are experimentation oriented, while other ones are CI/CD oriented.
+```
+pip install nox
+```
 
-*Coming soon ...*
+To install the version of *Nox* used in a existing model project please refer to the ``requirements.txt`` file of the project.
 
-You can launch a demo training on the model use case with ``nox -s train``
+```
+pip install $(grep nox== requirements.txt)
+```
 
-### Development mode
+#### Usage
+
+In each model project directory the ``noxfile.py`` file implements all the *Nox* sessions available (note most of them are actually imported from a global file in ``tools/nox/nox_ref_file.py``).
+
+In the model project you can display the list of the available targets with
+```
+nox --list
+```
+
+The main sessions you will use for development will be :
+- ``dev_dependencies``
+- ``tests``
+- ``lint``
+
+Note these seesions are used to run the CI/CD and build the docker image of a model project. So using them and making sure they succeed are major steps on the road of proposing your contribution.
+
+#### Create the proper python development environment
 
 The nox target are also very useful to launch generic command during development phase.
 
-#### Run unit tests
+##### Run unit tests
 
 You can run the whole unit test suite of a use case, using ``pytest``, with ``nox -s tests``.
 This target also prints out the coverage report and save a xml version in ``.ci-reports/``.
 
-#### Run linting
+##### Run linting
 
 You can run the python linting of the code use case, using ``flake8``, with ``nox -s lint``.
+
+
+### Existing model project
+
+Please note, the maintenance policy of the repository is to consider a model project freezed from the moment when it is intergrated. It means you can open an issue, but the only major ones (bugs breaking the functionality or leading the model to be scientifically unrelevant) will be treated, but no upgrade nor refactoring of the existing model code will be adressed.
+
+If you want to propose a correction to an exixting model, or a new model implementation of an existing model project, please follow the recommendations described in the [Setting-up the environment](#setting-up-the-environment) section to develop in the proper Docker container. If you prefer to develop in a python virtual environment, please use the *Nox* session ``dev_dependencies`` that will create the proper virtualenv to develop.
+
+
+
+### New model project
+
+To start a new model project from scratch, we recommend to adopt the following procedure to develop your contribution. Of course the existing model project are good sources of inspiration of what you will have to do.
+
+#### Define the environment
+Choose Ubuntu image
+Choose the python version
+
+##### Create the env.yaml file
+##### Build the docker image
+
+#### Initiate noxfile.py
+#### Initiate requirements.txt file
+pip, nox, torch version
+
+
+### 
