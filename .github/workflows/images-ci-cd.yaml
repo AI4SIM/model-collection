@@ -74,7 +74,7 @@ jobs:
             UBUNTU_IMAGE_NAME=${{ steps.uc_env.outputs['ubuntu_base_image.name'] }}
             UBUNTU_IMAGE_TAG=${{ steps.uc_env.outputs['ubuntu_base_image.tag'] }}
             PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
-            USE_CASE_PATH=${{ matrix.use-case }}
+            MODEL_PROJECT_PATH=${{ matrix.use-case }}
           push: true
           tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._0 }}-${{ steps.split_path.outputs._1 }}-${{ steps.split_path.outputs._2 }}"
           labels: ${{ steps.meta.outputs.labels }}

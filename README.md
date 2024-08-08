@@ -227,24 +227,148 @@ You can run the python linting of the code use case, using ``flake8``, with ``no
 
 Please note, the maintenance policy of the repository is to consider a model project freezed from the moment when it is intergrated. It means you can open an issue, but the only major ones (bugs breaking the functionality or leading the model to be scientifically unrelevant) will be treated, but no upgrade nor refactoring of the existing model code will be adressed.
 
-If you want to propose a correction to an exixting model, or a new model implementation of an existing model project, please follow the recommendations described in the [Setting-up the environment](#setting-up-the-environment) section to develop in the proper Docker container. If you prefer to develop in a python virtual environment, please use the *Nox* session ``dev_dependencies`` that will create the proper virtualenv to develop.
-
+If you want to propose a correction to an exixting model, or a new model implementation of an existing model project, please follow the recommendations described in the [Setting-up the environment](#setting-up-the-environment) section to develop in the proper Docker container. If you prefer to develop in a python virtual environment, please use the *Nox* session ``dev_dependencies`` (as described in [Create the proper python development environment](#create-the-proper-python-development-environment)) that will create the proper virtualenv to develop in.
 
 
 ### New model project
 
-To start a new model project from scratch, we recommend to adopt the following procedure to develop your contribution. Of course the existing model project are good sources of inspiration of what you will have to do.
+To start a new model project from scratch, we recommend to adopt the following procedure to develop your contribution. The existing model project are good sources of inspiration of what you will have to do.
 
-#### Define the environment
-Choose Ubuntu image
-Choose the python version
+You can find in the [Model project files](#model-project-files) section the list of files and directories a model project should includes.
 
-##### Create the env.yaml file
-##### Build the docker image
+#### Setup the environment
 
-#### Initiate noxfile.py
-#### Initiate requirements.txt file
-pip, nox, torch version
+The first step is to initiate the required files that will permits to setup the development environment.
+
+As a reminder of the [Model project files](#model-project-files) section, the required files to define the environment are :
+
+* ``env.yaml`` lists the environment requirements, like the Ubuntu docker base image or the Python version.
+* ``noxfile.py`` is the Nox build tool configuration file that defines all targets available for the model project.
+* ``requirements.txt`` contains all the python dependencies of the project, generated using the ``pip freeze`` command.
+
+##### Create the env\.yaml file
+
+This file will actually be used later by the github actions workflow in charge of building the docker image of the model project, but we recommend to create and fill it now to fix :
+- the **Ubuntu image** you will work on,
+- the **Python version** you want to use.
+
+The format of this file is the following :
+```
+# This file defines the global environment dependencies for this model project.
+# It is read by the CI/CD workflows in charge of the tests (ai4sim-ci-cd.yaml)
+# and the build of the Docker image (images-ci-cd.yaml) to set the environment.
+python_version: 3.8
+ubuntu_base_image:
+  name: nvidia/cuda
+  tag: 11.7.1-cudnn8-runtime-ubuntu20.04
+```
+
+Note, the **Ubuntu base image** should be availaible on the *docker.io* registry, and the **Python version** chosen available in the apt repositories of the chosen **Ubuntu base image**.
+
+##### Initiate *noxfile.py*
+
+The ``noxfile.py`` file, implements all the *Nox* sessions available for the model project. This file should, at least, imports from the global file in ``tools/nox/nox_ref_file.py``, all the generic sessions. The minimal content of this file is then :
+
+```
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+This module simply load all the nox targets defined in the reference noxfile
+and make them available for the model project.
+This file can be enriched by model project specific targets.
+"""
+
+import os
+import sys
+import inspect
+
+# Insert the tools/nox folder to the python path to fetch the nox_ref_file.py content
+current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+common_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
+build_ref_dir = os.path.join(common_dir, "tools", "nox")
+sys.path.insert(0, build_ref_dir)
+
+# Fetch the nox_ref_file.py content
+from nox_ref_file import *
+
+# Insert below the model project specific targets
+
+```
+
+If needed, you can add some sessions, specific to the model project, at the and of the file.
+
+This file must be initiated now because the *Nox* sessions will be used to install the python dependencies (using the ``requirements.txt`` file we will see just below) either in the development docker image, or in the ``dev_dependencies`` virtual environment.
+
+##### Initiate *requirements.txt*
+
+Like the two first files, the ``requirements.txt`` is used to setup the development environment. It should include, at least, the *pip*, *nox*, *torch* and *lightning* version you plan to use:
+
+```
+pip==24.0
+nox==2024.4.15
+torch==1.13.1+cu117
+pytorch-lightning==1.5.7
+```
+
+Note this is not the final version of this file, because you will update it at the end of the process (see [Finalize the *requirements.txt*](#finalize-the-requirements.txt)), just before pushing your development branch to create a pull request. As a concequence, you can add other requirements right now, but any python library you will install, using ``pip install``, during your development process, will be included in the final version of the file.
+
+##### Build the development environment
+
+You are now ready to setup your development environment, either a *Docker container* or a Python *virtual environment*.
+
+###### Docker container
+
+To build your development docker image, use the generic ``Dockerfile`` in the ``docker`` folder.
+
+The 4 following parameters must be passed to the Dockerfile, the values being picked, for the 3 last ones, from the env.yaml file previously created :
+- MODEL_PROJECT_PATH : the path ``<domain>/<use-case>/<NN architecture>`` you are working on.
+- UBUNTU_IMAGE_NAME : the base Ubuntu docker image name indicated in the ``env.yaml`` file.
+- UBUNTU_IMAGE_TAG : the base Ubuntu docker image tag indicated in the ``env.yaml`` file.
+- PYTHON_VERS : the Python version indicated in the ``env.yaml`` file.
+
+To build the Docker image run from the repository root directory :
+
+```
+podman build \
+    -t model-collection:<domain>-<use-case>-<NN architecture> \
+    -f ./docker/Dockerfile . \
+    --build-arg MODEL_PROJECT_PATH=<domain>/<use-case>/<NN architecture> \
+    --build-arg UBUNTU_IMAGE_NAME=nvidia/cuda \
+    --build-arg UBUNTU_IMAGE_TAG=11.7.1-cudnn8-runtime-ubuntu20.04 \
+    --build-arg PYTHON_VERS=3.8
+```
+
+Finally, start the container, binding your source code path to ease the developement :
+
+```
+podman run -tid \
+    -v <domain>/<use-case>/<NN architecture>:/home/ai4sim/<domain>/<use-case>/<NN architecture> \
+    model-collection:<domain>-<use-case>-<NN architecture> \
+    bash
+```
+
+In the container, you can directly use the ``pip`` and ``python`` command of the system to respectively install the dependencies and execute your code.
+
+###### Virtual environment
 
 
-### 
+
+
+#### Model development
+##### Unit tests
+##### Functional tests
+
+### Pull request
+#### Finalize the *requirements.txt*
+#### Validate the CI/CD
+#### Open the pull request
