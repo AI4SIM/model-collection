@@ -339,7 +339,7 @@ The 4 following parameters must be passed to the Dockerfile, the values being pi
 To build the Docker image run from the repository root directory :
 
 ```
-podman build \
+docker build \
     -t model-collection:<domain>-<use-case>-<NN architecture> \
     -f ./docker/Dockerfile . \
     --build-arg MODEL_PROJECT_PATH=<domain>/<use-case>/<NN architecture> \
@@ -351,7 +351,7 @@ podman build \
 Finally, start the container, binding your source code path to ease the developement :
 
 ```
-podman run -tid \
+docker run -ti \
     -v <domain>/<use-case>/<NN architecture>:/home/ai4sim/<domain>/<use-case>/<NN architecture> \
     model-collection:<domain>-<use-case>-<NN architecture> \
     bash
@@ -361,12 +361,67 @@ In the container, you can directly use the ``pip`` and ``python`` command of the
 
 ###### Virtual environment
 
+To build your virtual environment, please be sure to have the Python version, indicated in our env.yaml file, installed on your system, and the *Nox* tool available has described [previously](#installation).
 
+Then it is recommended to use the *Nox* session ``dev_dependencies`` :
 
+```
+nox -s dev_dependencies
+source dev_dependencies/bin/activate
+```
 
 #### Model development
+
+During your development phase it is higtly recommended to integrate the code quality standard that have been adopted for this repository. The following points should be adressed and will be automatically checked by the CI/CD workflows when you push your code :
+
+- Linting
+- Unit tests
+- Functional tests 
+
+##### Linting
+
+The linting is a static code analysis in charge of checking the code formating to avoid some basic bugs and ensure an homogeneity of the code base with respect of the main Python checkstyle rules. We use [flake8](https://flake8.pycqa.org/en/latest/) and some plugins to rate the code.
+
+To evalute your checkstyle code quality run :
+```
+nox -s lint -v
+```
+
+The rating score must be 10/10, so all checkstyle violationreturned by the above command should be fixed.
+
+Nevertheless, if after all your best effort, you think a checkstyle violation cannot/should not be fixed, you can deactivate the lint checker on a given line of code with the [noqa](https://flake8.pycqa.org/en/3.1.1/user/ignoring-errors.html#in-line-ignoring-errors) directive:
+```
+example = lambda: 'example'  # noqa: E731
+```
+
 ##### Unit tests
+
+The new code should be provided with as much as possible unit tests. Because the main part of the code is based on *lightning* and *torch*, it is not interresting to test all classes and method inherited from these libraries, but there is still some part of code interresting to be tested.
+
+Note, there is no hard coverage requirement to push and merge some code on the repository, but the best effort should be done on unit tests developemnt, particularly for the functions you developed from scratch (e.g. utils functions).
+
+The unit test framework used is *pytest* and you can run your test suite using the *Nox* session ``tests`` :
+
+```
+nos -s tests -v
+```
+
 ##### Functional tests
+
+Each model project should embed functional tests in the ``ci`` folder, that ensure the training code is purely functional, i.e. without any precision or performance consideration.
+
+The principle of this functional test is to launch a training on a dummy dataset. To be sure to detect possible regression due to changes in the code, and not on the data source side, the dummy dataset must be generated synthetically. The ``ci`` folder must contains a ``generate_synthetic_data.py`` file in charge of the synthetic dataset generation based on the real data format.
+
+The ``ci`` folder must also contains :
+- a ``configs`` folder with the ligthning formated configuration file of the test training,
+- a ``requirements_data.txt`` listing the dependencies related to the functional tests.
+- a ``run.sh`` script file in charge of running the different training tests.
+
+The *Nox* session ``train_test`` allows to run the functional tests :
+```
+nos -s train_test -v
+```
+
 
 ### Pull request
 #### Finalize the *requirements.txt*
