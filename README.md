@@ -410,18 +410,25 @@ nos -s tests -v
 
 Each model project should embed functional tests in the ``ci`` folder, that ensure the training code is purely functional, i.e. without any precision or performance consideration.
 
-The principle of this functional test is to launch a training on a dummy dataset. To be sure to detect possible regression due to changes in the code, and not on the data source side, the dummy dataset must be generated synthetically. The ``ci`` folder must contains a ``generate_synthetic_data.py`` file in charge of the synthetic dataset generation based on the real data format.
+The principle of this functional test is to launch a training on a dummy dataset. To be sure to detect possible regression due to changes in the code, and not on the data source side, the dummy dataset must be generated synthetically. 
 
-The ``ci`` folder must also contains :
+The ``ci`` folder must contains 
+- a ``generate_synthetic_data.py`` file in charge of the synthetic dataset generation based on the real data format. This script must taking care of not erasing real data already present in the ``data`` folder. We sugges to raise an exception with an explicit message in case of presence of existing data in the targetted path. Future work, should address this issue making the data path configurable.
 - a ``configs`` folder with the ligthning formated configuration file of the test training,
-- a ``requirements_data.txt`` listing the dependencies related to the functional tests.
 - a ``run.sh`` script file in charge of running the different training tests.
+
+Optionally it can alos includes :
+- a ``requirements_data.txt`` listing the dependencies related to the synthetic data generation.
 
 The *Nox* session ``train_test`` allows to run the functional tests :
 ```
-nos -s train_test -v
+nox -s train_test -v
 ```
 
+By default, the synthetic data are kept in the ``data`` folder, after the tests had run. To clean the ``data`` folder at the end of the tests, use the ``clean_data`` option :
+```
+nox -s train_test -v -- clean_data
+```
 
 ### Pull request
 #### Finalize the *requirements.txt*
