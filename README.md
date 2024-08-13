@@ -436,6 +436,14 @@ nox -s train_test -v -- clean_data
 
 Now, your development are done, the last step is to open a *Pull Request* to propose your contribution.
 
+#### Document the model project
+
+In each model project a ``README.md`` file should :
+
+- introduce the scientific challenge adressed,
+- how to get the dataset,
+- briefly describe the model input and output variables and the NN architecture implemented.
+
 #### Finalize the *requirements.txt*
 
 Before creating the *Pull Request* itself, you must generate the final *requirements.txt* file to freeze all the python dependencies of your model project.
