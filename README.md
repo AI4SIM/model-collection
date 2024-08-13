@@ -11,12 +11,14 @@
     2. [Projects architecture](#projects-architecture)
 4. [Experiment a model project](#experiment-a-model-project)
     1. [Setting-up the environment](#setting-up-the-environment)
-        1. [Docker container](#docker-container)
-        2. [Virtual environment](#virtual-environment)
     2. [Prepare the dataset](#prepare-the-dataset)
     3. [Launch the training](#launch-the-training)
-        1. [Docker container](#docker-container)
-        2. [Virtual environment](#virtual-environment)
+5. [Contribute](#contribute)
+    1. [The Nox tool](#the-nox-tool)
+    2. [Existing model project](#existing-model-project)
+    3. [New model project](#new-model-project)
+    4. [Pull request](#pull-request)
+
 
 ## Philosophy
 
@@ -215,12 +217,12 @@ The nox target are also very useful to launch generic command during development
 
 ##### Run unit tests
 
-You can run the whole unit test suite of a use case, using ``pytest``, with ``nox -s tests``.
+You can run the whole unit test suite of a model project, using ``pytest``, with ``nox -s tests``.
 This target also prints out the coverage report and save a xml version in ``.ci-reports/``.
 
 ##### Run linting
 
-You can run the python linting of the code use case, using ``flake8``, with ``nox -s lint``.
+You can run the python linting of the code model project, using ``flake8``, with ``nox -s lint``.
 
 
 ### Existing model project
@@ -246,7 +248,7 @@ As a reminder of the [Model project files](#model-project-files) section, the re
 * ``noxfile.py`` is the Nox build tool configuration file that defines all targets available for the model project.
 * ``requirements.txt`` contains all the python dependencies of the project, generated using the ``pip freeze`` command.
 
-##### Create the env\.yaml file
+##### Create the *env.yaml* file
 
 This file will actually be used later by the github actions workflow in charge of building the docker image of the model project, but we recommend to create and fill it now to fix :
 - the **Ubuntu image** you will work on,
@@ -320,7 +322,7 @@ torch==1.13.1+cu117
 pytorch-lightning==1.5.7
 ```
 
-Note this is not the final version of this file, because you will update it at the end of the process (see [Finalize the *requirements.txt*](#finalize-the-requirements.txt)), just before pushing your development branch to create a pull request. As a concequence, you can add other requirements right now, but any python library you will install, using ``pip install``, during your development process, will be included in the final version of the file.
+Note this is not the final version of this file, because you will update it at the end of the process (see [Finalize the requirements.txt](#finalize-the-requirementstxt)), just before pushing your development branch to create a pull request. As a concequence, you can add other requirements right now, but any python library you will install, using ``pip install``, during your development process, will be included in the final version of the file.
 
 ##### Build the development environment
 
@@ -431,6 +433,52 @@ nox -s train_test -v -- clean_data
 ```
 
 ### Pull request
+
+Now, your development are done, the last step is to open a *Pull Request* to propose your contribution.
+
 #### Finalize the *requirements.txt*
-#### Validate the CI/CD
-#### Open the pull request
+
+Before creating the *Pull Request* itself, you must generate the final *requirements.txt* file to freeze all the python dependencies of your model project.
+
+In your developemnt environment use :
+```
+pip freeze > requirements.txt
+```
+
+Then commit this last change.
+
+#### Add the model project to the CI/CD workflows
+
+The CI/CD workflows are defined by the Github Actions Yaml files in the ``workflows`` folder. There are 2 different workflow :
+- the *code quality* CI/CD workflow : this workflow (see ``workflows/ai4sim-ci-cd.yaml``) is in charge of running tests and lint for all model project, to detect possible regressions. It is triggered on any changed done on a any branch and on any pull requests.
+- the *docker image builder* CI/CD workflow : this workflow (see ``workflows/images-ci-cd.yaml``) is in charge of building and publishing the docker images for all model projects. It is triggered on any changed done on the *main* branch and on any pull requests targetting the *main* branch.
+
+The CI/CD workflows run the same actions for all model projects listed in the *jobs/strategy/matrix/use-case* section of the Yaml files.
+
+To finalize your contribution you than have to add the path of your model project in all the CI/CI workflow files :
+```
+...
+jobs:
+    ...
+    strategy:
+      matrix:
+        use-case:
+          - cfd/combustion/gnns
+          - cfd/combustion/unets
+          - weather-forecast/gravity-wave-drag/cnns
+          - weather-forecast/ecrad-3d-correction/unets
+          - <domain>/<use-case>/<NN architecture>       <-- Your new model project path
+...
+```
+
+Then, commit these last changes and push your branch to github. It should trigger the CI/CD workflow related to the *code quality*. If all the CI/CD runs pass, you are now able to open a *Pull Request*.
+
+#### Open the *Pull Request*
+
+ Open a *Pull Request* to merge your development branch in the *main* branch, with a description of your contribution as much as possible complete.
+ 
+ The review process will be then taken in charge by the AI4SIM team. The *Pull Request* will be merged by the AI4SIM team once the following criterion will be met :
+ - at least 2 AI4SIM members have validated the PR,
+ - all CI/CD workflows pass.
+
+ Congratulation, you reach the end of the process ! Thank a lot for your contribution !!!
