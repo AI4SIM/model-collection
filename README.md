@@ -24,7 +24,7 @@
 
 This project contains a collection of models developed by the Atos AI4sim R&D team and is intended for research purposes. The current workflow is based entirely on NumPy, PyTorch, Dask and Lightning. Domain-specific librairies can be added, like PyTorch Geometric for graph neural networks.
 
-**The repository is organized as a collection of independant model implementation for various use-cases (UC). You will thus find a lot of duplicated code, because the focus has been made on the projects content. Nevertheless the CI/CD and development tools have been mutualized.**
+**The repository is organized as a collection of independant model implementation for various use-cases. You will thus find a lot of duplicated code, because the focus has been made on the model projects content. Nevertheless the CI/CD and development tools have been mutualized.**
 
 This project is licensed under the [APACHE 2.0 license.](http://www.apache.org/licenses/LICENSE-2.0)
 
@@ -453,7 +453,7 @@ The CI/CD workflows are defined by the Github Actions Yaml files in the ``workfl
 - the *code quality* CI/CD workflow : this workflow (see ``workflows/ai4sim-ci-cd.yaml``) is in charge of running tests and lint for all model project, to detect possible regressions. It is triggered on any changed done on a any branch and on any pull requests.
 - the *docker image builder* CI/CD workflow : this workflow (see ``workflows/images-ci-cd.yaml``) is in charge of building and publishing the docker images for all model projects. It is triggered on any changed done on the *main* branch and on any pull requests targetting the *main* branch.
 
-The CI/CD workflows run the same actions for all model projects listed in the *jobs/strategy/matrix/use-case* section of the Yaml files.
+The CI/CD workflows run the same actions for all model projects listed in the *jobs/strategy/matrix/model-project* section of the Yaml files.
 
 To finalize your contribution you than have to add the path of your model project in all the CI/CI workflow files :
 ```
@@ -462,7 +462,7 @@ jobs:
     ...
     strategy:
       matrix:
-        use-case:
+        model-project:
           - cfd/combustion/gnns
           - cfd/combustion/unets
           - weather-forecast/gravity-wave-drag/cnns

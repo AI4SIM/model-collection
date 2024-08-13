@@ -18,7 +18,7 @@ jobs:
 
     strategy:
       matrix:
-        use-case:
+        model-project:
           - cfd/combustion/gnns
           - cfd/combustion/unets
           - weather-forecast/gravity-wave-drag/cnns
@@ -47,7 +47,7 @@ jobs:
         uses: xom9ikk/split@v1
         id: split_path
         with:
-          string: ${{ matrix.use-case }}
+          string: ${{ matrix.model-project }}
           separator: /
           limit: -1
 
@@ -59,11 +59,11 @@ jobs:
           separator: ":"
           limit: -1
 
-      - name: Read use-case env.yaml file
+      - name: Read model-project env.yaml file
         uses: pietrobolcato/action-read-yaml@1.1.0
         id: uc_env
         with:
-          config: ${{ matrix.use-case }}/env.yaml
+          config: ${{ matrix.model-project }}/env.yaml
 
       - name: Build and push Docker images
         uses: docker/build-push-action@v5
@@ -74,7 +74,7 @@ jobs:
             UBUNTU_IMAGE_NAME=${{ steps.uc_env.outputs['ubuntu_base_image.name'] }}
             UBUNTU_IMAGE_TAG=${{ steps.uc_env.outputs['ubuntu_base_image.tag'] }}
             PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
-            MODEL_PROJECT_PATH=${{ matrix.use-case }}
+            MODEL_PROJECT_PATH=${{ matrix.model-project }}
           push: true
           tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._0 }}-${{ steps.split_path.outputs._1 }}-${{ steps.split_path.outputs._2 }}"
           labels: ${{ steps.meta.outputs.labels }}
