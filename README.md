@@ -71,7 +71,7 @@ All model's implementation should include the following folders and files:
 * ``ci/`` contains all the additional files required to run the functional tests. 
 
 Optionally it can also include the following folders and files :
-* ``data/`` contains the dataset configuartaion files and will contain the `raw` and `processed` data directories, and normalization factors (and optionally explicit train/val/test split sets), once the dataset as been downloaded and processed.
+* ``data/`` contains the dataset configuration files and will contain the `raw` and `processed` data directories, and normalization factors (and optionally explicit train/val/test split sets), once the dataset has been downloaded and processed.
 * ``notebooks/`` contains example Jupyter notebooks, for pedagogical purposes.
 * ``plotters.py`` takes care of plots generation for the test set.
 
@@ -173,13 +173,13 @@ python3 trainer.py --config configs/<training-config>.yaml
 
 ## Contribute
 
-Contribution to existing models or proposition of new projects are welcome. Please, develop in your own branch, following the below recommendations, and open a pull request to merge your branch on the **main** one. 
+Contribution to existing models or proposition of new projects are welcome. Please, develop in your own branch, following the recommendations below, and open a pull request to merge your branch to the **main** one. 
 
 ### The *Nox* tool
 
 The development mode for all model projects is based on a tool, called *[Nox](https://nox.thea.codes/en/stable/)*.
 
-*Nox* is a python build tool, that allows to define targets (in a similar way that Make does), to simplify command execution in development and CI/CD pipelines. By default, each *Nox* session (equivalent to a make target) is executed in a specific virtualenv that ensure code partitioning and experiments reproducibility.
+*Nox* is a python build tool, that allows defining targets (in a similar way that Make does), simplifying command execution in development and CI/CD pipelines. By default, each *Nox* session (equivalent to a make target) is executed in a specific virtualenv that ensure code partitioning and experiments reproducibility.
 
 #### Installation
 
@@ -209,11 +209,11 @@ The main sessions you will use for development will be :
 - ``tests``
 - ``lint``
 
-Note these seesions are used to run the CI/CD and build the docker image of a model project. So using them and making sure they succeed are major steps on the road of proposing your contribution.
+Note these sessions are used to run the CI/CD and build the docker image of a model project. So using them and making sure they succeed are major steps on the road of proposing your contribution.
 
 #### Create the proper python development environment
 
-The nox target are also very useful to launch generic command during development phase.
+The nox targets are also very useful to launch generic commands during development phase.
 
 ##### Run unit tests
 
@@ -227,20 +227,20 @@ You can run the python linting of the code model project, using ``flake8``, with
 
 ### Existing model project
 
-Please note, the maintenance policy of the repository is to consider a model project freezed from the moment when it is intergrated. It means you can open an issue, but the only major ones (bugs breaking the functionality or leading the model to be scientifically unrelevant) will be treated, but no upgrade nor refactoring of the existing model code will be adressed.
+Please note, the maintenance policy of the repository is to consider a model project freezed from the moment when it is intergrated. It means you can open an issue, but only the major ones (bugs breaking the functionality or leading the model to be scientifically unrelevant) will be treated, no upgrade nor refactoring of the existing model code will be adressed.
 
-If you want to propose a correction to an exixting model, or a new model implementation of an existing model project, please follow the recommendations described in the [Setting-up the environment](#setting-up-the-environment) section to develop in the proper Docker container. If you prefer to develop in a python virtual environment, please use the *Nox* session ``dev_dependencies`` (as described in [Create the proper python development environment](#create-the-proper-python-development-environment)) that will create the proper virtualenv to develop in.
+If you want to propose a correction to an existing model, or a new model implementation of an existing model project, please follow the recommendations described in the [Setting-up the environment](#setting-up-the-environment) section to develop in the proper Docker container. If you prefer to develop in a python virtual environment, please use the *Nox* session ``dev_dependencies`` (as described in [Create the proper python development environment](#create-the-proper-python-development-environment)) that will create the proper virtualenv to develop in.
 
 
 ### New model project
 
 To start a new model project from scratch, we recommend to adopt the following procedure to develop your contribution. The existing model project are good sources of inspiration of what you will have to do.
 
-You can find in the [Model project files](#model-project-files) section the list of files and directories a model project should includes.
+You can find in the [Model project files](#model-project-files) section the list of files and directories a model project should include.
 
 #### Setup the environment
 
-The first step is to initiate the required files that will permits to setup the development environment.
+The first step is to initiate the required files that will permit to setup the development environment.
 
 As a reminder of the [Model project files](#model-project-files) section, the required files to define the environment are :
 
@@ -307,7 +307,7 @@ from nox_ref_file import *
 
 ```
 
-If needed, you can add some sessions, specific to the model project, at the and of the file.
+If needed, you can add some sessions, specific to the model project, at the end of the file.
 
 This file must be initiated now because the *Nox* sessions will be used to install the python dependencies (using the ``requirements.txt`` file we will see just below) either in the development docker image, or in the ``dev_dependencies`` virtual environment.
 
@@ -326,7 +326,7 @@ Note this is not the final version of this file, because you will update it at t
 
 ##### Build the development environment
 
-You are now ready to setup your development environment, either a *Docker container* or a Python *virtual environment*.
+You are now ready to setup your development environment, either as a *Docker container* or a Python *virtual environment*.
 
 ###### Docker container
 
@@ -338,7 +338,7 @@ The 4 following parameters must be passed to the Dockerfile, the values being pi
 - UBUNTU_IMAGE_TAG : the base Ubuntu docker image tag indicated in the ``env.yaml`` file.
 - PYTHON_VERS : the Python version indicated in the ``env.yaml`` file.
 
-To build the Docker image run from the repository root directory :
+To build the Docker image from the repository root directory :
 
 ```
 docker build \
@@ -363,7 +363,7 @@ In the container, you can directly use the ``pip`` and ``python`` command of the
 
 ###### Virtual environment
 
-To build your virtual environment, please be sure to have the Python version, indicated in our env.yaml file, installed on your system, and the *Nox* tool available has described [previously](#installation).
+To build your virtual environment, please be sure to have the Python version indicated in our env.yaml file installed on your system, and the *Nox* tool available has described [previously](#installation).
 
 Then it is recommended to use the *Nox* session ``dev_dependencies`` :
 
@@ -389,7 +389,7 @@ To evalute your checkstyle code quality run :
 nox -s lint -v
 ```
 
-The rating score must be 10/10, so all checkstyle violationreturned by the above command should be fixed.
+The rating score must be 10/10, so all checkstyle violation returned by the above command should be fixed.
 
 Nevertheless, if after all your best effort, you think a checkstyle violation cannot/should not be fixed, you can deactivate the lint checker on a given line of code with the [noqa](https://flake8.pycqa.org/en/3.1.1/user/ignoring-errors.html#in-line-ignoring-errors) directive:
 ```
@@ -398,7 +398,7 @@ example = lambda: 'example'  # noqa: E731
 
 ##### Unit tests
 
-The new code should be provided with as much as possible unit tests. Because the main part of the code is based on *lightning* and *torch*, it is not interresting to test all classes and method inherited from these libraries, but there is still some part of code interresting to be tested.
+The new code should be provided with as many as possible unit tests. Because the main part of the code is based on *lightning* and *torch*, it is not interesting to test all classes and methods inherited from these libraries, but there is still some part of code interresting to be tested.
 
 Note, there is no hard coverage requirement to push and merge some code on the repository, but the best effort should be done on unit tests developemnt, particularly for the functions you developed from scratch (e.g. utils functions).
 
@@ -412,14 +412,14 @@ nos -s tests -v
 
 Each model project should embed functional tests in the ``ci`` folder, that ensure the training code is purely functional, i.e. without any precision or performance consideration.
 
-The principle of this functional test is to launch a training on a dummy dataset. To be sure to detect possible regression due to changes in the code, and not on the data source side, the dummy dataset must be generated synthetically. 
+The principle of this functional test is to launch a training on a dummy dataset. To be sure to detect a possible regression due to changes in the code, and not on the data source side, the dummy dataset must be generated synthetically. 
 
-The ``ci`` folder must contains 
-- a ``generate_synthetic_data.py`` file in charge of the synthetic dataset generation based on the real data format. This script must taking care of not erasing real data already present in the ``data`` folder. We sugges to raise an exception with an explicit message in case of presence of existing data in the targetted path. Future work, should address this issue making the data path configurable.
+The ``ci`` folder must contain : 
+- a ``generate_synthetic_data.py`` file in charge of the synthetic dataset generation based on the real data format. This script must take care of not erasing real data already present in the ``data`` folder. We suggest to raise an exception with an explicit message in case of presence of existing data in the targeted path. Future work should address this issue making the data path configurable.
 - a ``configs`` folder with the ligthning formated configuration file of the test training,
 - a ``run.sh`` script file in charge of running the different training tests.
 
-Optionally it can alos includes :
+Optionally it can also includes :
 - a ``requirements_data.txt`` listing the dependencies related to the synthetic data generation.
 
 The *Nox* session ``train_test`` allows to run the functional tests :
@@ -427,21 +427,21 @@ The *Nox* session ``train_test`` allows to run the functional tests :
 nox -s train_test -v
 ```
 
-By default, the synthetic data are kept in the ``data`` folder, after the tests had run. To clean the ``data`` folder at the end of the tests, use the ``clean_data`` option :
+By default, the synthetic data are kept in the ``data`` folder, after the tests have run. To clean the ``data`` folder at the end of the tests, use the ``clean_data`` option :
 ```
 nox -s train_test -v -- clean_data
 ```
 
 ### Pull request
 
-Now, your development are done, the last step is to open a *Pull Request* to propose your contribution.
+Now, your developments are done, the last step is to open a *Pull Request* to propose your contribution.
 
 #### Document the model project
 
 In each model project a ``README.md`` file should :
 
 - introduce the scientific challenge adressed,
-- how to get the dataset,
+- explain how to get the dataset,
 - briefly describe the model input and output variables and the NN architecture implemented.
 
 #### Finalize the *requirements.txt*
@@ -458,12 +458,12 @@ Then commit this last change.
 #### Add the model project to the CI/CD workflows
 
 The CI/CD workflows are defined by the Github Actions Yaml files in the ``workflows`` folder. There are 2 different workflow :
-- the *code quality* CI/CD workflow : this workflow (see ``workflows/ai4sim-ci-cd.yaml``) is in charge of running tests and lint for all model project, to detect possible regressions. It is triggered on any changed done on a any branch and on any pull requests.
-- the *docker image builder* CI/CD workflow : this workflow (see ``workflows/images-ci-cd.yaml``) is in charge of building and publishing the docker images for all model projects. It is triggered on any changed done on the *main* branch and on any pull requests targetting the *main* branch.
+- the *code quality* CI/CD workflow : this workflow (see ``workflows/ai4sim-ci-cd.yaml``) is in charge of running tests and lint for all model projects, to detect possible regressions. It is triggered by any change done on any branch and on any pull requests.
+- the *docker image builder* CI/CD workflow : this workflow (see ``workflows/images-ci-cd.yaml``) is in charge of building and publishing the docker images for all model projects. It is triggered by any changed done on the *main* branch and on any pull requests targeting the *main* branch.
 
 The CI/CD workflows run the same actions for all model projects listed in the *jobs/strategy/matrix/model-project* section of the Yaml files.
 
-To finalize your contribution you than have to add the path of your model project in all the CI/CI workflow files :
+To finalize your contribution you then have to add the path of your model project in all the CI/CI workflow files :
 ```
 ...
 jobs:
@@ -483,7 +483,7 @@ Then, commit these last changes and push your branch to github. It should trigge
 
 #### Open the *Pull Request*
 
- Open a *Pull Request* to merge your development branch in the *main* branch, with a description of your contribution as much as possible complete.
+ Open a *Pull Request* to merge your development branch to the *main* branch, with a description of your contribution as much as possible complete.
  
  The review process will be then taken in charge by the AI4SIM team. The *Pull Request* will be merged by the AI4SIM team once the following criterion will be met :
  - at least 2 AI4SIM members have validated the PR,
