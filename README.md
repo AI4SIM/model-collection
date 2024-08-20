@@ -332,7 +332,7 @@ You are now ready to setup your development environment, either as a *Docker con
 
 To build your development docker image, use the generic ``Dockerfile`` in the ``docker`` folder.
 
-The 4 following parameters must be passed to the Dockerfile, the values being picked, for the 3 last ones, from the env.yaml file previously created :
+The 4 following parameters are mandatory and must be passed to the Dockerfile, using the ``--build-arg`` option. For the 3 last ones, please use the values from the env.yaml file you previously created :
 - MODEL_PROJECT_PATH : the path ``<domain>/<use-case>/<NN architecture>`` you are working on.
 - UBUNTU_IMAGE_NAME : the base Ubuntu docker image name indicated in the ``env.yaml`` file.
 - UBUNTU_IMAGE_TAG : the base Ubuntu docker image tag indicated in the ``env.yaml`` file.
