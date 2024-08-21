@@ -265,7 +265,9 @@ ubuntu_base_image:
   tag: 11.7.1-cudnn8-runtime-ubuntu20.04
 ```
 
-Note, the **Ubuntu base image** should be availaible on the *docker.io* registry, and the **Python version** chosen available in the apt repositories of the chosen **Ubuntu base image**.
+Note, the **Ubuntu base image** should be availaible on the *docker.io* registry, and the **Python version** chosen must be available in the apt repositories of the chosen **Ubuntu base image**.
+
+> If you have chosen an **Ubuntu base image** with a pre-installed set of python libraries you plan to use (e.g. an nvidia pytorch image), You must report in the *env.yaml* file the python version already availaible in the image, to prevent a new install of a different python version that will make the pre-installed libraries unavailable.
 
 ##### Initiate *noxfile.py*
 
