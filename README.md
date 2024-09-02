@@ -53,7 +53,7 @@ For example, the code in the path ``cfd/combustion/gnns`` implements some **Grap
 
 ### Model Project Files
 
-To take care of the boilerplate, early stopping, tensorboard logging, training parallelization, etc., we integrate directly with PyTorch Lightning. For each new model, we use the same code architecture, described below.
+To take care of the boilerplate, early stopping, tensorboard logging, training parallelization, etc., we integrate them directly with PyTorch Lightning. For each new model, we use the same code architecture, described below.
 
 All model implementations should include the following folders and files:
 
@@ -97,7 +97,7 @@ Each model can be experimented using a python environment dedicated to the proje
 
 #### Docker Container
 
-The AI4SIM GitHub CI/CD publishes in the [GitHub registry](https://github.com/AI4SIM/model-collection/pkgs/container/model-collection) a docker image dedicated to each model project proposed in the **Model collection** repository. Each image is built on a public **Ubuntu** base image (e.g. *nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04*). All the model project's requirements have been installed and the model project code has been added in ``/home/ai4sim/<domain>/<use-case>/<NN architecture>``.
+The AI4SIM GitHub CI/CD publishes in the [GitHub registry](https://github.com/AI4SIM/model-collection/pkgs/container/model-collection) a docker image dedicated to each model project proposed in the **Model collection** repository. Each image is built on a public **Ubuntu** base image (e.g. *nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04*). The model project code has been added in ``/home/ai4sim/<domain>/<use-case>/<NN architecture>`` and its requirements have been installed in the container.
 
 Each image can be identified using its docker tag, ``<domain>-<use-case>-<NN architecture>``, that is automatically built from the model project path ``<domain>/<use-case>/<NN architecture>``. For example, you can pull the docker images for the ``weather-forecast/ecrad-3d-correction/unets`` model project using:
 
