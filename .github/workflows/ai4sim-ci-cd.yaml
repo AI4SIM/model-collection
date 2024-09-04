@@ -8,7 +8,7 @@ jobs:
 
     strategy:
       matrix:
-        use-case:
+        model-project:
           - cfd/combustion/gnns
           - cfd/combustion/unets
           - weather-forecast/gravity-wave-drag/cnns
@@ -19,11 +19,11 @@ jobs:
     - name: Checkout sources
       uses: actions/checkout@v2
 
-    - name: Read use-case env.yaml file
+    - name: Read model-project env.yaml file
       uses: pietrobolcato/action-read-yaml@1.1.0
       id: uc_env
       with:
-        config: ${{ matrix.use-case }}/env.yaml
+        config: ${{ matrix.model-project }}/env.yaml
 
     - name: Set up Python ${{ steps.uc_env.outputs['python_version'] }}
       uses: actions/setup-python@v2
@@ -31,24 +31,24 @@ jobs:
         python-version: ${{ steps.uc_env.outputs['python_version'] }}
 
     - name: Install nox build tool
-      run: pip3 install $(grep nox== ${{ matrix.use-case }}/requirements.txt)
+      run: pip3 install $(grep nox== ${{ matrix.model-project }}/requirements.txt)
 
     - name: Analysing the code with flake8
-      working-directory: ${{ matrix.use-case }}
+      working-directory: ${{ matrix.model-project }}
       run: nox -s lint -v
 
     - name: Run unit tests with coverage report
-      working-directory: ${{ matrix.use-case }}
+      working-directory: ${{ matrix.model-project }}
       run: nox -s tests -v
 
     - name: Coverage Commentator
       uses: 5monkeys/cobertura-action@master
       with:
-        path: ${{ matrix.use-case }}/.ci-reports/pycoverage.xml
+        path: ${{ matrix.model-project }}/.ci-reports/pycoverage.xml
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         minimum_coverage: 0
         fail_below_threshold: false
         show_missing: true
         link_missing_lines: true
-        link_missing_lines_source_dir: ${{ matrix.use-case }}
-        report_name: Coverage report for ${{ matrix.use-case }} use-case
+        link_missing_lines_source_dir: ${{ matrix.model-project }}
+        report_name: Coverage report for ${{ matrix.model-project }} model project

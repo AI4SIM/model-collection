@@ -12,8 +12,8 @@
 
 """
 This module simply load all the nox targets defined in the reference noxfile
-and make them available for the use-case.
-This file can be enriched by use case specific targets.
+and make them available for the model project.
+This file can be enriched by model project specific targets.
 """
 
 import os
@@ -29,4 +29,4 @@ sys.path.insert(0, build_ref_dir)
 # Fetch the nox_ref_file.py content
 from nox_ref_file import *
 
-# Insert below the use case specific targets
+# Insert below the model project specific targets
