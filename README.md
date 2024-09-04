@@ -37,7 +37,7 @@ Currently, the models that have been developed are based on the following use-ca
 
 - Weather Forecast
     - Gravity Wave Drag (with CNNs), from ECMWF
-    - 3D Bias Correction (with UNets), from ECMWF
+    - 3D cloud radiative effect correction (with UNets), from ECMWF
 
 ## Project Organization
 
@@ -75,7 +75,7 @@ Optionally, it can also include the following folders and files:
 
 ### Project Architecture
 
-Each model project is made of two pipelines:
+Each model project is made of two Lightning pipelines:
 
 * Data pipeline: a **DataModule** wraps a Dataset to provide data (with dataloaders, preprocessing...);
 * Model pipeline: a **Module** compiles a neural network architecture with its optimizer.
