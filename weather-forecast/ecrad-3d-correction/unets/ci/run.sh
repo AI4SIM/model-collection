@@ -12,4 +12,3 @@
 # limitations under the License.
 
 python3 trainer.py --config configs/unet_test.yaml
-rm -r data/

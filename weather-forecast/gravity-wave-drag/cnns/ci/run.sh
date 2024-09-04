@@ -13,4 +13,3 @@
 
 python3 trainer.py --config configs/cnn_test.yaml
 python3 trainer.py --config configs/mlp_test.yaml
-rm -r data/
