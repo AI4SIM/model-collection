@@ -11,5 +11,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-python3 trainer.py --config configs/unets_test.yaml
-rm -r data/
+python3 trainer.py --config configs/data.yaml
