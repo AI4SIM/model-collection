@@ -26,7 +26,7 @@ import config # noqa:
 
 class ThreeDCorrectionDataprocSyntheticData(ThreeDCorrectionDataproc):
     """
-    Download, preprocess and shard the data of the 3DCorrection use-case.
+    Generate, preprocess and shard synthetic data of the 3DCorrection use-case.
     To be called once before experiments to build the dataset on the filesystem.
     """
 
@@ -102,5 +102,5 @@ class ThreeDCorrectionDataprocSyntheticData(ThreeDCorrectionDataproc):
 
 if __name__ == '__main__':
 
-    data = ThreeDCorrectionDataprocSyntheticData("/tmp")
+    data = ThreeDCorrectionDataprocSyntheticData(config.data_path )
     data.process()
