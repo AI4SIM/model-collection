@@ -10,9 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from dask.config import set
 import dask.array as da
-from typing import Tuple
 import os.path as osp
 import numpy as np
 import xarray as xr
@@ -23,6 +21,7 @@ sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
 
 from dataproc import ThreeDCorrectionDataproc # noqa:
 import config # noqa:
+
 
 class ThreeDCorrectionDataprocSyntheticData(ThreeDCorrectionDataproc):
     """
@@ -59,48 +58,49 @@ class ThreeDCorrectionDataprocSyntheticData(ThreeDCorrectionDataproc):
         self.patchstep = patchstep
         self.num_workers = num_workers
 
-
     def download(self) -> xr.DataArray:
         """Create data folder with fake raw data"""
-        # Generate fake data
         mu = 0.0
         sigma = 1.0
-        
-        sca_inputs = da.from_array(np.random.normal(mu, sigma, (33920,17)).astype('float32'))
-        col_inputs = da.from_array(np.random.normal(mu, sigma, (33920,137,27)).astype('float32'))
-        hl_inputs = da.from_array(np.random.normal(mu, sigma, (33920,138,2)).astype('float32'))
-        pressure_hl = da.from_array(np.random.normal(mu, sigma, (33920,138,1)).astype('float32'))
-        inter_inputs = da.from_array(np.random.normal(mu, sigma, (33920,136,1)).astype('float32'))
+
+        sca_inputs = da.from_array(np.random.normal(mu, sigma, (33920, 17)).astype('float32'))
+        col_inputs = da.from_array(np.random.normal(mu, sigma, (33920, 137, 27)).astype('float32'))
+        hl_inputs = da.from_array(np.random.normal(mu, sigma, (33920, 138, 2)).astype('float32'))
+        pressure_hl = da.from_array(np.random.normal(mu, sigma, (33920, 138, 1)).astype('float32'))
+        inter_inputs = da.from_array(np.random.normal(mu, sigma, (33920, 136, 1)).astype('float32'))
         lat = da.from_array(np.random.normal(mu, sigma, (33920,)).astype('float32'))
         lon = da.from_array(np.random.normal(mu, sigma, (33920,)).astype('float32'))
-        flux_dn_sw = da.from_array(np.random.normal(mu, sigma, (33920,138)).astype('float32'))
-        flux_up_sw = da.from_array(np.random.normal(mu, sigma, (33920,138)).astype('float32'))
-        flux_dn_lw = da.from_array(np.random.normal(mu, sigma, (33920,138)).astype('float32'))
-        flux_up_lw = da.from_array(np.random.normal(mu, sigma, (33920,138)).astype('float32'))
-        hr_sw = da.from_array(np.random.normal(mu, sigma, (33920,137)).astype('float32'))
-        hr_lw = da.from_array(np.random.normal(mu, sigma, (33920,137)).astype('float32'))
-        
-        xrds = xr.Dataset(
-                data_vars=dict(
-                    sca_inputs=({"column": 33920,"sca_variables": 17},sca_inputs),
-                    col_inputs=({"column": 33920,"level": 137, "col_variables": 17},col_inputs),
-                    hl_inputs=({"column": 33920, "half_level": 138, "hl_variable": 2},hl_inputs),
-                    pressure_hl=({"column": 33920, "half_level": 138, "p_variable": 1},pressure_hl),
-                    inter_inputs=({"column": 33920, "level_interface": 136, "inter_variable": 1},inter_inputs),
-                    lat=({"column": 33920},lat),
-                    lon=({"column": 33920},lon),
-                    flux_dn_sw=({"column": 33920, "half_level": 138},flux_dn_sw),
-                    flux_up_sw=({"column": 33920, "half_level": 138},flux_up_sw),
-                    flux_dn_lw=({"column": 33920, "half_level": 138},flux_dn_lw),
-                    flux_up_lw=({"column": 33920, "half_level": 138},flux_up_lw),
-                    hr_sw=({"column": 33920, "level": 137},hr_sw),
-                    hr_lw=({"column": 33920, "level": 137},hr_lw)),
-                attrs=dict(description="Weather fake data.")                
-                )    
+        flux_dn_sw = da.from_array(np.random.normal(mu, sigma, (33920, 138)).astype('float32'))
+        flux_up_sw = da.from_array(np.random.normal(mu, sigma, (33920, 138)).astype('float32'))
+        flux_dn_lw = da.from_array(np.random.normal(mu, sigma, (33920, 138)).astype('float32'))
+        flux_up_lw = da.from_array(np.random.normal(mu, sigma, (33920, 138)).astype('float32'))
+        hr_sw = da.from_array(np.random.normal(mu, sigma, (33920, 137)).astype('float32'))
+        hr_lw = da.from_array(np.random.normal(mu, sigma, (33920, 137)).astype('float32'))
+
+        xrds = xr.Dataset(data_vars=dict(sca_inputs=({"column": 33920, "sca_variables": 17},
+                                                     sca_inputs),
+                          col_inputs=({"column": 33920, "level": 137, "col_variables": 17},
+                                      col_inputs),
+                          hl_inputs=({"column": 33920, "half_level": 138, "hl_variable": 2},
+                                     hl_inputs),
+                          pressure_hl=({"column": 33920, "half_level": 138, "p_variable": 1},
+                                       pressure_hl),
+                          inter_inputs=({"column": 33920, "level_interface": 136,
+                                         "inter_variable": 1}, inter_inputs),
+                          lat=({"column": 33920}, lat),
+                          lon=({"column": 33920}, lon),
+                          flux_dn_sw=({"column": 33920, "half_level": 138}, flux_dn_sw),
+                          flux_up_sw=({"column": 33920, "half_level": 138}, flux_up_sw),
+                          flux_dn_lw=({"column": 33920, "half_level": 138}, flux_dn_lw),
+                          flux_up_lw=({"column": 33920, "half_level": 138}, flux_up_lw),
+                          hr_sw=({"column": 33920, "level": 137}, hr_sw),
+                          hr_lw=({"column": 33920, "level": 137}, hr_lw)),
+                          attrs=dict(description="Weather fake data.")
+                          )
         return xrds
-    
+
 
 if __name__ == '__main__':
 
-    data = ThreeDCorrectionDataprocSyntheticData(config.data_path )
+    data = ThreeDCorrectionDataprocSyntheticData(config.data_path)
     data.process()
