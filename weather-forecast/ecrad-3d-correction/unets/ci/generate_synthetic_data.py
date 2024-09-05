@@ -19,8 +19,8 @@ import sys
 
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
 
-from dataproc import ThreeDCorrectionDataproc # noqa:
-import config # noqa:
+from dataproc import ThreeDCorrectionDataproc # noqa:  E402
+import config # noqa:  E402
 
 
 class ThreeDCorrectionDataprocSyntheticData(ThreeDCorrectionDataproc):
