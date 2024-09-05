@@ -147,7 +147,7 @@ def generate_synthetic_data(session):
 
     # Install requirement related to synthetic data generation
     req_file = "ci/requirements_data.txt"
-    if os.path.isFile(req_file):
+    if os.path.isfile(req_file):
         session.run("python3", "-m", "pip", "install","-r", req_file)
 
     # Generate the data
