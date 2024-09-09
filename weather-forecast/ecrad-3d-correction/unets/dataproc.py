@@ -106,7 +106,7 @@ class ThreeDCorrectionDataproc:
             'sca_inputs', 'col_inputs', 'hl_inputs', 'inter_inputs',
             'flux_dn_sw', 'flux_up_sw', 'flux_dn_lw', 'flux_up_lw', 'hr_sw', 'hr_lw']
         dataset_len = xr_array.dims['column']
-       
+
         self.shard_size = dataset_len // self.n_shards
 
         set(scheduler='threads')
