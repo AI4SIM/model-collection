@@ -17,7 +17,7 @@ import xarray as xr
 import os
 import sys
 
-sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
+sys.path.insert(1, "/".join(osp.realpath(__file__).split("/")[0:-2]))
 
 from dataproc import ThreeDCorrectionDataproc # noqa:  E402
 import config # noqa:  E402
