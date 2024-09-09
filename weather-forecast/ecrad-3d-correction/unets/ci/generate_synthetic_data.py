@@ -14,7 +14,6 @@ import dask.array as da
 import os.path as osp
 import numpy as np
 import xarray as xr
-import os
 import sys
 
 sys.path.insert(1, "/".join(osp.realpath(__file__).split("/")[0:-2]))
