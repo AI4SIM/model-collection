@@ -65,7 +65,7 @@ class Trainer(pl.Trainer):
         results = super().test(**kwargs)[0]
         with open(os.path.join(config.artifacts_path, "results.json"), "w") as f:
             json.dump(results, f)
-        torch.save(self.model.net, os.path.join(config.artifacts_path, 'model.pth'))
+        torch.save(self.model, os.path.join(config.artifacts_path, 'model.pth'))
 
 
 def main():
