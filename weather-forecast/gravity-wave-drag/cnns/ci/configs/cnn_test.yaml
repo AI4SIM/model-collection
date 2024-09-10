@@ -10,24 +10,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-model:
-    class_path: models.LitCNN
-    init_args:
-        in_channels: 5
-        init_feat: 16
-        out_channels: 126
-        conv_size: 1
-        pool_size: 2
-        lr: .0001
+fit:
+    model:
+        class_path: models.LitCNN
+        init_args:
+            in_channels: 5
+            init_feat: 16
+            out_channels: 126
+            conv_size: 1
+            pool_size: 2
+            lr: .0001
 
-data:
-    class_path: data.NOGWDDataModule
-    init_args:
-        batch_size: 1
-        num_workers: 0
-
-trainer:
-    max_epochs: 1
-    accelerator: "cpu"
-    devices: 
-        - 0
+    data:
+        class_path: data.NOGWDDataModule
+        init_args:
+            batch_size: 10
+            num_workers: 0
+    
+    trainer:
+        max_epochs: 1
+        accelerator: "cpu"
+        devices: 
+            - 0
