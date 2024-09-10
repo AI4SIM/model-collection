@@ -11,4 +11,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-python3 trainer.py --config ./ci/configs/data.yaml
+python3 trainer.py --config ./ci/configs/unets_test.yaml
