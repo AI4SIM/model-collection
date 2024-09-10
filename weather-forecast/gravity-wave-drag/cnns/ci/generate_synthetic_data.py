@@ -13,7 +13,7 @@
 from os.path import join, exists
 from os import makedirs
 from h5py import File
-from yaml import dump
+from yaml import dump, safe_load
 import numpy as np
 import sys
 import os
@@ -25,22 +25,26 @@ import config  # noqa:
 
 def create_data():
     """Create data folder with fake raw data"""
+    filepath=join(config.root_path,'ci/configs', 'mlp_test.yaml')
     filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5','test_4.h5','test_5.h5','test_6.h5']
-    splitting_ratios = (0.6, 0.2)
     file_split = {}
 
+    with open(filepath, 'r') as file:
+        params = safe_load(file)
+
+    row_feats = params['fit']['data']['init_args']['shard_len']
     if (not exists(config.data_path)):
         makedirs(join(config.data_path, "raw"))
         for file_h5 in filenames:
             with File(join(config.data_path, "raw", file_h5), 'w') as f:
-                f['/x'] = np.random.normal(0,1,(100,191)).astype('float32')
-                f['/y'] = np.random.normal(0,1,(100,126)).astype('float32')
+                f['/x'] = np.random.normal(0,1,(row_feats,191)).astype('float32')
+                f['/y'] = np.random.normal(0,1,(row_feats,126)).astype('float32')
 
         temp_file_path = join(config.data_path, 'filenames.yaml')
         with open(temp_file_path, 'w') as tmpfile:
             dump(filenames, tmpfile)
         
-        tr, va = splitting_ratios
+        tr, va = params['fit']['data']['init_args']['splitting_ratios']
         length = len(filenames)
         
         for element in filenames:    
