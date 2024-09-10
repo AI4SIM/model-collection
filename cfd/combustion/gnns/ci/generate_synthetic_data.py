@@ -25,7 +25,8 @@ import config  # noqa:
 
 def create_data():
     """Create data folder with fake raw data"""
-    filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5', 'test_4.h5', 'test_5.h5', 'test_6.h5', 'test_7.h5']
+    filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5',
+                 'test_4.h5', 'test_5.h5', 'test_6.h5', 'test_7.h5']
 
     if (not exists(config.data_path)):
         makedirs(join(config.data_path, "raw"))
