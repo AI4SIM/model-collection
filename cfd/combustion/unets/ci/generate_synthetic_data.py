@@ -14,7 +14,7 @@ from os.path import join, exists
 from os import makedirs
 from h5py import File
 from yaml import dump
-from numpy import zeros
+import numpy as np
 import sys
 import os
 
@@ -31,9 +31,9 @@ def create_data():
         makedirs(join(config.data_path, "raw"))
         for file_h5 in filenames:
             with File(join(config.data_path, "raw", file_h5), 'w') as f:
-                f['filt_8'] = zeros((320, 160, 160))
-                f['filt_grad_8'] = zeros((320, 160, 160))
-                f['grad_filt_8'] = zeros((320, 160, 160))
+                f['filt_8'] = np.random.normal(0, 1, (320, 160, 160))
+                f['filt_grad_8'] = np.random.normal(0, 1, (320, 160, 160))
+                f['grad_filt_8'] = np.random.normal(0, 1, (320, 160, 160))
 
         temp_file_path = join(config.data_path, 'filenames.yaml')
         with open(temp_file_path, 'w') as tmpfile:
