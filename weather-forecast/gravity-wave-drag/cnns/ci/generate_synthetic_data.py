@@ -14,7 +14,7 @@ from os.path import join, exists
 from os import makedirs
 from h5py import File
 from yaml import dump
-from numpy import zeros
+import numpy as np
 import sys
 import os
 
@@ -25,18 +25,33 @@ import config  # noqa:
 
 def create_data():
     """Create data folder with fake raw data"""
-    filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5']
+    filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5','test_4.h5','test_5.h5','test_6.h5']
+    splitting_ratios = (0.6, 0.2)
+    file_split = {}
 
     if (not exists(config.data_path)):
         makedirs(join(config.data_path, "raw"))
         for file_h5 in filenames:
             with File(join(config.data_path, "raw", file_h5), 'w') as f:
-                f['/x'] = zeros((191))
-                f['/y'] = zeros((126))
+                f['/x'] = np.random.normal(0,1,(100,191)).astype('float32')
+                f['/y'] = np.random.normal(0,1,(100,126)).astype('float32')
 
-        temp_file_path = join(config.data_path, 'filenames-split.yaml')
+        temp_file_path = join(config.data_path, 'filenames.yaml')
         with open(temp_file_path, 'w') as tmpfile:
             dump(filenames, tmpfile)
+        
+        tr, va = splitting_ratios
+        length = len(filenames)
+        
+        for element in filenames:    
+            file_split['train'] = filenames[:int(tr * length)]
+            file_split['val'] = filenames[int(tr * length):int((tr + va) * length)]
+            file_split['test'] = filenames[int((tr + va) * length):]
+        
+        temp_file_path = join(config.data_path, 'filenames-split.yaml')
+        with open(temp_file_path, 'w') as tmpfile:
+            dump(file_split, tmpfile)
+
     else:
         raise Exception(f"Remove manually {config.data_path}")
 
