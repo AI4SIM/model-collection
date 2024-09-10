@@ -137,9 +137,9 @@ class NOGWDDataModule(pl.LightningDataModule):
     is randomized.
     """
 
-    def __init__(self, 
-                 batch_size: int, 
-                 num_workers: int, 
+    def __init__(self,
+                 batch_size: int,
+                 num_workers: int,
                  splitting_ratios: Tuple[float, float] = (0.8, 0.1),
                  shard_len: int = 2355840) -> None:
         """Init the NOGWDDataModule class.
