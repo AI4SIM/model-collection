@@ -22,8 +22,8 @@ fit:
     data:
         class_path: data.NOGWDDataModule
         init_args:
-            batch_size: 1
-            num_workers: 0
+            batch_size: 10
+            num_workers: 1
     
     trainer:
         max_epochs: 1
