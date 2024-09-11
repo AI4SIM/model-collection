@@ -41,6 +41,10 @@ jobs:
       working-directory: ${{ matrix.model-project }}
       run: nox -s tests -v
 
+    - name: Run functional tests
+      working-directory: ${{ matrix.model-project }}
+      run: nox -s train_test -v -- clean_data 
+
     - name: Coverage Commentator
       uses: 5monkeys/cobertura-action@master
       with:

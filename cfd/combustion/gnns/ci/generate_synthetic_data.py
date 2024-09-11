@@ -14,25 +14,26 @@ from os.path import join, exists
 from os import makedirs
 from h5py import File
 from yaml import dump
-from numpy import zeros
+import numpy as np
 import sys
-import config
 import os
 
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
 
+import config  # noqa:
+
 
 def create_data():
     """Create data folder with fake raw data"""
-    filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5']
+    filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5',
+                 'test_4.h5', 'test_5.h5', 'test_6.h5', 'test_7.h5']
 
     if (not exists(config.data_path)):
         makedirs(join(config.data_path, "raw"))
         for file_h5 in filenames:
             with File(join(config.data_path, "raw", file_h5), 'w') as f:
-                f['filt_8'] = zeros((10, 10, 10))
-                f['filt_grad_8'] = zeros((10, 10, 10))
-                f['grad_filt_8'] = zeros((10, 10, 10))
+                f['/c_filt'] = np.random.normal(0, 1, (20, 20, 20))
+                f['/c_grad_filt'] = np.random.normal(0, 1, (20, 20, 20))
 
         temp_file_path = join(config.data_path, 'filenames.yaml')
         with open(temp_file_path, 'w') as tmpfile:

@@ -1,0 +1,6 @@
+climetlab==0.20.1
+dask==2023.5.0
+numpy==1.21.2
+randomname==0.1.5
+torch==1.13.1
+xarray==2023.1.0

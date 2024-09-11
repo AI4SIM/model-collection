@@ -34,9 +34,8 @@ class NOGWDDataset(torch.utils.data.Dataset):
 
     x_feat = 191
     y_feat = 126
-    shard_len = 2355840  # FIXME: 'shard_len' is hardcoded, but should be dynamically set.""
 
-    def __init__(self, root: str, mode: str) -> None:
+    def __init__(self, root: str, mode: str, shard_len: int) -> None:
         """Create the Dataset.
 
         Args:
@@ -45,9 +44,9 @@ class NOGWDDataset(torch.utils.data.Dataset):
                 model in the normalization layer.
         """
         super().__init__()
-        print('******************************')
         self.root = root
         self.mode = mode
+        self.shard_len = shard_len
 
         self.x, self.y = self.load()
 
@@ -138,7 +137,11 @@ class NOGWDDataModule(pl.LightningDataModule):
     is randomized.
     """
 
-    def __init__(self, batch_size: int, num_workers: int) -> None:
+    def __init__(self,
+                 batch_size: int,
+                 num_workers: int,
+                 splitting_ratios: Tuple[float, float] = (0.8, 0.1),
+                 shard_len: int = 2355840) -> None:
         """Init the NOGWDDataModule class.
 
         Args:
@@ -147,6 +150,8 @@ class NOGWDDataModule(pl.LightningDataModule):
         """
         self.batch_size = batch_size
         self.num_workers = num_workers
+        self.splitting_ratios = splitting_ratios
+        self.shard_len = shard_len
         super().__init__()
         self.train = None
         self.val = None
@@ -163,11 +168,11 @@ class NOGWDDataModule(pl.LightningDataModule):
                 train and val DataLoaders. If 'test', it will prepare the test DataLoader.
         """
         if stage == 'fit':
-            self.train = NOGWDDataset(config.data_path, 'train')
-            self.val = NOGWDDataset(config.data_path, 'val')
+            self.train = NOGWDDataset(config.data_path, 'train', self.shard_len)
+            self.val = NOGWDDataset(config.data_path, 'val', self.shard_len)
 
         if stage == 'test':
-            self.test = NOGWDDataset(config.data_path, 'test')
+            self.test = NOGWDDataset(config.data_path, 'test', self.shard_len)
 
     def train_dataloader(self) -> torch.utils.data.DataLoader:
         """Return the train DataLoader.

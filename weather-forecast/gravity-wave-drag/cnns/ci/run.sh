@@ -1,3 +1,4 @@
+#!/usr/bin/bash
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -10,26 +11,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-train:
-    - 2015-01-01.h5
-    - 2015-01-31.h5
-    - 2015-03-02.h5
-    - 2015-04-01.h5
-    - 2015-05-01.h5
-    - 2015-05-31.h5
-    - 2015-06-30.h5
-    - 2015-07-30.h5
-    - 2015-08-29.h5
-    - 2015-09-28.h5
-    - 2015-10-28.h5
-    - 2015-11-27.h5
-
-test:
-    - 2017-02-19.h5
-    - 2017-07-19.h5
-    - 2017-11-16.h5
-
-val:
-    - 2016-02-25.h5
-    - 2016-06-24.h5
-    - 2016-12-21.h5
+python3 trainer.py --config ./ci/configs/cnn_test.yaml
+python3 trainer.py --config ./ci/configs/mlp_test.yaml

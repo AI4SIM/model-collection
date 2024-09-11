@@ -32,7 +32,8 @@ class ThreeDCorrectionDataproc:
                  subset: str = None,
                  timestep: int = 500,
                  patchstep: int = 1,
-                 num_workers: int = 16) -> None:
+                 num_workers: int = 16,
+                 n_shards: int = 1) -> None:
         """
         Preprocess and shard data on disk.
 
@@ -55,6 +56,7 @@ class ThreeDCorrectionDataproc:
         self.timestep = timestep
         self.patchstep = patchstep
         self.num_workers = num_workers
+        self.n_shards = n_shards
 
     def process(self) -> None:
         """
@@ -104,8 +106,8 @@ class ThreeDCorrectionDataproc:
             'sca_inputs', 'col_inputs', 'hl_inputs', 'inter_inputs',
             'flux_dn_sw', 'flux_up_sw', 'flux_dn_lw', 'flux_up_lw', 'hr_sw', 'hr_lw']
         dataset_len = xr_array.dims['column']
-        n_shards = 53 * 2 ** 6
-        self.shard_size = dataset_len // n_shards
+
+        self.shard_size = dataset_len // self.n_shards
 
         set(scheduler='threads')
         data = {}
@@ -180,5 +182,5 @@ class ThreeDCorrectionDataproc:
 
 if __name__ == '__main__':
     import config  # noqa: F401 'config' imported but unused
-    dataproc = ThreeDCorrectionDataproc("/tmp")
+    dataproc = ThreeDCorrectionDataproc("/tmp", n_shards=(53 * 2 ** 6))
     dataproc.process()

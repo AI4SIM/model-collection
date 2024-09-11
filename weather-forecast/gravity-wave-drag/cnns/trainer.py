@@ -73,6 +73,7 @@ class Trainer(pl.Trainer):
 def main():
     """Instantiate the CLI and launch the trainer."""
     cli = LightningCLI(trainer_class=Trainer)
+    cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 
 

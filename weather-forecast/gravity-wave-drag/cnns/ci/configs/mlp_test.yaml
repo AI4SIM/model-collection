@@ -10,21 +10,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-- 2015-01-01.h5
-- 2015-01-31.h5
-- 2015-03-02.h5
-- 2015-04-01.h5
-- 2015-05-01.h5
-- 2015-05-31.h5
-- 2015-06-30.h5
-- 2015-07-30.h5
-- 2015-08-29.h5
-- 2015-09-28.h5
-- 2015-10-28.h5
-- 2015-11-27.h5
-- 2017-02-19.h5
-- 2017-07-19.h5
-- 2017-11-16.h5
-- 2016-02-25.h5
-- 2016-06-24.h5
-- 2016-12-21.h5
+fit:
+    model:
+        class_path: models.LitMLP
+        init_args:
+            in_channels: 191
+            hidden_channels: 256
+            out_channels: 126
+            lr: .0001
+
+    data:
+        class_path: data.NOGWDDataModule
+        init_args:
+            batch_size: 10
+            num_workers: 1
+            splitting_ratios: [0.6, 0.2]
+            shard_len: 100
+    
+    trainer:
+        max_epochs: 1
+        accelerator: "cpu"
+        devices:
+            - 0

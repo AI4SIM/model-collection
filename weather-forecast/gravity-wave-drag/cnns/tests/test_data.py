@@ -44,7 +44,7 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
 
     def setUp(self) -> None:
         """Instantiate the NOGWDDataset class in train mode."""
-        self.data_test = NOGWDDataset(root=TEST_DATA_PATH, mode='train')
+        self.data_test = NOGWDDataset(root=TEST_DATA_PATH, mode='train', shard_len=1)
 
     def test__compute_stats(self):
         """Test the instantiated NOGWDDataset class in train mode, has created the stat file."""
@@ -111,7 +111,7 @@ class TestNOGWDDatasetTest(unittest.TestCase):
 
     def setUp(self) -> None:
         """Instantiate the NOGWDDataset class in test mode."""
-        self.data_test = NOGWDDataset(root=TEST_DATA_PATH, mode='test')
+        self.data_test = NOGWDDataset(root=TEST_DATA_PATH, mode='test', shard_len=1)
 
     def test__compute_stats(self):
         """Test the instantiated NOGWDDataset class in train mode, has NOT created the stat file."""
@@ -145,7 +145,7 @@ class TestNOGWDDatasetVal(unittest.TestCase):
 
     def setUp(self) -> None:
         """Instantiate the NOGWDDataset class in val mode."""
-        self.data_test = NOGWDDataset(root=TEST_DATA_PATH, mode='val')
+        self.data_test = NOGWDDataset(root=TEST_DATA_PATH, mode='val', shard_len=1)
 
     def test__compute_stats(self):
         """Test the instantiated NOGWDDataset class in train mode, has NOT created the stat file."""
