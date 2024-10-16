@@ -1,9 +1,0 @@
-numpy==1.21.2
-pytorch-lightning==1.5.7
-pyyaml==6.0
-randomname==0.1.5
-torch==1.11.0+cu113
-torchmetrics==0.5.1
-torch_optimizer==0.1.0
-climetlab==0.11.9
-climetlab-maelstrom-radiation==0.5.4
