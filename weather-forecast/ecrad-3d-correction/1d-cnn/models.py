@@ -26,14 +26,21 @@ from layers import HRLayer, Normalization
 class ThreeDCorrectionModule(pl.LightningModule):
     """Create a Lit module for 3dcorrection."""
 
-    def __init__(self,
-                 flux_loss_weight: float,
-                 hr_loss_weight: float):
+    def __init__(
+        self,
+        flux_loss_weight: float,
+        hr_loss_weight: float,
+        log_gradients: bool = False,
+        log_weights: bool = False,
+    ):
         """
         Args:
             data_path (str): Path to folder containing the stats.pt.
         """
         super().__init__()
+
+        self.log_gradients = log_gradients
+        self.log_weights = log_weights
 
         self.flux_loss_weight = torch.tensor(flux_loss_weight)
         self.hr_loss_weight = torch.tensor(hr_loss_weight)
@@ -98,10 +105,12 @@ class ThreeDCorrectionModule(pl.LightningModule):
         return loss
 
     def on_after_backward(self):
-        self.gradient_histograms_adder()
+        if self.log_gradients:
+            self.gradient_histograms_adder()
 
     def training_epoch_end(self, outputs):
-        self.weight_histograms_adder()
+        if self.log_weights:
+            self.weight_histograms_adder()
 
     def validation_step(self, batch, batch_idx):
         _ = self._common_step(batch, batch_idx, "val")

@@ -10,10 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from keys.Keys import icol_keys, ihl_keys, iinter_keys, isca_keys
+
 import torch
-from typing import Dict
 from torch.nn import Module, ZeroPad2d
 
+from typing import Dict
 
 # TO TEST
 class HRLayer(Module):
@@ -24,9 +26,10 @@ class HRLayer(Module):
     """
     def __init__(self) -> None:
         super().__init__()
-        self.g_cp = torch.tensor(24 * 3600 * 9.80665 / 1004)
+        self.register_buffer("g_cp", torch.tensor(24 * 3600 * 9.80665 / 1004))
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        # test the input shape
         hlpress = inputs[1]
         net_press = hlpress[..., 1:] - hlpress[..., :-1]
         netflux = inputs[0][..., 0]
@@ -39,129 +42,199 @@ class Normalization(Module):
     Layer to normalize the data per batch.
     Requires the means and standard deviations of the features.
     They are then saved as registered buffers inside the model.
+    
+    Args:
+        mean (torch.Tensor): Mean values of the features.
+        std (torch.Tensor): Standard deviation values of features.
+    
+    Returns:
+        torch.Tensor:
+            Normalized data.
     """
-    def __init__(self, mean: torch.Tensor, std: torch.Tensor, label: str = "") -> None:
+    eps : torch.Tensor = torch.tensor(1.e-12)
+
+    def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
         super().__init__()
+        
         self.mean = mean
         self.std = std
-        self.eps = torch.tensor(1.e-12)
-        self.register_buffer(label + "mean", self.mean)
-        self.register_buffer(label + "std", self.std)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the forward pass."""
-        self.mean = torch.as_tensor(self.mean, dtype=x.dtype, device=x.device)
-        self.std = torch.as_tensor(self.std, dtype=x.dtype, device=x.device)
-        # self.eps = torch.as_tensor(self.eps, dtype=x.dtype, device=x.device)
         assert x.shape[1:] == self.mean.shape[1:]
         assert x.shape[1:] == self.std.shape[1:]
 
         return x.sub(self.mean).div(self.std + self.eps)
 
-class Layer(Module):
+# class Layer(Module):
+#     """
+#     Base class for preprocessing the inputs. Normalization is instanciated here.
+#     """
+#     def __init__(self, mean: dict, std: dict, label: str) -> None:
+#         super().__init__()
+        
+#         self.mean = mean
+#         self.std = std
+#         self.normalization = Normalization(self.mean, self.std, label=label)
+
+#     def forward(self, x):
+#         raise NotImplementedError
+
+class ScaLayer(Module):
     """
-    Base class for preprocessing the inputs. Normalization is instanciated here.
+    Merge the scalar inputs.
+    
+    Args:
+        mean (torch.Tensor): Mean values of the scalar features.
+        std (torch.Tensor): Standard deviation values of the scalar features.
+    
+    Returns:
+        torch.Tensor:
+            All 'scalar' variables concatenated and normalized.
     """
-    def __init__(self, mean: dict, std: dict, label: str) -> None:
+    def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
         super().__init__()
+
+        self.register_buffer("sca_mean", mean)
+        self.register_buffer("sca_std", std)
         
-        self.mean = mean
-        self.std = std
-        self.normalization = Normalization(self.mean, self.std, label=label)
-
-    def forward(self, x):
-        raise NotImplementedError
-
-class ScaLayer(Layer):
-    """Merge the scalar inputs."""
-    def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
-        super().__init__(mean, std, label="sca_")
+        self.normalization = Normalization(self.sca_mean, self.sca_std)
 
     def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
         
         Args:
-            x: Dictionary containing all the features.
+            x (torch.Tensor): Dictionary containing all the features.
             
         Returns:
-            Resulting model forward pass.
+            torch.Tensor:
+                Resulting model forward pass.
         """
-        tmp = []
-        for key, value in x.items():
+        scalar_variables = []
+        for key in isca_keys:
             if key in ["skin_temperature", "cos_solar_zenith_angle", "solar_irradiance"]:
-                inputs = value.unsqueeze(dim=-1)
+                inputs = x[key].unsqueeze(dim=-1)
             else:
-                inputs = value
-            tmp.append(inputs)                
+                inputs = x[key]
+            scalar_variables.append(inputs)                
 
-        inputs = torch.cat(tmp, dim=-1)
+        inputs = torch.cat(scalar_variables, dim=-1)
         inputs = self.normalization(inputs)
 
         return inputs
 
-class ColLayer(Layer):
-    """Merge the column inputs (given on 137 vertical levels)."""
+class ColLayer(Module):
+    """
+    Merge the column inputs (given on 137 vertical levels).
+    
+    Args:
+        mean (torch.Tensor): Mean values of the column features.
+        std (torch.Tensor): Standard deviation values of the column features.
+    
+    Returns:
+        torch.Tensor:
+            All 'column' variables concatenated and normalized.
+    """
     def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
-        super().__init__(mean, std, label="col_")
+        super().__init__()
+
+        self.register_buffer("col_mean", mean)
+        self.register_buffer("col_std", std)
+        
+        self.normalization = Normalization(self.col_mean, self.col_std)
 
     def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
         
         Args:
-            x: Dictionary containing all the features.
+            x (torch.Tensor): Dictionary containing all the features.
             
         Returns:
-            Resulting model forward pass.
+            torch.Tensor:
+                Resulting model forward pass.
         """
-        tmp = []
-        for key, value in x.items():
+        column_variables = []
+        for key in icol_keys:
             if key == "aerosol_mmr":
-                inputs = value.permute((0, 2, 1))
+                inputs = x[key].permute((0, 2, 1))
             else:
-                inputs = value.unsqueeze(dim=-1)
-            tmp.append(inputs)
+                inputs = x[key].unsqueeze(dim=-1)
+            column_variables.append(inputs)
         
-        inputs = torch.cat(tmp, dim=-1)
+        inputs = torch.cat(column_variables, dim=-1)
         inputs = self.normalization(inputs)
 
         return inputs
 
-class HLLayer(Layer):
-    """Merge the half-level inputs (given on 138 vertical half-levels)."""
+class HLLayer(Module):
+    """
+    Merge the half-level inputs (given on 138 vertical half-levels).
+    
+    Args:
+        mean (torch.Tensor): Mean values of the half-level features.
+        std (torch.Tensor): Standard deviation values of the half-level features.
+    
+    Returns:
+        torch.Tensor:
+            All 'half-level' variables concatenated and normalized.
+    """
     def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
-        super().__init__(mean, std, label="hl_")
+        super().__init__()
 
-    def forward(self, x):
-        """Compute the forward pass.
-        
-        Args:
-            x: Dictionary containing all the features.
-            
-        Returns:
-            Resulting model forward pass.
-        """
-        temperature_hl = x["temperature_hl"].unsqueeze(dim=-1)
-        pressure_hl = x["pressure_hl"].unsquueeze(dim=-1)
-        inputs = torch.cat([temperature_hl, pressure_hl], dim=-1)
-        inputs = self.normalization(inputs)
-        
-        return inputs
-
-class InterLayer(Layer):
-    """Normalize the interface input (given on 136 levels)."""
-    def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
-        super().__init__(mean, std, label="inter_")
+        self.register_buffer("hl_mean", mean)
+        self.register_buffer("hl_std", std)
 
     def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
         
         Args:
-            x: Dictionary containing all the features.
+            x (torch.Tensor): Dictionary containing all the features.
             
         Returns:
-            Resulting model forward pass.
+            torch.Tensor:
+                Resulting model forward pass.
         """
-        inputs = x["overlap_param"].unsqueeze(dim=-1)
+        hl_variables = []
+        for key in ihl_keys:
+            inputs = x[key]
+            hl_variables.append(inputs)
+
+        inputs = torch.cat(hl_variables, dim=-1)
+        inputs = self.normalization(inputs)
+        
+        return inputs
+
+class InterLayer(Module):
+    """
+    Normalize the interface input (given on 136 levels).
+    
+    Args:
+        mean (torch.Tensor): Mean values of overlap_param.
+        std (torch.Tensor): Standard deviation values of overlap_param.
+    
+    Returns:
+        torch.Tensor:
+            overlap_param normalized.
+    """
+    def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
+        super().__init__()
+
+        self.register_buffer("inter_mean", mean)
+        self.register_buffer("inter_std", std)
+
+        self.normalization = Normalization(self.inter_mean, self.inter_std)
+
+    def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
+        """Compute the forward pass.
+        
+        Args:
+            x (torch.Tensor): Dictionary containing all the features.
+            
+        Returns:
+            torch.Tensor:
+                Resulting model forward pass.
+        """
+        inputs = x[iinter_keys].unsqueeze(dim=-1)
         inputs = self.normalization(inputs)
         
         return inputs
@@ -173,7 +246,13 @@ class PreProcessing(Module):
         * Normalize them
         * Repeat Vector, Pad and Concatenate
     """
-    def __init__(self, means: Dict[str, torch.Tensor], stds: Dict[str, torch.Tensor]) -> None:
+    def __init__(
+        self,
+        means: Dict[str, torch.Tensor],
+        stds: Dict[str, torch.Tensor],
+        colum_padding: Tuple[int, int, int, int] = (0, 0, 1, 0),
+        inter_padding: Tuple[int, int, int, int] = (0, 0, 1, 1)
+    ) -> None:
         super().__init__()
         
         self.means = means
@@ -183,15 +262,19 @@ class PreProcessing(Module):
         self.col_layer = ColLayer(self.means["col_inputs"], self.stds["col_inputs"])
         self.hl_layer = HLLayer(self.means["hl_inputs"], self.stds["hl_inputs"])
         self.inter_layer = InterLayer(self.means["inter_inputs"], self.stds["inter_inputs"])
+
+        self.zeropad_col = ZeroPad2d(colum_padding)
+        self.zeropad_inter = ZeroPad2d(inter_padding)
     
     def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
         
         Args:
-            x: Dictionary containing all the features.
+            x (torch.Tensor): Dictionary containing all the features.
             
         Returns:
-            Resulting model forward pass.
+            torch.Tensor:
+                Resulting model forward pass.
         """
         sca_inputs = self.sca_layer(x)
         col_inputs = self.col_layer(x)
@@ -199,8 +282,16 @@ class PreProcessing(Module):
         inter_inputs = self.inter_layer(x)
         
         # Stack properly all the inputs
-        sca_in = sca_inputs.unsqueeze(dim=-1).expand(*sca_inputs.size(), 138).permute(0, 2, 1)
-        col_in = ZeroPad2d((0, 0, 1, 0))(col_inputs)
-        inter_in = ZeroPad2d((0, 0, 1, 1))(inter_inputs)
-        
+        sca_in = sca_inputs.unsqueeze(dim=-1).expand(
+            sca_inputs.size(dim=0),
+            sca_inputs.size(dim=1),
+            138
+        ).permute(0, 2, 1)
+        col_in = self.zeropad_col(col_inputs)
+        inter_in = self.zeropad_inter(inter_inputs)
+    
+        dim_to_check = 1
+        assert sca_in.size(dim=dim_to_check) == col_in.size(dim=dim_to_check) == hl_inputs.size(dim=dim_to_check) == inter_in.size(dim=dim_to_check), \
+            f"Dimension mismatch: {sca_in.size(dim=dim_to_check)} != {col_in.size(dim=dim_to_check)} != {hl_inputs.size(dim=dim_to_check)} != {inter_in.size(dim=dim_to_check)}"
+
         return torch.cat((sca_in, col_in, hl_inputs, inter_in), dim=-1)
