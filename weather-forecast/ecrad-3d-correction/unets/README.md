@@ -6,10 +6,11 @@ Weather and climate models operate at limited resolution that cannot resolve phy
 
 In the atmosphere, absorption, emission or scattering of short-wave (SW) and long-wave (LW) radiation are important processes. Short-wave radiation is the major source of energy of the Earth system. Long-wave radiation is emitted by the Earth surface and the atmosphere and is responsible for the greenhouse effect.
 
-The solution of the radiative transfer equations to obtain the fluxes are computationnaly expensive and, in practice, calculations are performed on a coarser resolution and/or using an increased timestep (lower time frequency). The fluxes are later interpolated back to the original (finer) grid. The Integrated Forecasting System (IFS), the operational numerical weather prediction model developed by ECMWF, comes with the ecRad scheme (https://github.com/ecmwf-ifs/ecrad) that implements several solvers. Two of them represent the horizontal cloud inhomogeneity: Tripleclouds (Shonk and Hogan, 2008) and SPARTACUS ( Speedy Algorithm for Radiative Transfer through Cloud Sides -- Hogan et al., 2016). SPARTACUS can be seen an extension of Tripleclouds by treating the 3D radiative effects associated with clouds but is currently too expensive for operational weather predictions.
+The solution of the radiative transfer equations to obtain the fluxes are computationnaly expensive and, in practice, calculations are performed on a coarser resolution and/or using an increased timestep (lower time frequency). The fluxes are later interpolated back to the original (finer) grid. The Integrated Forecasting System (IFS), the operational numerical weather prediction model developed by ECMWF, comes with the ecRad scheme (https://github.com/ecmwf-ifs/ecrad) that implements several solvers. Two of them represent the horizontal cloud inhomogeneity: Tripleclouds (Shonk and Hogan, 2008) and SPARTACUS ( Speedy Algorithm for Radiative Transfer through Cloud Sides -- Hogan et al., 2016). SPARTACUS can be seen an extension of Tripleclouds by treating the 3D radiative effects associated with clouds but is currently too expensive for operational weather predictions (approximatively five times slower).\
+*N.B.: This number should be updated based on Ukkonen and Hogan (2024) but one should keep in mind that they reduced the precision of the two-stream kernel computations to achieve better performance.*
 
 The present task aims at learning the 3D cloud radiative effects that will be integrated to Tripleclouds formulation as a corrective term. Learning a corrective term instead of the entire SPARTACUS solver focuses on the most computationally intensive aspects of this solver.
-The neural network has to learn the difference between the outputs of Tripleclouds and SPARTACUS (SW/LW fluxes and heating rates).
+The neural network has to learn the difference between the outputs of SPARTACUS and Tripleclouds (SW/LW fluxes and heating rates).
 
 ## Dataset
 
@@ -56,15 +57,15 @@ Original features:
 
 Original targets:
 
-* ``flux_dn_sw`` (*column x half_level*): difference of downwelling short-wave flux
-* ``flux_up_sw`` (*column x half_level*): difference of upwelling short-wave flux
-* ``flux_dn_lw`` (*column x half_level*): difference of downwelling long-wave flux
-* ``flux_up_lw`` (*column x half_level*): difference of upwelling long-wave flux
-* ``hr_sw`` (*column x level*): difference of short-wave heating rate
-* ``hr_lw`` (*column x level*): difference of long-wave heating rate
+* ``flux_dn_sw`` (*column x half_level*): difference of downwelling short-wave fluxes
+* ``flux_up_sw`` (*column x half_level*): difference of upwelling short-wave fluxes
+* ``flux_dn_lw`` (*column x half_level*): difference of downwelling long-wave fluxes
+* ``flux_up_lw`` (*column x half_level*): difference of upwelling long-wave fluxes
+* ``hr_sw`` (*column x level*): difference of short-wave heating rates
+* ``hr_lw`` (*column x level*): difference of long-wave heating rates
 
 **&rarr; concatenated into one tensor of shape *column x half_level x 6***
 
 ## Models
 
-The architecture of the neural network is a classical 1D U-Net (more to come).
+The architecture of the neural network is a classical 1D U-Net (more to come).\
