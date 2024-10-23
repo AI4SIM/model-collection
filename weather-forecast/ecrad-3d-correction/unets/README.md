@@ -6,11 +6,13 @@ Weather and climate models operate at limited resolution that cannot resolve phy
 
 In the atmosphere, absorption, emission or scattering of short-wave (SW) and long-wave (LW) radiation are important processes. Short-wave radiation is the major source of energy of the Earth system. Long-wave radiation is emitted by the Earth surface and the atmosphere and is responsible for the greenhouse effect.
 
-The solution of the radiative transfer equations to obtain the fluxes are computationnaly expensive and, in practice, calculations are performed on a coarser resolution and/or using an increased timestep (lower time frequency). The fluxes are later interpolated back to the original (finer) grid. The Integrated Forecasting System (IFS), the operational numerical weather prediction model developed by ECMWF, comes with the ecRad scheme (https://github.com/ecmwf-ifs/ecrad) that implements several solvers. Two of them represent the horizontal cloud inhomogeneity: Tripleclouds (Shonk and Hogan, 2008) and SPARTACUS ( Speedy Algorithm for Radiative Transfer through Cloud Sides -- Hogan et al., 2016). SPARTACUS can be seen an extension of Tripleclouds by treating the 3D radiative effects associated with clouds but is currently too expensive for operational weather predictions (approximatively five times slower).\
+The solution of the radiative transfer equations to obtain the fluxes are computationnaly expensive and, in practice, calculations are performed on a coarser resolution and/or using an increased timestep (lower time frequency). The fluxes are later interpolated back to the original (finer) grid. The Integrated Forecasting System (IFS), the operational numerical weather prediction model developed by ECMWF, comes with the ecRad scheme (https://github.com/ecmwf-ifs/ecrad) that implements several solvers. Two of them represent the horizontal cloud inhomogeneity: Tripleclouds *(Shonk and Hogan, 2008)* and SPARTACUS ( Speedy Algorithm for Radiative Transfer through Cloud Sides; *Hogan et al., 2016*). SPARTACUS can be seen an extension of Tripleclouds by treating the 3D radiative effects associated with clouds but is currently too expensive for operational weather predictions (approximatively five times slower).\
 *N.B.: This number should be updated based on Ukkonen and Hogan (2024) but one should keep in mind that they reduced the precision of the two-stream kernel computations to achieve better performance.*
 
 The present task aims at learning the 3D cloud radiative effects that will be integrated to Tripleclouds formulation as a corrective term. Learning a corrective term instead of the entire SPARTACUS solver focuses on the most computationally intensive aspects of this solver.
 The neural network has to learn the difference between the outputs of SPARTACUS and Tripleclouds (SW/LW fluxes and heating rates).
+
+**This work builds on the research of *Meyer et al. (2021)* but uses higher-quality data and a more suitable neural network.**
 
 ## Dataset
 
@@ -68,4 +70,16 @@ Original targets:
 
 ## Models
 
-The architecture of the neural network is a classical 1D U-Net (more to come).\
+The architecture of the neural network is a classical 1D U-Net (more to come).
+
+## References
+
+Hogan, R. J., Schäfer, S. A. K., Klinger, C., Chiu, J. C., & Mayer, B. (2016). Representing 3‐D cloud
+radiation effects in two‐stream schemes: 2. Matrix formulation and broadband evaluation. Journal of
+Geophysical Research: Atmospheres, 121(14), 8583–8599. https://doi.org/10.1002/2016JD024875 
+
+Meyer, D., Hogan, R. J., Dueben, P. D., & Mason, S. L. (2022). Machine learning emulation of 3D cloud radiative effects. Journal of Advances in Modeling Earth Systems, 14, e2021MS002550. https://doi.org/10.1029/2021MS002550
+
+Shonk, J. K. P., & Hogan, R. J. (2008). Tripleclouds: An efficient method for representing horizontal cloud inhomogeneity in 1D radiation schemes by using three regions at each height. Journal of Climate, 21(11), 2352–2370. https://doi.org/10.1175/2007JCLI1940.1
+
+Ukkonen, P., & Hogan, R. J. (2024). Twelve times faster yet accurate: A new state-of-the-art in radiation schemes via performance and spectral optimization. Journal of Advances in Modeling Earth Systems, 16, e2023MS003932. https://doi.org/10.1029/2023MS003932
