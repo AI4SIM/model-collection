@@ -23,6 +23,8 @@ The dataset is widely explained in the MAESLTROM radiation repository (https://g
 Before training the neural network, a preprocessing step is required that will transform the NetCDF dataset into a Zarr dataset.
 The parameters for the normalization (means and standard deviations) are computed during this step. 
 
+All the following atmospheric variables are presented in [ecRad User Guide](https://confluence.ecmwf.int/download/attachments/70945505/ecrad_documentation.pdf?version=5&modificationDate=1655480733414&api=v2) (Tables 2.1 and 2.2).
+
 Original features:
 
 * ``sca_inputs`` (*column x sca_variable*):
@@ -33,7 +35,8 @@ Original features:
     - lw_emissivity and
     - solar_irradiance
 * ``col_inputs`` (*column x level x col_variable*):
-    - q, o3_mmr,
+    - q,
+    - o3_mmr,
     - co2_vmr,
     - n2o_vmr,
     - ch4_vmr,
