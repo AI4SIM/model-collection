@@ -1,0 +1,101 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from typing import Tuple
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Keys:
+    """
+    Dataclass to store the keys of the dictionary that contains the input data.
+    """
+
+    # Scalar variables
+    isca_keys: Tuple[str, ...] = (
+        "skin_temperature",
+        "cos_solar_zenith_angle",
+        "sw_albedo",
+        "sw_albedo_direct",
+        "lw_emissivity",
+        "solar_irradiance",
+    )
+
+    # 137-levels variables
+    icol_keys: Tuple[str, ...] = (
+        "q",
+        "o3_mmr",
+        "co2_vmr",
+        "n2o_vmr",
+        "ch4_vmr",
+        "o2_vmr",
+        "cfc11_vmr",
+        "cfc12_vmr",
+        "hcfc22_vmr",
+        "ccl4_vmr",
+        "cloud_fraction",
+        "aerosol_mmr",
+        "q_liquid",
+        "q_ice",
+        "re_liquid",
+        "re_ice",
+    )
+
+    # 138-levels variables
+    ihl_keys: Tuple[str, ...] = (
+        "temperature_hl",
+        "pressure_hl",
+    )
+
+    # 136-levels variables
+    iinter_keys: Tuple[str, ...] = "overlap_param"
+
+
+@dataclass(frozen=True)
+class VarInfo:
+    # Scalar variable info
+    sca_variables: Mapping[str, Mapping[str, list]] = {
+        "skin_temperature": {"shape": [1], "sca_input_idx": [0]},
+        "cos_solar_zenith_angle": {"shape": [1], "idx": [1]},
+        "sw_albedo": {"shape": [6], "idx": list(range(2, 2 + 6))},
+        "sw_albedo_direct": {"shape": [6], "idx": list(range(8, 8 + 6))},
+        "lw_emissivity": {"shape": [2], "idx": list(range(14, 14 + 2))},
+        "solar_irradiance": {"shape": [], "idx": [-1]},
+    }
+    # Column variable info
+    col_variables: Mapping[str, Mapping[str, list]] = {
+        "q": {"shape": [137], "idx": [0]},
+        "o3_mmr": {"shape": [137], "idx": [1]},
+        "co2_vmr": {"shape": [137], "idx": [2]},
+        "n2o_vmr": {"shape": [137], "idx": [3]},
+        "ch4_vmr": {"shape": [137], "idx": [4]},
+        "o2_vmr": {"shape": [137], "idx": [5]},
+        "cfc11_vmr": {"shape": [137], "idx": [6]},
+        "cfc12_vmr": {"shape": [137], "idx": [7]},
+        "hcfc22_vmr": {"shape": [137], "idx": [8]},
+        "ccl4_vmr": {"shape": [137], "idx": [9]},
+        "cloud_fraction": {"shape": [137], "idx": [10]},
+        "aerosol_mmr": {"shape": [137, 12], "idx": list(range(11, 11 + 12))},
+        "q_liquid": {"shape": [137], "idx": [23]},
+        "q_ice": {"shape": [137], "idx": [24]},
+        "re_liquid": {"shape": [137], "idx": [25]},
+        "re_ice": {"shape": [137], "idx": [26]},
+    }
+    # Half-level variable info
+    hl_variables: Mapping[str, Mapping[str, list]] = {
+        "temperature_hl": {"shape": [138], "idx": [0]},
+        "pressure_hl": {"shape": [138], "idx": [1]},
+    }
+    # Inter-level variable info
+    inter_variables: Mapping[str, Mapping[str, list]] = {
+        "overlap_param": {"shape": [136], "idx": [0]},
+    }

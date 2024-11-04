@@ -10,127 +10,135 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dask
-import os
-import torch
-
 import climetlab as cml
 import os.path as osp
-import numpy as np
-import pytorch_lightning as pl
-import xarray as xr
+import lightning as L
+import torch
 
-from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
-from torch.utils.data import Dataset, DataLoader, random_split
-from typing import Dict, Tuple, Optional
+from climetlab_maelstrom_radiation.radiation_tf import features_size
+from typing import dict, list, tuple, Optional
 
-import config
-from dataproc import ThreeDCorrectionDataProc 
+from nvidia.dali import pipeline_def, Pipeline
+import nvidia.dali.fn as fn
+import nvidia.dali.tfrecord as tfrec
+from nvidia.dali.plugin.pytorch import DALIGenericIterator
 
 
-class ThreeDCorrectionDataset(Dataset):
+feature_description = {}
+for k in features_size:
+    feature_description[k] = tfrec.FixedLenFeature(
+        shape=features_size[k], dtype=tfrec.float32
+    )
+
+
+def split_data(data):
+    pass
+
+
+@pipeline_def
+def tfrecord_pipeline(tfrecord_path, index_path, device, shard_id=0, num_shards=1):
+    data = fn.readers.tfrecord(
+        path=tfrecord_path,
+        index_path=index_path,
+        features=feature_description,
+        shard_id=shard_id,
+        random_shuffle=True,
+        num_shards=num_shards,
+        name="TFRecord_Reader",
+    )
+    return (*(data[key] for key in feature_description.keys()),)
+
+
+def netcdf_pipeline():
+    pass
+
+
+class RadiationDataModule(L.LightningDataModule):
     """
-    Create a PyTorch dataset for the 3DCorrection use-case.
-    Based on preprocessed sharded data (from dataproc).
-    Load a shard to get a datum (favor neighbour-preserving access over random access).
+    This class handles the data loading and processing for the 3D correction use-case
+    in weather forecasting.
+
+    Args:
+        date (str): The date for which the data is being processed.
+        timestep (int): The timestep interval for the data.
+        patchstep (int): The patch step interval for the data.
+        batch_size (int): The size of the batches produced by the data loaders.
+        num_workers (int): The number of workers used for data loading.
+
     """
-    
-    dask.config.set(scheduler='synchronous')
 
-    def __init__(self, root: str, ds_feat: xr.Dataset, ds_targ: xr.Dataset) -> None:
-        """
-        Create the dataset from preprocessed/sharded data on disk.
-        Args:
-            root (str): Path to the preprocessed data folder.
-            ds_feat (xr.Dataset): Feature dataset
-            ds_targ (xr.Dataset): Target dataset
-        """
-        super().__init__()
-        self.root = root
-        self.ds_feat = ds_feat
-        self.ds_targ = ds_targ
-
-    def __getitem__(self, idx: int) -> Tuple[Dict[str, torch.Tensor]]:
-        """
-        Load data from chunks on disk.
-        Return x, y tuple.
-        Args:
-            idx (int): Index of datum to load.
-        """
-        feat_sample = self.ds_feat.isel({"column": idx})
-        targ_sample = self.ds_targ.isel({"column": idx})
-        
-        features = {k: torch.from_numpy(v.to_numpy()) for k, v in feat_sample.items()}
-        targets = {k: torch.from_numpy(v.to_numpy()) for k, v in targ_sample.items()}
-        
-        return features, targets
-
-    def __len__(self) -> int:
-        return self.ds_feat.dims["column"]
-    
-@DATAMODULE_REGISTRY
-class LitThreeDCorrectionDataModule(pl.LightningDataModule):
-    """DataModule for the 3dcorrection dataset."""
-
-    def __init__(self,
-                 date: str,
-                 timestep: int,
-                 patchstep: int,
-                 batch_size: int,
-                 num_workers: int,
-                 splitting_lengths: Optional[list] = None):
-        """
-        Args:
-            data_path (str): Path containing the preprocessed data (by dataproc).
-            batch_size (int): Size of the batches produced by the data loaders.
-            num_workers (int): Number of workers used.
-            splitting_lengths (list): List of lengths of train, val and test dataset.
-        """
+    def __init__(
+        self,
+        subset: str = None,
+        timestep: list = [0],
+        filenum: list = [0],
+        batch_size: int = 1,
+        num_threads: int = 1,
+    ):
         super().__init__()
 
-        self.date = date
+        self.subset = subset
         self.timestep = timestep
-        self.patchstep = patchstep
+        self.filenum = filenum
         self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.splitting_lengths = splitting_lengths
+        self.num_threads = num_threads
 
     def prepare_data(self):
-        dataproc = ThreeDCorrectionDataProc(config.data_path,
-                                            self.date,
-                                            self.timestep,
-                                            self.patchstep)
-        self.feature_ds, self.target_ds = dataproc.process()
+        # Here we use climetlab only to download the dataset.
+        cml.settings.set("cache-directory", self.cache_dir)
+        ds = cml.load_dataset(
+            "maesltrom-radiation-tf",
+            dataset="3dcorrection",
+            subset=self.subset,
+            timestep=self.timestep,
+            filenum=self.filenum,
+            minimal_output=False,
+            hr_units="K d-1",
+            norm=True,
+        )
 
     def setup(self, stage: Optional[str] = None):
-        self.dataset = ThreeDCorrectionDataset(config.data_path, self.feature_ds, self.target_ds)
-        length = len(self.dataset)
-        
+        if self.trainer is not None:
+            device_id = self.trainer.local_rank
+            shard_id = self.trainer.global_rank
+            num_shards = self.trainer.world_size
+        else:
+            device_id = 0
+            shard_id = 0
+            num_shards = 1
+
         if stage == "fit":
-            self.train_dataset, self.val_dataset = random_split(
-                self.dataset, [int(length * split) for split in self.splitting_lengths])
-        
-        if stage == "test":
-            self.test_dataset = self.dataset
+            self.train_pipeline = tfrecord_pipeline(
+                tfrecord_path=sorted(glob.glob(osp.join(self.cache_dir, "*.tfrecord"))),
+                index_path=sorted(glob.glob(osp.join(self.cache_dir, "*.idx"))),
+                device=device_id,
+                shard_id=shard_id,
+                num_shards=num_shards,
+                batch_size=self.batch_size,
+                num_threads=self.num_threads,
+            )
+            self.val_pipeline = netcdf_pipeline()
 
     def train_dataloader(self):
-        return DataLoader(
-            self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=self.num_workers,
-            pin_memory=True)
+        return DALIGenericIterator(
+            [self.pipeline],
+            output_map=list(feature_description.keys()),
+            reader_name="TFRecord_Reader",
+            last_batch_policy=LastBatchPolicy.DROP,
+        )
 
     def val_dataloader(self):
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            pin_memory=True)
+            pin_memory=True,
+        )
 
     def test_dataloader(self):
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
-            pin_memory=True)
+            pin_memory=True,
+        )
