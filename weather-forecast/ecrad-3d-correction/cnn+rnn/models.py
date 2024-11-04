@@ -11,123 +11,115 @@
 # limitations under the License.
 
 
-import torch
 import os.path as osp
+import torch
 import pytorch_lightning as pl
-from pytorch_lightning.utilities.cli import MODEL_REGISTRY
-from torch.nn import Module
-from torchmetrics.functional import mean_squared_error, mean_absolute_error
-from torchmetrics import MeanAbsoluteError
+from torch.nn import LazyConv1d, Linear, Dropout, Module, SiLU, Sequential
+from torch.nn.functional import scaled_dot_product_attention, silu
+from torch.nn.attention import SDPBackend, sdpa_kernel
 
-import config
-from layers import HRLayer, Normalization
+from layers import HRLayer, MultiHeadAttention
+from lightning import ThreeDCorrectionModule
+
+from typing import Dict
 
 
-class ThreeDCorrectionModule(pl.LightningModule):
-    """Create a Lit module for 3dcorrection."""
-
+class CNNModel(ThreeDCorrectionModule):
     def __init__(
         self,
-        flux_loss_weight: float,
-        hr_loss_weight: float,
-        log_gradients: bool = False,
-        log_weights: bool = False,
+        out_channels: int = 2,
+        hidden_size: int = 512,
+        kernel_size: int = 3,
+        dilation_rates: list = [1, 2, 4, 8],
+        conv_layers: int = 4,
+        num_heads: int = 8,
+        qkv_bias: bool = False,
+        attention_dropout: float = 0.0,
+        flash_attention: bool = False,
     ):
-        """
-        Args:
-            data_path (str): Path to folder containing the stats.pt.
-        """
-        super().__init__()
-
-        self.log_gradients = log_gradients
-        self.log_weights = log_weights
-
-        self.flux_loss_weight = torch.tensor(flux_loss_weight)
-        self.hr_loss_weight = torch.tensor(hr_loss_weight)
-        
-        self.mae = MeanAbsoluteError()
-
-        stats = torch.load(osp.join(config.data_path, "processed", "stats.pt"))
-        self.x_mean = stats["x_mean"]
-        self.x_std = stats["x_std"]
-
-    def forward(self, x):
-        return fluxes + hr
-        # x = self.normalization(x)
-        # x_ = x[..., :-1]
-        # x_ = torch.moveaxis(x_, -2, -1)
-        # fluxes = self.net(x_)
-        # fluxes = torch.moveaxis(fluxes, -2, -1)
-        # hr = self.hr_layer([fluxes, x[..., -1]])
-        # return fluxes, hr
-
-    def weight_histograms_adder(self):
-        for name, params in self.named_parameters():
-            self.logger.experiment.add_histogram(name, params, self.current_epoch)
-
-    def gradient_histograms_adder(self):
-        global_step = self.global_step
-        if global_step % 50 == 0:  # do not make the tb file huge
-            for name, param in self.named_parameters():
-                if param.requires_grad:
-                    self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
-
-    def _common_step(self, batch, batch_idx, stage):
-        """Compute the loss, additional metrics, and log them."""
-
-        x, y = batch
-        y_flux_hat, y_hr_hat = self(x)
-
-        flux_loss = mean_squared_error(y_flux_hat, y)
-        hr_loss = mean_squared_error(y_hr_hat, z)
-        loss = self.flux_loss_weight * flux_loss + self.hr_loss_weight * hr_loss
-
-        flux_mae = self.mae(y_flux_hat, y)
-        hr_mae = self.mae(y_hr_hat, z)
-
-        kwargs = {
-            "prog_bar": True,
-            "on_step": False,
-            "on_epoch": True,
-            "sync_dist": True,
-            "batch_size": len(x)
-        }
-        self.log(f"{stage}_loss", loss, **kwargs)
-        self.log(f"{stage}_flux_loss", flux_loss, **kwargs)
-        self.log(f"{stage}_hr_loss", hr_loss, **kwargs)
-        self.log(f"{stage}_flux_mae", flux_mae, **kwargs)
-        self.log(f"{stage}_hr_mae", hr_mae, **kwargs)
-
-        return loss
-
-    def training_step(self, batch, batch_idx):
-        loss = self._common_step(batch, batch_idx, "train")
-        return loss
-
-    def on_after_backward(self):
-        if self.log_gradients:
-            self.gradient_histograms_adder()
-
-    def training_epoch_end(self, outputs):
-        if self.log_weights:
-            self.weight_histograms_adder()
-
-    def validation_step(self, batch, batch_idx):
-        _ = self._common_step(batch, batch_idx, "val")
-
-    def test_step(self, batch, batch_idx):
-        _ = self._common_step(batch, batch_idx, "test")
-
-
-@MODEL_REGISTRY
-class LitCNN1dAttention(ThreeDCorrectionModule):
-    def __init__(self, kwargs):
-        pass
     super().__init__()
+
+    self.out_channels = out_channels
+    self.hidden_size = hidden_size
+    self.kernel_size = kernel_size
+    self.dilation_rates = dilation_rates
+    self.conv_layers = conv_layers
+    self.num_heads = num_heads
+    self.qkv_bias = qkv_bias
+    self.attention_dropout = attention_dropout
+    self.flash_attention = flash_attention
+
     self.save_hyperparameters()
+
+    # Dilated convolution block to make the information propaate faster
+    self.conv_block_with_dilation = Sequential()
+    for drate in self.dilation_rates:
+        self.conv_with_dilation.append(
+            LazyConv1d(
+                self.hidden_size,
+                kernel_size=self.kernel_size,
+                padding='same',
+                dilation=drate,
+            ),
+            SiLU()
+        )
+    # Regular convolution block
+    self.conv_block = Sequential()
+    for _ in range(self.conv_layers):
+        self.conv.append(
+            LazyConv1d(
+                self.hidden_size,
+                kernel_size=self.kernel_size,
+                padding='same',
+            ),
+            SiLU()
+        )
+    # Attention layers
+    self.mha_1 = MultiHeadAttention(
+        self.hidden_size, self.num_heads, self.qkv_bias, self.attention_dropout, self.flash_attention
+    )
+    self.mha_2 = MultiHeadAttention(
+        self.hidden_size, self.num_heads, self.qkv_bias, self.attention_dropout, self.flash_attention
+    )
+
+    # Flux layers
+    self.lw = Sequential(
+        LazyConv1d(2, 1, padding='same'),
+        Linear(2, 2, bias=True)
+    )
+    self.sw = Sequential(
+        LazyConv1d(2, 1, padding='same'),
+        Linear(2, 2, bias=True)
+    )
+    # Heating rate layers
+    self.hr_lw = HRLayer()
+    self.hr_sw = HRLayer()
+
+    def forward(self, x: torch.Tensor, pressure_hl: torch.Tensor) -> Dict[str, torch.Tensor]:
+        B, T, _ = x.size()  # batch size, sequence length, channels
     
-    self.preprocessing = PreProcessing()
-    self.block_cnn_dilation = BlockCNNDilation()
-    self.mha = MultiHeadAttention()
-    self.block_cnn_regular = BlockCNNRegular()
-    self.cnn_1d = CNN1d()
+        x = self.conv_block_with_dilation(x)
+        x = self.mha_1(x)
+        x = self.conv_block(x)
+        x = self.mha_2(x)
+
+        # Flux layers
+        lw = self.lw_conv(x) # B, T, 2
+        sw = self.sw_conv(x) # B, T, 2
+
+        # Heating rate layers
+        hr_lw = self.hr_lw([lw, pressure_hl])
+        hr_sw = self.hr_sw([sw, pressure_hl])
+
+        return {
+            'hr_sw': hr_sw,
+            'hr_lw': hr_lw,
+            'delta_sw_diff': sw[..., 0],
+            'delta_sw_add': sw[..., 1],
+            'delta_lw_diff': lw[..., 0],
+            'delta_lw_add': lw[..., 1],
+        }
+                
+
+class RNNModel(ThreeDCorrectionModule):
+    raise("Not implemented yet")
