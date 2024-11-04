@@ -37,89 +37,93 @@ class CNNModel(ThreeDCorrectionModule):
         attention_dropout: float = 0.0,
         flash_attention: bool = False,
     ):
-    super().__init__()
+        super().__init__()
 
-    self.out_channels = out_channels
-    self.hidden_size = hidden_size
-    self.kernel_size = kernel_size
-    self.dilation_rates = dilation_rates
-    self.conv_layers = conv_layers
-    self.num_heads = num_heads
-    self.qkv_bias = qkv_bias
-    self.attention_dropout = attention_dropout
-    self.flash_attention = flash_attention
+        self.out_channels = out_channels
+        self.hidden_size = hidden_size
+        self.kernel_size = kernel_size
+        self.dilation_rates = dilation_rates
+        self.conv_layers = conv_layers
+        self.num_heads = num_heads
+        self.qkv_bias = qkv_bias
+        self.attention_dropout = attention_dropout
+        self.flash_attention = flash_attention
 
-    self.save_hyperparameters()
+        self.save_hyperparameters()
 
-    # Dilated convolution block to make the information propaate faster
-    self.conv_block_with_dilation = Sequential()
-    for drate in self.dilation_rates:
-        self.conv_with_dilation.append(
-            LazyConv1d(
-                self.hidden_size,
-                kernel_size=self.kernel_size,
-                padding='same',
-                dilation=drate,
-            ),
-            SiLU()
+        # Dilated convolution block to make the information propaate faster
+        self.conv_block_with_dilation = Sequential()
+        for drate in self.dilation_rates:
+            self.conv_with_dilation.append(
+                LazyConv1d(
+                    self.hidden_size,
+                    kernel_size=self.kernel_size,
+                    padding="same",
+                    dilation=drate,
+                ),
+                SiLU(),
+            )
+        # Regular convolution block
+        self.conv_block = Sequential()
+        for _ in range(self.conv_layers):
+            self.conv.append(
+                LazyConv1d(
+                    self.hidden_size,
+                    kernel_size=self.kernel_size,
+                    padding="same",
+                ),
+                SiLU(),
+            )
+        # Attention layers
+        self.mha_1 = MultiHeadAttention(
+            self.hidden_size,
+            self.num_heads,
+            self.qkv_bias,
+            self.attention_dropout,
+            self.flash_attention,
         )
-    # Regular convolution block
-    self.conv_block = Sequential()
-    for _ in range(self.conv_layers):
-        self.conv.append(
-            LazyConv1d(
-                self.hidden_size,
-                kernel_size=self.kernel_size,
-                padding='same',
-            ),
-            SiLU()
+        self.mha_2 = MultiHeadAttention(
+            self.hidden_size,
+            self.num_heads,
+            self.qkv_bias,
+            self.attention_dropout,
+            self.flash_attention,
         )
-    # Attention layers
-    self.mha_1 = MultiHeadAttention(
-        self.hidden_size, self.num_heads, self.qkv_bias, self.attention_dropout, self.flash_attention
-    )
-    self.mha_2 = MultiHeadAttention(
-        self.hidden_size, self.num_heads, self.qkv_bias, self.attention_dropout, self.flash_attention
-    )
 
-    # Flux layers
-    self.lw = Sequential(
-        LazyConv1d(2, 1, padding='same'),
-        Linear(2, 2, bias=True)
-    )
-    self.sw = Sequential(
-        LazyConv1d(2, 1, padding='same'),
-        Linear(2, 2, bias=True)
-    )
-    # Heating rate layers
-    self.hr_lw = HRLayer()
-    self.hr_sw = HRLayer()
+        # Flux layers
+        self.lw = Sequential(LazyConv1d(2, 1, padding="same"), Linear(2, 2, bias=True))
+        self.sw = Sequential(LazyConv1d(2, 1, padding="same"), Linear(2, 2, bias=True))
+        # Heating rate layers
+        self.hr_lw = HRLayer()
+        self.hr_sw = HRLayer()
 
-    def forward(self, x: torch.Tensor, pressure_hl: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, pressure_hl: torch.Tensor
+    ) -> Dict[str, torch.Tensor]:
         B, T, _ = x.size()  # batch size, sequence length, channels
-    
+
         x = self.conv_block_with_dilation(x)
         x = self.mha_1(x)
         x = self.conv_block(x)
         x = self.mha_2(x)
 
         # Flux layers
-        lw = self.lw_conv(x) # B, T, 2
-        sw = self.sw_conv(x) # B, T, 2
+        lw = self.lw_conv(x)  # B, T, 2
+        sw = self.sw_conv(x)  # B, T, 2
 
         # Heating rate layers
         hr_lw = self.hr_lw([lw, pressure_hl])
         hr_sw = self.hr_sw([sw, pressure_hl])
 
         return {
-            'hr_sw': hr_sw,
-            'hr_lw': hr_lw,
-            'delta_sw_diff': sw[..., 0],
-            'delta_sw_add': sw[..., 1],
-            'delta_lw_diff': lw[..., 0],
-            'delta_lw_add': lw[..., 1],
+            "hr_sw": hr_sw,
+            "hr_lw": hr_lw,
+            "delta_sw_diff": sw[..., 0],
+            "delta_sw_add": sw[..., 1],
+            "delta_lw_diff": lw[..., 0],
+            "delta_lw_add": lw[..., 1],
         }
-                
+
 
 class RNNModel(ThreeDCorrectionModule):
-    raise("Not implemented yet")
+    raise ("Not implemented yet")
