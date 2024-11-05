@@ -59,6 +59,19 @@ class Keys:
     # 136-levels variables
     iinter_keys: Tuple[str, ...] = "overlap_param"
 
+    # Input variables
+    input_keys: Tuple[str, ...] = sca_keys + icol_keys + ihl_keys + iinter_keys
+
+    # Output variables
+    output_keys: Tuple[str, ...] = (
+        "flux_dn_sw",
+        "flux_up_sw",
+        "flux_dn_lw",
+        "flux_up_lw",
+        "hr_sw",
+        "hr_lw",
+    )
+
 
 @dataclass(frozen=True)
 class VarInfo:
