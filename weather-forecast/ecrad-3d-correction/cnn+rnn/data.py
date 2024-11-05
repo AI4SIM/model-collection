@@ -46,7 +46,7 @@ def split_data(data):
 @pipeline_def
 def netcdf_pipeline(batch_size, netcdf_path):
     return fn.external_source(
-        source=RaditionExternalSource(batch_size, cache_dir=netcdf_path),
+        source=RadiationExternalSource(batch_size, cache_dir=netcdf_path),
         num_outputs=2,
         batch=True,
         parallel=True,
