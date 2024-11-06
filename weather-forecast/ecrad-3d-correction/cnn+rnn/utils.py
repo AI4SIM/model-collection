@@ -10,8 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Dict
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ class Keys:
     """
 
     # Scalar variables
-    isca_keys: Tuple[str, ...] = (
+    isca_keys: tuple[str, ...] = (
         "skin_temperature",
         "cos_solar_zenith_angle",
         "sw_albedo",
@@ -31,7 +31,7 @@ class Keys:
     )
 
     # 137-levels variables
-    icol_keys: Tuple[str, ...] = (
+    icol_keys: tuple[str, ...] = (
         "q",
         "o3_mmr",
         "co2_vmr",
@@ -51,64 +51,96 @@ class Keys:
     )
 
     # 138-levels variables
-    ihl_keys: Tuple[str, ...] = (
+    ihl_keys: tuple[str, ...] = (
         "temperature_hl",
         "pressure_hl",
     )
 
     # 136-levels variables
-    iinter_keys: Tuple[str, ...] = "overlap_param"
+    iinter_keys: tuple[str, ...] = ("overlap_param",)
 
     # Input variables
-    input_keys: Tuple[str, ...] = sca_keys + icol_keys + ihl_keys + iinter_keys
+    input_keys: tuple[str, ...] = isca_keys + icol_keys + ihl_keys + iinter_keys
 
     # Output variables
-    output_keys: Tuple[str, ...] = (
-        "flux_dn_sw",
-        "flux_up_sw",
-        "flux_dn_lw",
-        "flux_up_lw",
-        "hr_sw",
-        "hr_lw",
-    )
+    output_keys: tuple[str, ...] = ("sw", "lw", "hr_sw", "hr_lw")
 
 
 @dataclass(frozen=True)
 class VarInfo:
     # Scalar variable info
-    sca_variables: Mapping[str, Mapping[str, list]] = {
-        "skin_temperature": {"shape": [1], "sca_input_idx": [0]},
-        "cos_solar_zenith_angle": {"shape": [1], "idx": [1]},
-        "sw_albedo": {"shape": [6], "idx": list(range(2, 2 + 6))},
-        "sw_albedo_direct": {"shape": [6], "idx": list(range(8, 8 + 6))},
-        "lw_emissivity": {"shape": [2], "idx": list(range(14, 14 + 2))},
-        "solar_irradiance": {"shape": [], "idx": [-1]},
-    }
+    sca_variables: Dict[str, Dict[str, float]] = field(
+        default_factory=lambda: {
+            "skin_temperature": {"shape": [1], "idx": [0]},
+            "cos_solar_zenith_angle": {"shape": [1], "idx": [1]},
+            "sw_albedo": {"shape": [6], "idx": list(range(2, 2 + 6))},
+            "sw_albedo_direct": {"shape": [6], "idx": list(range(8, 8 + 6))},
+            "lw_emissivity": {"shape": [2], "idx": list(range(14, 14 + 2))},
+            "solar_irradiance": {"shape": [], "idx": [-1]},
+        }
+    )
     # Column variable info
-    col_variables: Mapping[str, Mapping[str, list]] = {
-        "q": {"shape": [137], "idx": [0]},
-        "o3_mmr": {"shape": [137], "idx": [1]},
-        "co2_vmr": {"shape": [137], "idx": [2]},
-        "n2o_vmr": {"shape": [137], "idx": [3]},
-        "ch4_vmr": {"shape": [137], "idx": [4]},
-        "o2_vmr": {"shape": [137], "idx": [5]},
-        "cfc11_vmr": {"shape": [137], "idx": [6]},
-        "cfc12_vmr": {"shape": [137], "idx": [7]},
-        "hcfc22_vmr": {"shape": [137], "idx": [8]},
-        "ccl4_vmr": {"shape": [137], "idx": [9]},
-        "cloud_fraction": {"shape": [137], "idx": [10]},
-        "aerosol_mmr": {"shape": [137, 12], "idx": list(range(11, 11 + 12))},
-        "q_liquid": {"shape": [137], "idx": [23]},
-        "q_ice": {"shape": [137], "idx": [24]},
-        "re_liquid": {"shape": [137], "idx": [25]},
-        "re_ice": {"shape": [137], "idx": [26]},
-    }
+    col_variables: Dict[str, Dict[str, list]] = field(
+        default_factory=lambda: {
+            "q": {"shape": [137], "idx": [0]},
+            "o3_mmr": {"shape": [137], "idx": [1]},
+            "co2_vmr": {"shape": [137], "idx": [2]},
+            "n2o_vmr": {"shape": [137], "idx": [3]},
+            "ch4_vmr": {"shape": [137], "idx": [4]},
+            "o2_vmr": {"shape": [137], "idx": [5]},
+            "cfc11_vmr": {"shape": [137], "idx": [6]},
+            "cfc12_vmr": {"shape": [137], "idx": [7]},
+            "hcfc22_vmr": {"shape": [137], "idx": [8]},
+            "ccl4_vmr": {"shape": [137], "idx": [9]},
+            "cloud_fraction": {"shape": [137], "idx": [10]},
+            "aerosol_mmr": {"shape": [137, 12], "idx": list(range(11, 11 + 12))},
+            "q_liquid": {"shape": [137], "idx": [23]},
+            "q_ice": {"shape": [137], "idx": [24]},
+            "re_liquid": {"shape": [137], "idx": [25]},
+            "re_ice": {"shape": [137], "idx": [26]},
+        }
+    )
     # Half-level variable info
-    hl_variables: Mapping[str, Mapping[str, list]] = {
-        "temperature_hl": {"shape": [138], "idx": [0]},
-        "pressure_hl": {"shape": [138], "idx": [1]},
-    }
+    hl_variables: Dict[str, Dict[str, list]] = field(
+        default_factory=lambda: {
+            "temperature_hl": {"shape": [138], "idx": [0]},
+            "pressure_hl": {"shape": [138], "idx": [1]},
+        }
+    )
     # Inter-level variable info
-    inter_variables: Mapping[str, Mapping[str, list]] = {
-        "overlap_param": {"shape": [136], "idx": [0]},
-    }
+    inter_variables: Dict[str, Dict[str, list]] = field(
+        default_factory=lambda: {
+            "overlap_param": {"shape": [136], "idx": [0]},
+        }
+    )
+
+
+def split_data(data):
+    raw_variables = {}
+    for key in data.keys():
+        match key:
+            case "sca_inputs":
+                sca_var = VarInfo().sca_variables
+                for k in sca_var.keys():
+                    raw_variables[k] = data[key][sca_var[k]["idx"]].reshape(
+                        (-1, sca_var[k]["shape"])
+                    )
+            case "col_inputs":
+                col_var = VarInfo().col_variables
+                for k in col_var.keys():
+                    raw_variables[k] = data[key][col_var[k]["idx"]].reshape(
+                        (-1, *col_var[k]["shape"])
+                    )
+            case "hl_inputs":
+                hl_var = VarInfo().hl_variables
+                for k in hl_var.keys():
+                    raw_variables[k] = data[key][hl_var[k]["idx"]].reshape(
+                        (-1, *hl_var[k]["shape"])
+                    )
+            case "inter_inputs":
+                inter_var = VarInfo().inter_variables
+                for k in inter_var.keys():
+                    raw_variables[k] = data[key][inter_var[k]["idx"]].reshape(
+                        (-1, *inter_var[k]["shape"])
+                    )
+    return raw_variables

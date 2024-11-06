@@ -11,106 +11,107 @@
 # limitations under the License.
 
 import climetlab as cml
+import glob
 import os.path as osp
+from subprocess import call
+from tqdm import tqdm
+
 import lightning as L
 import torch
+from torch.utils.data import Dataset
 
 from climetlab_maelstrom_radiation.radiation_tf import features_size
 from utils import Keys, VarInfo
-from typing import dict, list, tuple, Optional
+from typing import List, Optional
 
 from nvidia.dali import pipeline_def, Pipeline
 import nvidia.dali.fn as fn
 import nvidia.dali.tfrecord as tfrec
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
+from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 
 
 feature_description = {}
 for k in features_size:
     feature_description[k] = tfrec.FixedLenFeature(
-        shape=features_size[k], dtype=tfrec.float32
+        features_size[k], tfrec.float32, -999.0
     )
 
 
-def merge_fluxes(ds, keys):
-    tmp = []
-    for k in keys:
-        tmp.append(ds[k].expand_dims("variable", axis=-1))
-    return xr.concat(tmp, dim="variable", data_vars="all")
+def create_tfrecord_indexes(tfrecord_path):
+    tfrecord_files = glob.glob(osp.join(tfrecord_path, "*.tfrecord"))
+    tfrecord_idxs = [filename + ".idx" for filename in tfrecord_files]
 
-
-def split_data(data):
-    pass
-
-
-@pipeline_def
-def netcdf_pipeline(batch_size, netcdf_path):
-    return fn.external_source(
-        source=RadiationExternalSource(batch_size, cache_dir=netcdf_path),
-        num_outputs=2,
-        batch=True,
-        parallel=True,
-        name="NetCDF_Reader",
-    )
+    for tfrecord, tfrecord_idx in tqdm(
+        zip(tfrecord_files, tfrecord_idxs), total=len(tfrecord_files)
+    ):
+        if not osp.isfile(tfrecord_idx):
+            call(["tfrecord2idx", tfrecord, tfrecord_idx])
 
 
 @pipeline_def
-def tfrecord_pipeline(tfrecord_path, index_path, shard_id=0, num_shards=1):
+def tfrecord_pipeline(
+    tfrecord_path, index_path, shard_id=0, num_shards=1, device="cpu"
+):
     data = fn.readers.tfrecord(
         path=tfrecord_path,
         index_path=index_path,
         features=feature_description,
         shard_id=shard_id,
-        random_shuffle=True,
+        random_shuffle=False,
         num_shards=num_shards,
+        device=device,
         name="TFRecord_Reader",
     )
+
     return (*(data[key] for key in feature_description.keys()),)
 
 
-class RadiationExternalSource:
-    def __init__(self, batch_size=1, cache_dir=None):
-        self.batch_size = batch_size
+class RadiationTestDataset(Dataset):
+    """
+    A PyTorch Dataset for loading and processing radiation test dataset in NETCDF format.
+    Args:
+        cache_dir (str): The directory where cached data is stored.
+        test_date (str): The date of the test data to load.
+        test_timestep (int): The timestep of the test data to load.
+    Methods:
+        __getitem__(idx):
+            Returns the input and output data for a given index.
+        __len__():
+            Returns the number of columns in the test dataset.
+    """
+
+    def __init__(self, cache_dir, test_date, test_timestep):
+        super().__init__()
         self.cache_dir = cache_dir
+        self.test_date = test_date
+        self.test_timestep = test_timestep
 
         cml.settings.set("cache-directory", osp.join(self.cache_dir, "test"))
         test_ds = cml.load_dataset(
-            "maelsltrom-radiation",
+            "maelstrom-radiation",
             date=self.test_date,
             timestep=self.test_timestep,
             raw_inputs=True,
-            patch_list=list(range(16)),
+            patch=list(range(16)),
             gather_fluxes=True,
-            **commom_kwargs,
+            dataset="3dcorrection",
+            minimal_outputs=False,
+            hr_units="K d-1",
         )
         self.test_dataset = test_ds.to_xarray()
-        self.full_iterations = self.test_dataset.sizes["column"] // self.batch_size
 
-    def __call__(self, sample_info):
-        sample_idx = sample_info.idx_in_epoch
-        if sample_info.iteration >= self.full_iterations:
-            raise StopIteration
-        inputs = self.test_dataset[list(Keys.input_keys)].isel(
-            column=slice(sample_idx, sample_idx + self.batch_size)
-        )
-        outputs = self.test_dataset[list(Keys.output_keys)].isel(
-            column=slice(sample_idx, sample_idx + self.batch_size)
-        )
-
-        # Modify the outputs and return them as in the tfrecord files
-        outputs["sw"] = merge_fluxes(outputs, ["flux_dn_sw", "flux_up_sw"])
-        outputs["lw"] = merge_fluxes(outputs, ["flux_dn_lw", "flux_up_lw"])
-        output = outputs.drop_vars(
-            ["flux_dn_sw", "flux_up_sw", "flux_dn_lw", "flux_up_lw"]
-        )
+    def __getitem__(self, idx):
+        inputs = self.test_dataset[list(Keys.input_keys)].isel(column=idx)
+        outputs = self.test_dataset[list(Keys.output_keys)].isel(column=idx)
 
         input_dict = {k: torch.tensor(inputs[k].values) for k in Keys.input_keys}
         output_dict = {k: torch.tensor(outputs[k].values) for k in Keys.output_keys}
 
         return input_dict, output_dict
 
-        def __len__(self):
-            return self.test_dataset.sizes["column"]
+    def __len__(self):
+        return self.test_dataset.sizes["column"]
 
 
 class RadiationDataModule(L.LightningDataModule):
@@ -129,19 +130,21 @@ class RadiationDataModule(L.LightningDataModule):
 
     def __init__(
         self,
+        cache_dir: str = None,
         train_subset: str = None,
-        train_timestep: list = [0],
-        train_filenum: list = [0],
+        train_timestep: List[int] = [0],
+        train_filenum: List[int] = [0],
         val_subset: str = None,
-        val_timestep: list = [0],
-        val_filenum: list = [0],
+        val_timestep: List[int] = [0],
+        val_filenum: List[int] = [0],
         test_date: int = None,
-        test_timestep: list = None,
+        test_timestep: List[int] = None,
         batch_size: int = 1,
         num_threads: int = 1,
     ):
         super().__init__()
 
+        self.cache_dir = cache_dir
         self.train_subset = train_subset
         self.train_timestep = train_timestep
         self.train_filenum = train_filenum
@@ -155,42 +158,45 @@ class RadiationDataModule(L.LightningDataModule):
 
     def prepare_data(self):
         # Here we use climetlab only to download the datasets.
-        commn_kwargs = {
+        common_kwargs = {
             "dataset": "3dcorrection",
-            "minimal_output": False,
+            "minimal_outputs": False,
             "hr_units": "K d-1",
         }
         cml.settings.set("cache-directory", osp.join(self.cache_dir, "train"))
         train_ds = cml.load_dataset(
-            "maesltrom-radiation-tf",
-            subset=self.subset,
-            timestep=self.timestep,
-            filenum=self.filenum,
+            "maelstrom-radiation-tf",
+            subset=self.train_subset,
+            timestep=self.train_timestep,
+            filenum=self.train_filenum,
             norm=True,
-            **commom_kwargs,
+            **common_kwargs,
         )
 
         cml.settings.set("cache-directory", osp.join(self.cache_dir, "val"))
         val_ds = cml.load_dataset(
-            "maelsltrom-radiation-tf",
+            "maelstrom-radiation-tf",
             subset=self.val_subset,
             timestep=self.val_timestep,
             filenum=self.val_filenum,
             norm=True,
-            **commom_kwargs,
+            **common_kwargs,
         )
+
+        for stage in ["train", "val"]:
+            create_tfrecord_indexes(osp.join(self.cache_dir, stage))
 
         # The dataset used for testing is stored as reguler Netcdf files.
         # The class used to download the data is thus different.
         cml.settings.set("cache-directory", osp.join(self.cache_dir, "test"))
         test_ds = cml.load_dataset(
-            "maelsltrom-radiation",
+            "maelstrom-radiation",
             date=self.test_date,
             timestep=self.test_timestep,
             raw_inputs=True,
-            patch_list=list(range(16)),
+            patch=list(range(16)),
             gather_fluxes=True,
-            **commom_kwargs,
+            **common_kwargs,
         )
 
     def setup(self, stage: Optional[str] = None):
@@ -199,7 +205,7 @@ class RadiationDataModule(L.LightningDataModule):
             shard_id = self.trainer.global_rank
             num_shards = self.trainer.world_size
         else:
-            device_id = 0
+            device_id = None
             shard_id = 0
             num_shards = 1
 
@@ -211,7 +217,8 @@ class RadiationDataModule(L.LightningDataModule):
                 index_path=sorted(
                     glob.glob(osp.join(self.cache_dir, "train", "*.idx"))
                 ),
-                device=device_id,
+                device="cpu",
+                device_id=device_id,
                 shard_id=shard_id,
                 num_shards=num_shards,
                 batch_size=self.batch_size,
@@ -222,18 +229,16 @@ class RadiationDataModule(L.LightningDataModule):
                     glob.glob(osp.join(self.cache_dir, "val", "*.tfrecord"))
                 ),
                 index_path=sorted(glob.glob(osp.join(self.cache_dir, "val", "*.idx"))),
-                device=device_id,
+                device="cpu",
+                device_id=device_id,
                 shard_id=shard_id,
                 num_shards=num_shards,
                 batch_size=self.batch_size,
                 num_threads=self.num_threads,
             )
         else:
-            self.test_pipeline = netcdf_pipeline(
-                netcdf_path=osp.join(self.cache_dir, "test"),
-                device=device_id,
-                batch_size=self.batch_size,
-                num_threads=self.num_threads,
+            self.test_dataset = RadiationTestDataset(
+                self.cache_dir, self.test_date, self.test_timestep
             )
 
     def train_dataloader(self):
@@ -253,9 +258,32 @@ class RadiationDataModule(L.LightningDataModule):
         )
 
     def test_dataloader(self):
-        return DALIGenericIterator(
-            [self.test_pipeline],
-            output_map=["inputs", "outputs"],
-            reader_name="TFRecord_Reader",
-            last_batch_policy=LastBatchPolicy.DROP,
+        return DataLoader(
+            self.test_dataset,
+            batch_size=self.batch_size,
+            num_workers=self.num_threads,
+            shuffle=False,
+            pin_memory=True,
+            drop_last=True,
         )
+
+
+if __name__ == "__main__":
+    datamodule = RadiationDataModule(
+        cache_dir="/fs1/ECMWF/3dcorrection/data",
+        train_subset=None,
+        train_timestep=[2019013100],
+        train_filenum=list(range(0, 52, 5)),
+        val_subset=None,
+        val_timestep=[2019013100],
+        val_filenum=[0],
+        test_date=[20190531, 20191028],
+        test_timestep=list(range(0, 3501, 1000)),
+        batch_size=1,
+        num_threads=1,
+    )
+    datamodule.prepare_data()
+    datamodule.setup(stage="fit")
+    for batch in datamodule.train_dataloader():
+        print(batch[0]["sca_inputs"].shape)
+        break
