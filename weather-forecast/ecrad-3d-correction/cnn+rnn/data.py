@@ -38,6 +38,76 @@ for k in features_size:
     )
 
 
+def split_dataset(data):
+    results = {}
+    # Sca variables
+    sca_var = VarInfo().sca_variables
+    for k in sca_var:
+        idx = sca_var[k]["idx"]
+        shape = sca_var[k]["shape"]
+        if isinstance(idx, range):
+            idx = slice(idx.start, idx.stop, idx.step)
+        results.update(
+            {
+                k: fn.reshape(
+                    data["sca_inputs"][idx],
+                    shape=[*shape],
+                )
+            }
+        )
+    # Col variables
+    col_var = VarInfo().col_variables
+    for k in col_var:
+        idx = col_var[k]["idx"]
+        shape = col_var[k]["shape"]
+        if isinstance(idx, range):
+            idx = slice(idx.start, idx.stop, idx.step)
+        results.update(
+            {
+                k: fn.reshape(
+                    data["col_inputs"][:, idx],
+                    shape=[*shape],
+                )
+            }
+        )
+    results["aerosol_mmr"] = fn.transpose(results["aerosol_mmr"], perm=[1, 0])
+    # Hl variables
+    hl_var = VarInfo().hl_variables
+    for k in hl_var:
+        idx = hl_var[k]["idx"]
+        shape = hl_var[k]["shape"]
+        if isinstance(idx, range):
+            idx = slice(idx.start, idx.stop, idx.step)
+        results.update(
+            {
+                k: fn.reshape(
+                    data["hl_inputs"][:, idx],
+                    shape=[*shape],
+                )
+            }
+        )
+    # Inter variables
+    inter_var = VarInfo().inter_variables
+    for k in inter_var:
+        idx = inter_var[k]["idx"]
+        shape = inter_var[k]["shape"]
+        if isinstance(idx, range):
+            idx = slice(idx.start, idx.stop, idx.step)
+        results.update(
+            {
+                k: fn.reshape(
+                    data["inter_inputs"][:, idx],
+                    shape=[*shape],
+                )
+            }
+        )
+    # Output variables
+    for k in Keys().output_keys:
+        results.update({k: data[k]})
+
+    return results
+
+
 def create_tfrecord_indexes(tfrecord_path):
     tfrecord_files = glob.glob(osp.join(tfrecord_path, "*.tfrecord"))
     tfrecord_idxs = [filename + ".idx" for filename in tfrecord_files]
@@ -63,8 +133,10 @@ def tfrecord_pipeline(
         device=device,
         name="TFRecord_Reader",
     )
+    results = split_dataset(data)
 
-    return (*(data[key] for key in feature_description.keys()),)
+    return (*(results[key] for key in results.keys()),)
+    # return (*(data[key] for key in feature_description.keys()),)
 
 
 class RadiationTestDataset(Dataset):
@@ -244,7 +316,13 @@ class RadiationDataModule(L.LightningDataModule):
     def train_dataloader(self):
         return DALIGenericIterator(
             [self.train_pipeline],
-            output_map=list(feature_description.keys()),
+            output_map=list(
+                tuple(VarInfo().sca_variables.keys())
+                + tuple(VarInfo().col_variables.keys())
+                + tuple(VarInfo().hl_variables.keys())
+                + tuple(VarInfo().inter_variables.keys())
+                + Keys().output_keys
+            ),
             reader_name="TFRecord_Reader",
             last_batch_policy=LastBatchPolicy.DROP,
         )
@@ -252,7 +330,13 @@ class RadiationDataModule(L.LightningDataModule):
     def val_dataloader(self):
         return DALIGenericIterator(
             [self.train_pipeline],
-            output_map=list(feature_description.keys()),
+            output_map=list(
+                tuple(VarInfo().sca_variables.keys())
+                + tuple(VarInfo().col_variables.keys())
+                + tuple(VarInfo().hl_variables.keys())
+                + tuple(VarInfo().inter_variables.keys())
+                + Keys().output_keys
+            ),
             reader_name="TFRecord_Reader",
             last_batch_policy=LastBatchPolicy.DROP,
         )
@@ -279,11 +363,12 @@ if __name__ == "__main__":
         val_filenum=[0],
         test_date=[20190531, 20191028],
         test_timestep=list(range(0, 3501, 1000)),
-        batch_size=1,
+        batch_size=8,
         num_threads=1,
     )
     datamodule.prepare_data()
     datamodule.setup(stage="fit")
     for batch in datamodule.train_dataloader():
-        print(batch[0]["sca_inputs"].shape)
+        for k in batch[0].keys():
+            print(k, batch[0][k].shape)
         break
