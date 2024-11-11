@@ -13,7 +13,7 @@
 from lightning.pytorch.cli import LightningCLI
 from jsonargparse.typing import register_type
 from torch import set_float32_matmul_precision
-from utils import slice_deserializer
+from utils import range_deserializer
 
 
 def cli_main():
@@ -22,5 +22,5 @@ def cli_main():
 
 if __name__ == "__main__":
     set_float32_matmul_precision("high")
-    register_type(range, str, slice_deserializer)
+    register_type(range, str, range_deserializer)
     cli_main()
