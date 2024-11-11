@@ -4,8 +4,8 @@ train_timestep: None
 train_filenum: None
 val_subset: None
 val_timestep: [2019013100]
-val_filenum: [range(52)]
+val_filenum: ['range(52)']
 test_date: [20190531, 20191028]
-test_timestep: [range(0, 3501, 1000)]
+test_timestep: ['range(0, 3501, 1000)']
 batch_size: 64
 num_threads: 8
