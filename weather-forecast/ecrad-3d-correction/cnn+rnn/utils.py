@@ -113,3 +113,15 @@ class VarInfo:
             "overlap_param": {"shape": [136], "idx": 0},
         }
     )
+
+
+def range_deserializer(value: str) -> range:
+    """
+    Deserialize a string to a range object.
+    """
+    assert "range" in value, "Not a range, can't deserialize."
+    arg_list = value[value.find("(") + 1 : value.find(")")].split(", ")
+    assert len(arg_list) <= 3, "Range takes 3 arguments at maximum."
+    assert len(arg_list) > 0, "You must at least define the end of the range."
+    arg_list = [None if arg == "None" else int(arg) for arg in arg_list]
+    return range(*arg_list)

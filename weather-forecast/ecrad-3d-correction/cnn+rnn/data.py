@@ -37,11 +37,40 @@ for k in features_size:
         features_size[k], tfrec.float32, -999.0
     )
 
+output_map = list(
+    tuple(VarInfo.sca_variables.keys())
+    + tuple(VarInfo.col_variables.keys())
+    + tuple(VarInfo.hl_variables.keys())
+    + tuple(VarInfo.inter_variables.keys())
+    + Keys.output_keys
+)
+
 
 def split_dataset(data):
+    """
+    Splits the dataset from packed variables to raw atmospheric variables.
+    This function processes the input data dictionary and splits it into
+    separate variables based on predefined indices and shapes. The variables
+    are categorized into scalar (sca), column (col), high-level (hl), and
+    intermediate (inter) variables. The function reshapes and transposes the
+    data as necessary to match the expected output format.
+    Args:
+        data (dict): A dictionary containing the input data with keys
+                     'sca_inputs', 'col_inputs', 'hl_inputs', 'inter_inputs',
+                     and other output keys.
+    Returns:
+        dict: A dictionary containing the split and reshaped variables.
+    Note:
+        In the context of NVIDIA DALI (Data Loading Library), this function
+        avoids using if statements to ensure efficient data processing and
+        transformation. NVIDIA DALI is designed for high-performance data
+        loading and augmentation, and avoiding conditional statements helps
+        in optimizing the data pipeline for better performance.
+    """
+
     results = {}
     # Sca variables
-    sca_var = VarInfo().sca_variables
+    sca_var = VarInfo.sca_variables
     for k in sca_var:
         idx = sca_var[k]["idx"]
         shape = sca_var[k]["shape"]
@@ -56,7 +85,7 @@ def split_dataset(data):
             }
         )
     # Col variables
-    col_var = VarInfo().col_variables
+    col_var = VarInfo.col_variables
     for k in col_var:
         idx = col_var[k]["idx"]
         shape = col_var[k]["shape"]
@@ -72,7 +101,7 @@ def split_dataset(data):
         )
     results["aerosol_mmr"] = fn.transpose(results["aerosol_mmr"], perm=[1, 0])
     # Hl variables
-    hl_var = VarInfo().hl_variables
+    hl_var = VarInfo.hl_variables
     for k in hl_var:
         idx = hl_var[k]["idx"]
         shape = hl_var[k]["shape"]
@@ -87,7 +116,7 @@ def split_dataset(data):
             }
         )
     # Inter variables
-    inter_var = VarInfo().inter_variables
+    inter_var = VarInfo.inter_variables
     for k in inter_var:
         idx = inter_var[k]["idx"]
         shape = inter_var[k]["shape"]
@@ -102,7 +131,7 @@ def split_dataset(data):
             }
         )
     # Output variables
-    for k in Keys().output_keys:
+    for k in Keys.output_keys:
         results.update({k: data[k]})
 
     return results
@@ -308,7 +337,8 @@ class RadiationDataModule(L.LightningDataModule):
                 batch_size=self.batch_size,
                 num_threads=self.num_threads,
             )
-        else:
+
+        if stage == "test":
             self.test_dataset = RadiationTestDataset(
                 self.cache_dir, self.test_date, self.test_timestep
             )
@@ -316,13 +346,7 @@ class RadiationDataModule(L.LightningDataModule):
     def train_dataloader(self):
         return DALIGenericIterator(
             [self.train_pipeline],
-            output_map=list(
-                tuple(VarInfo().sca_variables.keys())
-                + tuple(VarInfo().col_variables.keys())
-                + tuple(VarInfo().hl_variables.keys())
-                + tuple(VarInfo().inter_variables.keys())
-                + Keys().output_keys
-            ),
+            output_map=output_map,
             reader_name="TFRecord_Reader",
             last_batch_policy=LastBatchPolicy.DROP,
         )
@@ -330,13 +354,7 @@ class RadiationDataModule(L.LightningDataModule):
     def val_dataloader(self):
         return DALIGenericIterator(
             [self.train_pipeline],
-            output_map=list(
-                tuple(VarInfo().sca_variables.keys())
-                + tuple(VarInfo().col_variables.keys())
-                + tuple(VarInfo().hl_variables.keys())
-                + tuple(VarInfo().inter_variables.keys())
-                + Keys().output_keys
-            ),
+            output_map=output_map,
             reader_name="TFRecord_Reader",
             last_batch_policy=LastBatchPolicy.DROP,
         )

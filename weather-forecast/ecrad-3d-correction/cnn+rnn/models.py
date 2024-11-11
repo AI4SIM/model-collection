@@ -30,7 +30,7 @@ class CNNModel(ThreeDCorrectionModule):
         out_channels: int = 2,
         hidden_size: int = 512,
         kernel_size: int = 3,
-        dilation_rates: list = [1, 2, 4, 8],
+        dilation_rates: list = [0, 1, 2, 3],
         conv_layers: int = 4,
         num_heads: int = 8,
         qkv_bias: bool = False,
@@ -51,9 +51,10 @@ class CNNModel(ThreeDCorrectionModule):
 
         self.save_hyperparameters()
 
+        drates = [2**i for i in self.dilation_rates]
         # Dilated convolution block to make the information propaate faster
         self.conv_block_with_dilation = Sequential()
-        for drate in self.dilation_rates:
+        for drate in drates:
             self.conv_with_dilation.append(
                 LazyConv1d(
                     self.hidden_size,

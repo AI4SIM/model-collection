@@ -1,0 +1,40 @@
+default_root_dir: ${oc.decode:${oc.env:LOGDIR}}
+enable_progress_bar: False
+devices: ${oc.decode:${oc.env:SLURM_GPUS_ON_NODE}}
+num_nodes: ${oc.decode:${oc.env:SLURM_NNODES}}
+accelerator: 'gpu'
+strategy: 
+    class_path: lightning.pytorch.strategies.DDPStrategy
+    init_args:
+        gradient_as_bucket_view: True
+        bucket_cap_mb: 25
+        find_unused_parameters: True
+        static_graph: True
+fast_dev_run: False
+max_epochs: 200
+# limit_train_batches: 500
+# limit_val_batches: 500
+num_sanity_val_steps: 0
+check_val_every_n_epoch: 1
+precision: 'f32'
+enable_checkpointing: True
+benchmark: False
+detect_anomaly: true
+log_every_n_steps: 100
+logger:
+    class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
+    init_args:
+        save_dir: ${oc.decode:${oc.env:LOGDIR}}/logs
+        log_graph: True
+callbacks:
+    - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+      init_args:
+          logging_interval: 'step'
+          log_momentum: False
+          log_weight_decay: False
+    - class_path: lightning.pytorch.callbacks.ModelSummary
+      init_args:
+          max_depth: 2
+    - class_path: lightning.pytorch.callbacks.DeviceStatsMonitor
+      init_args:
+          cpu_stats: False
