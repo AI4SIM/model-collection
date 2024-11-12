@@ -13,18 +13,17 @@
 
 import os.path as osp
 import torch
+import torch.nn as nn
 import pytorch_lightning as pl
 from torch.nn import LazyConv1d, Linear, Dropout, Module, SiLU, Sequential
 from torch.nn.functional import scaled_dot_product_attention, silu
 from torch.nn.attention import SDPBackend, sdpa_kernel
-
 from layers import HRLayer, MultiHeadAttention
-from lightning import ThreeDCorrectionModule
 
 from typing import Dict
 
 
-class CNNModel(ThreeDCorrectionModule):
+class CNNModel(nn.Module):
     def __init__(
         self,
         out_channels: int = 2,
@@ -126,5 +125,7 @@ class CNNModel(ThreeDCorrectionModule):
         }
 
 
-class RNNModel(ThreeDCorrectionModule):
-    raise ("Not implemented yet")
+class RNNModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        pass

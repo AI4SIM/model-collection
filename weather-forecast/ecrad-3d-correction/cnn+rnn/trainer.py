@@ -13,14 +13,21 @@
 from lightning.pytorch.cli import LightningCLI
 from jsonargparse.typing import register_type
 from torch import set_float32_matmul_precision
+
+from main import RadiationCorrectionModel
+from data import RadiationCorrectionDataModule
 from utils import range_deserializer
 
 
 def cli_main():
-    LightningCLI(parser_kwargs={"parser_mode": "omegaconf"})
+    LightningCLI(
+        RadiationCorrectionModel,
+        RadiationCorrectionDataModule,
+        parser_kwargs={"parser_mode": "omegaconf"},
+    )
 
 
 if __name__ == "__main__":
     set_float32_matmul_precision("high")
-    register_type(range, str, range_deserializer)
+    # register_type(range, str, range_deserializer)
     cli_main()

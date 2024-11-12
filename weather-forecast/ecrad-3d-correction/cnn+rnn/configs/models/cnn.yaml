@@ -1,0 +1,19 @@
+model:
+    class_path: models.CNNModel
+    init_args:
+        out_channels: 2
+        hidden_size: 512
+        kernel_size: 3
+        dilation_rates: ['range(4)']
+        conv_layers: 8
+        num_heads: 8
+        qkv_bias: True
+        attention_dropout: 0.0
+        flash_attention: True
+lr: 0.001
+min_lr: 1.e-07
+beta1: 0.9
+beta2: 0.95
+weight_decay: 0.1
+fused: True
+num_warmup_steps: 1000

@@ -10,14 +10,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from keys.Keys import icol_keys, ihl_keys, iinter_keys, isca_keys
+from utils import Keys
 
 import torch
 from torch.nn import Module, ZeroPad2d
 from torch.nn.functional import scaled_dot_product_attention
 from torch.nn.attention import SDPBackend, sdpa_kernel
 
-from typing import Dict
+from typing import Dict, List, Tuple
 
 
 class MultiHeadAttention(Module):
@@ -186,7 +186,7 @@ class ScaLayer(Module):
                 Resulting model forward pass.
         """
         scalar_variables = []
-        for key in isca_keys:
+        for key in Keys().isca_keys:
             if key in [
                 "skin_temperature",
                 "cos_solar_zenith_angle",
@@ -235,7 +235,7 @@ class ColLayer(Module):
                 Resulting model forward pass.
         """
         column_variables = []
-        for key in icol_keys:
+        for key in Keys().icol_keys:
             if key == "aerosol_mmr":
                 inputs = x[key].permute((0, 2, 1))
             else:
@@ -278,7 +278,7 @@ class HLLayer(Module):
                 Resulting model forward pass.
         """
         hl_variables = []
-        for key in ihl_keys:
+        for key in Keys().ihl_keys:
             inputs = x[key]
             hl_variables.append(inputs)
 
@@ -319,7 +319,7 @@ class InterLayer(Module):
             torch.Tensor:
                 Resulting model forward pass.
         """
-        inputs = x[iinter_keys].unsqueeze(dim=-1)
+        inputs = x[Keys().iinter_keys].unsqueeze(dim=-1)
         inputs = self.normalization(inputs)
 
         return inputs

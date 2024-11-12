@@ -1,7 +1,7 @@
 cache_dir: ${oc.decode:${oc.env:CACHE_DIR}}
-train_subset: 2020
-train_timestep: None
-train_filenum: None
+train_subset: '2020'
+train_timestep: [0]
+train_filenum: [0]
 val_subset: None
 val_timestep: [2019013100]
 val_filenum: ['range(52)']

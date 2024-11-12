@@ -10,13 +10,13 @@ strategy:
         bucket_cap_mb: 25
         find_unused_parameters: True
         static_graph: True
-fast_dev_run: False
+fast_dev_run: True
 max_epochs: 200
 # limit_train_batches: 500
 # limit_val_batches: 500
 num_sanity_val_steps: 0
 check_val_every_n_epoch: 1
-precision: 'f32'
+precision: '32-true'
 enable_checkpointing: True
 benchmark: False
 detect_anomaly: true

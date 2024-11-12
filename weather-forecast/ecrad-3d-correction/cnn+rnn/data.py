@@ -22,7 +22,7 @@ from torch.utils.data import Dataset
 
 from climetlab_maelstrom_radiation.radiation_tf import features_size
 from utils import Keys, VarInfo
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from nvidia.dali import pipeline_def, Pipeline
 import nvidia.dali.fn as fn
@@ -38,11 +38,11 @@ for k in features_size:
     )
 
 output_map = list(
-    tuple(VarInfo.sca_variables.keys())
-    + tuple(VarInfo.col_variables.keys())
-    + tuple(VarInfo.hl_variables.keys())
-    + tuple(VarInfo.inter_variables.keys())
-    + Keys.output_keys
+    tuple(VarInfo().sca_variables.keys())
+    + tuple(VarInfo().col_variables.keys())
+    + tuple(VarInfo().hl_variables.keys())
+    + tuple(VarInfo().inter_variables.keys())
+    + Keys().output_keys
 )
 
 
@@ -57,7 +57,7 @@ def split_dataset(data):
     Args:
         data (dict): A dictionary containing the input data with keys
                      'sca_inputs', 'col_inputs', 'hl_inputs', 'inter_inputs',
-                     and other output keys.
+                     and other output Keys().
     Returns:
         dict: A dictionary containing the split and reshaped variables.
     Note:
@@ -70,7 +70,7 @@ def split_dataset(data):
 
     results = {}
     # Sca variables
-    sca_var = VarInfo.sca_variables
+    sca_var = VarInfo().sca_variables
     for k in sca_var:
         idx = sca_var[k]["idx"]
         shape = sca_var[k]["shape"]
@@ -85,7 +85,7 @@ def split_dataset(data):
             }
         )
     # Col variables
-    col_var = VarInfo.col_variables
+    col_var = VarInfo().col_variables
     for k in col_var:
         idx = col_var[k]["idx"]
         shape = col_var[k]["shape"]
@@ -101,7 +101,7 @@ def split_dataset(data):
         )
     results["aerosol_mmr"] = fn.transpose(results["aerosol_mmr"], perm=[1, 0])
     # Hl variables
-    hl_var = VarInfo.hl_variables
+    hl_var = VarInfo().hl_variables
     for k in hl_var:
         idx = hl_var[k]["idx"]
         shape = hl_var[k]["shape"]
@@ -116,7 +116,7 @@ def split_dataset(data):
             }
         )
     # Inter variables
-    inter_var = VarInfo.inter_variables
+    inter_var = VarInfo().inter_variables
     for k in inter_var:
         idx = inter_var[k]["idx"]
         shape = inter_var[k]["shape"]
@@ -131,7 +131,7 @@ def split_dataset(data):
             }
         )
     # Output variables
-    for k in Keys.output_keys:
+    for k in Keys().output_keys:
         results.update({k: data[k]})
 
     return results
@@ -203,11 +203,11 @@ class RadiationTestDataset(Dataset):
         self.test_dataset = test_ds.to_xarray()
 
     def __getitem__(self, idx):
-        inputs = self.test_dataset[list(Keys.input_keys)].isel(column=idx)
-        outputs = self.test_dataset[list(Keys.output_keys)].isel(column=idx)
+        inputs = self.test_dataset[list(Keys().input_keys)].isel(column=idx)
+        outputs = self.test_dataset[list(Keys().output_keys)].isel(column=idx)
 
-        input_dict = {k: torch.tensor(inputs[k].values) for k in Keys.input_keys}
-        output_dict = {k: torch.tensor(outputs[k].values) for k in Keys.output_keys}
+        input_dict = {k: torch.tensor(inputs[k].values) for k in Keys().input_keys}
+        output_dict = {k: torch.tensor(outputs[k].values) for k in Keys().output_keys}
 
         return input_dict, output_dict
 
@@ -215,7 +215,7 @@ class RadiationTestDataset(Dataset):
         return self.test_dataset.sizes["column"]
 
 
-class RadiationDataModule(L.LightningDataModule):
+class RadiationCorrectionDataModule(L.LightningDataModule):
     """
     This class handles the data loading and processing for the 3D correction use-case
     in weather forecasting.
@@ -233,13 +233,13 @@ class RadiationDataModule(L.LightningDataModule):
         self,
         cache_dir: str = None,
         train_subset: str = None,
-        train_timestep: List[int] = [0],
-        train_filenum: List[int] = [0],
+        train_timestep: List[Union[int, range]] = [0],
+        train_filenum: List[Union[int, range]] = [0],
         val_subset: str = None,
-        val_timestep: List[int] = [0],
-        val_filenum: List[int] = [0],
-        test_date: int = None,
-        test_timestep: List[int] = None,
+        val_timestep: List[Union[int, range]] = [0],
+        val_filenum: List[Union[int, range]] = [0],
+        test_date: List[int] = None,
+        test_timestep: List[Union[int, range]] = None,
         batch_size: int = 1,
         num_threads: int = 1,
     ):
@@ -370,23 +370,23 @@ class RadiationDataModule(L.LightningDataModule):
         )
 
 
-if __name__ == "__main__":
-    datamodule = RadiationDataModule(
-        cache_dir="/fs1/ECMWF/3dcorrection/data",
-        train_subset=None,
-        train_timestep=[2019013100],
-        train_filenum=list(range(0, 52, 5)),
-        val_subset=None,
-        val_timestep=[2019013100],
-        val_filenum=[0],
-        test_date=[20190531, 20191028],
-        test_timestep=list(range(0, 3501, 1000)),
-        batch_size=8,
-        num_threads=1,
-    )
-    datamodule.prepare_data()
-    datamodule.setup(stage="fit")
-    for batch in datamodule.train_dataloader():
-        for k in batch[0].keys():
-            print(k, batch[0][k].shape)
-        break
+# if __name__ == "__main__":
+#     datamodule = RadiationDataModule(
+#         cache_dir="/fs1/ECMWF/3dcorrection/data",
+#         train_subset=None,
+#         train_timestep=[2019013100],
+#         train_filenum=list(range(0, 52, 5)),
+#         val_subset=None,
+#         val_timestep=[2019013100],
+#         val_filenum=[0],
+#         test_date=[20190531, 20191028],
+#         test_timestep=list(range(0, 3501, 1000)),
+#         batch_size=8,
+#         num_threads=1,
+#     )
+#     datamodule.prepare_data()
+#     datamodule.setup(stage="fit")
+#     for batch in datamodule.train_dataloader():
+#         for k in batch[0].keys():
+#             print(k, batch[0][k].shape)
+#         break
