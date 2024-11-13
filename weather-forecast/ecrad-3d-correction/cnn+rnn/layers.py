@@ -10,14 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from utils import Keys
+from utils import Keys, get_means_and_stds
 
 import torch
 from torch.nn import Module, ZeroPad2d
 from torch.nn.functional import scaled_dot_product_attention
 from torch.nn.attention import SDPBackend, sdpa_kernel
-
-from typing import Dict, List, Tuple
 
 
 class MultiHeadAttention(Module):
@@ -98,7 +96,7 @@ class HRLayer(Module):
         super().__init__()
         self.register_buffer("g_cp", torch.tensor(24 * 3600 * 9.80665 / 1004))
 
-    def forward(self, inputs: List[torch.Tensor]) -> torch.Tensor:
+    def forward(self, inputs: list[torch.Tensor]) -> torch.Tensor:
         # test the input shape
         hlpress = inputs[1]
         net_press = hlpress[..., 1:] - hlpress[..., :-1]
@@ -175,11 +173,11 @@ class ScaLayer(Module):
 
         self.normalization = Normalization(self.sca_mean, self.sca_std)
 
-    def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def forward(self, x: dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
 
         Args:
-            x (torch.Tensor): Dictionary containing all the features.
+            x (torch.Tensor): dictionary containing all the features.
 
         Returns:
             torch.Tensor:
@@ -224,11 +222,11 @@ class ColLayer(Module):
 
         self.normalization = Normalization(self.col_mean, self.col_std)
 
-    def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def forward(self, x: dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
 
         Args:
-            x (torch.Tensor): Dictionary containing all the features.
+            x (torch.Tensor): dictionary containing all the features.
 
         Returns:
             torch.Tensor:
@@ -267,11 +265,11 @@ class HLLayer(Module):
         self.register_buffer("hl_mean", mean)
         self.register_buffer("hl_std", std)
 
-    def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def forward(self, x: dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
 
         Args:
-            x (torch.Tensor): Dictionary containing all the features.
+            x (torch.Tensor): dictionary containing all the features.
 
         Returns:
             torch.Tensor:
@@ -309,11 +307,11 @@ class InterLayer(Module):
 
         self.normalization = Normalization(self.inter_mean, self.inter_std)
 
-    def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def forward(self, x: dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
 
         Args:
-            x (torch.Tensor): Dictionary containing all the features.
+            x (torch.Tensor): dictionary containing all the features.
 
         Returns:
             torch.Tensor:
@@ -335,15 +333,13 @@ class PreProcessing(Module):
 
     def __init__(
         self,
-        means: Dict[str, torch.Tensor],
-        stds: Dict[str, torch.Tensor],
-        colum_padding: Tuple[int, int, int, int] = (0, 0, 1, 0),
-        inter_padding: Tuple[int, int, int, int] = (0, 0, 1, 1),
+        path_to_params: str = None,
+        colum_padding: tuple[int, int, int, int] = (0, 0, 1, 0),
+        inter_padding: tuple[int, int, int, int] = (0, 0, 1, 1),
     ) -> None:
         super().__init__()
 
-        self.means = means
-        self.stds = stds
+        self.means, self.stds = get_means_and_stds(path_to_params)
 
         self.sca_layer = ScaLayer(self.means["sca_inputs"], self.stds["sca_inputs"])
         self.col_layer = ColLayer(self.means["col_inputs"], self.stds["col_inputs"])
@@ -355,11 +351,11 @@ class PreProcessing(Module):
         self.zeropad_col = ZeroPad2d(colum_padding)
         self.zeropad_inter = ZeroPad2d(inter_padding)
 
-    def forward(self, x: Dict[str, torch.Tensor]) -> torch.Tensor:
+    def forward(self, x: dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
 
         Args:
-            x (torch.Tensor): Dictionary containing all the features.
+            x (torch.Tensor): dictionary containing all the features.
 
         Returns:
             torch.Tensor:

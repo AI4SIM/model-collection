@@ -18,9 +18,7 @@ import pytorch_lightning as pl
 from torch.nn import LazyConv1d, Linear, Dropout, Module, SiLU, Sequential
 from torch.nn.functional import scaled_dot_product_attention, silu
 from torch.nn.attention import SDPBackend, sdpa_kernel
-from layers import HRLayer, MultiHeadAttention
-
-from typing import Dict
+from layers import HRLayer, MultiHeadAttention, PreProcessing
 
 
 class CNNModel(nn.Module):
@@ -35,6 +33,9 @@ class CNNModel(nn.Module):
         qkv_bias: bool = False,
         attention_dropout: float = 0.0,
         flash_attention: bool = False,
+        colum_padding: tuple[int, int, int, int] = (0, 0, 1, 0),
+        inter_padding: tuple[int, int, int, int] = (0, 0, 1, 1),
+        path_to_params: str = None,
     ):
         super().__init__()
 
@@ -47,11 +48,20 @@ class CNNModel(nn.Module):
         self.qkv_bias = qkv_bias
         self.attention_dropout = attention_dropout
         self.flash_attention = flash_attention
+        self.path_to_params = path_to_params
+        self.colum_padding = colum_padding
+        self.inter_padding = inter_padding
 
         self.save_hyperparameters()
 
-        drates = [2**i for i in self.dilation_rates]
+        # Preprocessing layer
+        self.preprocess = PreProcessing(
+            self.path_to_params, self.colum_padding, self.inter_padding
+        )
+
         # Dilated convolution block to make the information propaate faster
+        drates = [2**i for i in self.dilation_rates]
+        print(f"Using dilation rates: {drates}")
         self.conv_block_with_dilation = Sequential()
         for drate in drates:
             self.conv_with_dilation.append(
@@ -97,9 +107,11 @@ class CNNModel(nn.Module):
         self.hr_lw = HRLayer()
         self.hr_sw = HRLayer()
 
-    def forward(
-        self, x: torch.Tensor, pressure_hl: torch.Tensor
-    ) -> Dict[str, torch.Tensor]:
+    def forward(self, inputs: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
+        # Preprocessing
+        x = self.preprocess(inputs)
+
+        # Convolutional layers
         B, T, _ = x.size()  # batch size, sequence length, channels
 
         x = self.conv_block_with_dilation(x)
@@ -112,8 +124,8 @@ class CNNModel(nn.Module):
         sw = self.sw_conv(x)  # B, T, 2
 
         # Heating rate layers
-        hr_lw = self.hr_lw([lw, pressure_hl])
-        hr_sw = self.hr_sw([sw, pressure_hl])
+        hr_lw = self.hr_lw([lw, inputs["pressure_hl"]])
+        hr_sw = self.hr_sw([sw, inputs["pressure_hl"]])
 
         return {
             "hr_sw": hr_sw,

@@ -22,7 +22,7 @@ from torch.utils.data import Dataset
 
 from climetlab_maelstrom_radiation.radiation_tf import features_size
 from utils import Keys, VarInfo
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from nvidia.dali import pipeline_def, Pipeline
 import nvidia.dali.fn as fn
@@ -233,13 +233,13 @@ class RadiationCorrectionDataModule(L.LightningDataModule):
         self,
         cache_dir: str = None,
         train_subset: str = None,
-        train_timestep: List[Union[int, range]] = [0],
-        train_filenum: List[Union[int, range]] = [0],
+        train_timestep: list[Union[int, range]] = [0],
+        train_filenum: list[Union[int, range]] = [0],
         val_subset: str = None,
-        val_timestep: List[Union[int, range]] = [0],
-        val_filenum: List[Union[int, range]] = [0],
-        test_date: List[int] = None,
-        test_timestep: List[Union[int, range]] = None,
+        val_timestep: list[Union[int, range]] = [0],
+        val_filenum: list[Union[int, range]] = [0],
+        test_date: list[int] = None,
+        test_timestep: list[Union[int, range]] = None,
         batch_size: int = 1,
         num_threads: int = 1,
     ):

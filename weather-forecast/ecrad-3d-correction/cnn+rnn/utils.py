@@ -10,8 +10,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import torch
+from climetlab_maelstrom_radiation.radiation_tf import NormMerger
 from dataclasses import dataclass, field
-from typing import Dict, Any
+from typing import Any, Dict, Union
 
 
 @dataclass(frozen=True)
@@ -65,6 +67,15 @@ class Keys:
     # Output variables
     output_keys: tuple[str, ...] = ("sw", "lw", "hr_sw", "hr_lw")
 
+    # Packed variables
+    packed_variables: tuple[str, ...] = (
+        "sca_inputs",
+        "col_inputs",
+        "hl_inputs",
+        "inter_inputs",
+        "pressure_hl",
+    )
+
 
 @dataclass(frozen=True)
 class VarInfo:
@@ -115,6 +126,29 @@ class VarInfo:
     )
 
 
+def idx_to_list(idx: Union[int, range]) -> list[int]:
+    """
+    Convert an index to a list of indices.
+    """
+    if isinstance(idx, int):
+        return [idx]
+    elif isinstance(idx, range):
+        return list(idx)
+    else:
+        raise TypeError("Index must be an integer or a range.")
+
+
+def get_total_features(var_info: VarInfo) -> int:
+    """
+    Get the total number of features for raw variables.
+    """
+    total_features = 0
+    for key1 in var_info.keys():
+        for key2 in var_info[key1].keys():
+            total_features += sum(len(idx_to_list(var_info[key1][key2]["idx"])))
+    return total_features
+
+
 def range_deserializer(value: str) -> range:
     """
     Deserialize a string to a range object.
@@ -125,3 +159,18 @@ def range_deserializer(value: str) -> range:
     assert len(arg_list) > 0, "You must at least define the end of the range."
     arg_list = [None if arg == "None" else int(arg) for arg in arg_list]
     return range(*arg_list)
+
+
+def get_means_and_stds(path: str) -> Dict[str, torch.Tensor]:
+    """
+    Get the means and standard deviations of the input variables.
+    """
+    norm_path = glob.glob(os.path.join(path, "*.nc"))
+    norm_ds = NormMerger().to_xarray(norm_path)
+    means = {}
+    stds = {}
+    for k in Keys().packed_variables.keys():
+        means[k] = torch.tensor(norm_ds[f"{k}_mean"].values)
+        stds[k] = torch.tensor(norm_ds[f"{k}_std"].values)
+
+    return means, stds

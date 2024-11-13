@@ -15,7 +15,7 @@ import torch
 from torch.optim import AdamW
 from transformers.optimization import get_cosine_with_min_lr_schedule_with_warmup
 
-from typing import Dict
+from utils import VarInfo, get_total_features
 
 
 class RadiationCorrectionModel(L.LightningModule):
@@ -40,12 +40,17 @@ class RadiationCorrectionModel(L.LightningModule):
         self.fused = fused
         self.num_warmup_steps = num_warmup_steps
 
-    def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+        var_info = VarInfo()
+        self.num_levels = var_info.hl_variables["temperature_hl"]["shape"][0]
+        self.num_features = get_total_features(var_info)
+        self.example_input_array = torch.rand(1, self.num_levels, self.num_features)
+
+    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
         return self.model(x)
 
     def common_step(
-        self, batch: Dict[str, torch.Tensor], batch_idx: int
-    ) -> Dict[str, torch.Tensor]:
+        self, batch: dict[str, torch.Tensor], batch_idx: int
+    ) -> dict[str, torch.Tensor]:
         # x = batch["x"]
         # pressure_hl = batch["pressure_hl"]
         # y_hat = self(x, pressure_hl)
@@ -55,18 +60,18 @@ class RadiationCorrectionModel(L.LightningModule):
         pass
 
     def training_step(
-        self, batch: Dict[str, torch.Tensor], batch_idx: int
-    ) -> Dict[str, torch.Tensor]:
+        self, batch: dict[str, torch.Tensor], batch_idx: int
+    ) -> dict[str, torch.Tensor]:
         return self.common_step(batch, batch_idx)
 
     def validation_step(
-        self, batch: Dict[str, torch.Tensor], batch_idx: int
-    ) -> Dict[str, torch.Tensor]:
+        self, batch: dict[str, torch.Tensor], batch_idx: int
+    ) -> dict[str, torch.Tensor]:
         return self.common_step(batch, batch_idx)
 
     def test_test(
-        self, batch: Dict[str, torch.Tensor], batch_idx: int
-    ) -> Dict[str, torch.Tensor]:
+        self, batch: dict[str, torch.Tensor], batch_idx: int
+    ) -> dict[str, torch.Tensor]:
         return self.common_step(batch, batch_idx)
 
     def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
