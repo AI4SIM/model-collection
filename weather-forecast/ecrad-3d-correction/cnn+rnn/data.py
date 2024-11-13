@@ -239,17 +239,28 @@ class RadiationCorrectionDataModule(L.LightningDataModule):
         self,
         cache_dir: str = None,
         train_subset: str = None,
-        train_timestep: list[Union[int, range]] = [0],
-        train_filenum: list[Union[int, range]] = [0],
+        train_timestep: Union[list[int], range] = [0],
+        train_filenum: Union[list[int], range] = [0],
         val_subset: str = None,
-        val_timestep: list[Union[int, range]] = [0],
-        val_filenum: list[Union[int, range]] = [0],
+        val_timestep: Union[list[int], range] = [0],
+        val_filenum: Union[list[int], range] = [0],
         test_date: list[int] = None,
-        test_timestep: list[Union[int, range]] = None,
+        test_timestep: Union[list[int], range] = None,
         batch_size: int = 1,
         num_threads: int = 1,
     ):
         super().__init__()
+
+        if isinstance(train_timestep, range):
+            train_timestep = list(train_timestep)
+        if isinstance(train_filenum, range):
+            train_filenum = list(train_filenum)
+        if isinstance(val_timestep, range):
+            val_timestep = list(val_timestep)
+        if isinstance(val_filenum, range):
+            val_filenum = list(val_filenum)
+        if isinstance(test_timestep, range):
+            test_timestep = list(test_timestep)
 
         self.cache_dir = cache_dir
         self.train_subset = train_subset

@@ -20,6 +20,8 @@ from torch.nn.functional import scaled_dot_product_attention, silu
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from layers import HRLayer, MultiHeadAttention, PreProcessing
 
+from typing import Union
+
 
 class CNNModel(nn.Module):
     def __init__(
@@ -27,7 +29,7 @@ class CNNModel(nn.Module):
         out_channels: int = 2,
         hidden_size: int = 512,
         kernel_size: int = 3,
-        dilation_rates: list = [0, 1, 2, 3],
+        dilation_rates: Union[list[int], range] = [0, 1, 2, 3],
         conv_layers: int = 4,
         num_heads: int = 8,
         qkv_bias: bool = False,
@@ -38,6 +40,9 @@ class CNNModel(nn.Module):
         path_to_params: str = None,
     ):
         super().__init__()
+
+        if isinstance(dilation_rates, range):
+            dilation_rates = list(dilation_rates)
 
         self.out_channels = out_channels
         self.hidden_size = hidden_size
@@ -58,30 +63,33 @@ class CNNModel(nn.Module):
         )
 
         # Dilated convolution block to make the information propaate faster
+        print(self.dilation_rates)
         drates = [2**i for i in self.dilation_rates]
         print(f"Using dilation rates: {drates}")
         self.conv_block_with_dilation = Sequential()
         for drate in drates:
-            self.conv_with_dilation.append(
+            self.conv_block_with_dilation.append(
                 LazyConv1d(
                     self.hidden_size,
                     kernel_size=self.kernel_size,
                     padding="same",
                     dilation=drate,
-                ),
-                SiLU(),
+                )
             )
+            self.conv_block_with_dilation.append(SiLU())
+
         # Regular convolution block
         self.conv_block = Sequential()
         for _ in range(self.conv_layers):
-            self.conv.append(
+            self.conv_block.append(
                 LazyConv1d(
                     self.hidden_size,
                     kernel_size=self.kernel_size,
                     padding="same",
                 ),
-                SiLU(),
             )
+            self.conv_block.append(SiLU())
+
         # Attention layers
         self.mha_1 = MultiHeadAttention(
             self.hidden_size,

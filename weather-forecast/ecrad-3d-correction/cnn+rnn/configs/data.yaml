@@ -11,13 +11,13 @@
 # limitations under the License.
 
 cache_dir: ${oc.decode:${oc.env:CACHE_DIR}}
-train_subset: '2020'
+train_subset: null
 train_timestep: [0]
 train_filenum: [0]
-val_subset: None
+val_subset: null
 val_timestep: [2019013100]
-val_filenum: ['range(52)']
+val_filenum: range(2)
 test_date: [20190531, 20191028]
-test_timestep: ['range(0, 3501, 1000)']
+test_timestep: range(0, 3501, 1000)
 batch_size: 64
 num_threads: 8

@@ -16,11 +16,11 @@ model:
         out_channels: 2
         hidden_size: 512
         kernel_size: 3
-        dilation_rates: ['range(4)']
+        dilation_rates: range(4)
         conv_layers: 8
         num_heads: 8
         qkv_bias: True
-        attention_dropout: 0.0
+        attention_dropout: 0.
         flash_attention: True
         path_to_params: ${oc.decode:${oc.env:PARAMS_PATH}}
 

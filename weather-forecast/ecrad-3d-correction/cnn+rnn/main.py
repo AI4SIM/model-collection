@@ -47,18 +47,12 @@ class RadiationCorrectionModel(L.LightningModule):
         self.num_features = get_total_features(var_info)
         self.example_input_array = torch.rand(1, self.num_levels, self.num_features)
 
-    def forward(self, x: torch.Tensor) -> dict[str, torch.Tensor]:
+    def forward(self, x: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         return self.model(x)
 
     def common_step(
         self, batch: dict[str, torch.Tensor], batch_idx: int
     ) -> dict[str, torch.Tensor]:
-        # x = batch["x"]
-        # pressure_hl = batch["pressure_hl"]
-        # y_hat = self(x, pressure_hl)
-        # y = batch["y"]
-        # loss = self.loss(y_hat, y)
-        # return {"loss": loss, "y_hat": y_hat, "y": y}
         pass
 
     def training_step(

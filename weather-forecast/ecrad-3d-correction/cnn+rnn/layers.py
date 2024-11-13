@@ -13,7 +13,7 @@
 from utils import Keys, get_means_and_stds
 
 import torch
-from torch.nn import Module, ZeroPad2d
+from torch.nn import Dropout, Linear, Module, ZeroPad2d
 from torch.nn.functional import scaled_dot_product_attention
 from torch.nn.attention import SDPBackend, sdpa_kernel
 
@@ -40,8 +40,7 @@ class MultiHeadAttention(Module):
 
         self.qkv = Linear(self.hidden_size, self.hidden_size * 3, bias=self.qkv_bias)
         self.proj = Linear(self.hidden_size, self.hidden_size, bias=self.qkv_bias)
-        self.attention_dropout = Dropout(self.attention_dropout)
-        self.resid_dropout = Dropout(self.attention_dropout)
+        self.resid_dropout = Dropout(p=self.attention_dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, T, C = x.size()

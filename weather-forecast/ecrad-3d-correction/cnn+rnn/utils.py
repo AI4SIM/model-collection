@@ -11,6 +11,7 @@
 # limitations under the License.
 
 import glob
+import os.path as osp
 import torch
 from climetlab_maelstrom_radiation.radiation_tf import NormMerger
 from dataclasses import dataclass, field
@@ -144,33 +145,23 @@ def get_total_features(var_info: VarInfo) -> int:
     Get the total number of features for raw variables.
     """
     total_features = 0
-    for key1 in var_info.keys():
-        for key2 in var_info[key1].keys():
-            total_features += sum(len(idx_to_list(var_info[key1][key2]["idx"])))
+    for attr_name, attr_value in vars(var_info).items():
+        if isinstance(attr_value, dict):
+            for key, value in attr_value.items():
+                total_features += len(idx_to_list(value["idx"]))
+
     return total_features
-
-
-def range_deserializer(value: str) -> range:
-    """
-    Deserialize a string to a range object.
-    """
-    assert "range" in value, "Not a range, can't deserialize."
-    arg_list = value[value.find("(") + 1 : value.find(")")].split(", ")
-    assert len(arg_list) <= 3, "Range takes 3 arguments at maximum."
-    assert len(arg_list) > 0, "You must at least define the end of the range."
-    arg_list = [None if arg == "None" else int(arg) for arg in arg_list]
-    return range(*arg_list)
 
 
 def get_means_and_stds(path: str) -> Dict[str, torch.Tensor]:
     """
     Get the means and standard deviations of the input variables.
     """
-    norm_path = glob.glob(os.path.join(path, "*.nc"))
+    norm_path = glob.glob(osp.join(path, "*.nc"))
     norm_ds = NormMerger().to_xarray(norm_path)
     means = {}
     stds = {}
-    for k in Keys().packed_variables.keys():
+    for k in Keys().packed_variables:
         means[k] = torch.tensor(norm_ds[f"{k}_mean"].values)
         stds[k] = torch.tensor(norm_ds[f"{k}_std"].values)
 

@@ -21,13 +21,12 @@ from utils import range_deserializer
 
 def cli_main():
     LightningCLI(
-        RadiationCorrectionModel,
-        RadiationCorrectionDataModule,
+        model_class=RadiationCorrectionModel,
+        datamodule_class=RadiationCorrectionDataModule,
         parser_kwargs={"parser_mode": "omegaconf"},
     )
 
 
 if __name__ == "__main__":
     set_float32_matmul_precision("high")
-    # register_type(range, str, range_deserializer)
     cli_main()
