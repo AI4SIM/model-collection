@@ -40,6 +40,8 @@ class RadiationCorrectionModel(L.LightningModule):
         self.fused = fused
         self.num_warmup_steps = num_warmup_steps
 
+        self.save_hyperparameters()
+
         var_info = VarInfo()
         self.num_levels = var_info.hl_variables["temperature_hl"]["shape"][0]
         self.num_features = get_total_features(var_info)

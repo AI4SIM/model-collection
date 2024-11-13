@@ -52,8 +52,6 @@ class CNNModel(nn.Module):
         self.colum_padding = colum_padding
         self.inter_padding = inter_padding
 
-        self.save_hyperparameters()
-
         # Preprocessing layer
         self.preprocess = PreProcessing(
             self.path_to_params, self.colum_padding, self.inter_padding

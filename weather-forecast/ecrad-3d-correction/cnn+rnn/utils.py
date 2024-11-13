@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import glob
 import torch
 from climetlab_maelstrom_radiation.radiation_tf import NormMerger
 from dataclasses import dataclass, field
