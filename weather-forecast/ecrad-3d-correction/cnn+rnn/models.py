@@ -15,7 +15,7 @@ import os.path as osp
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from torch.nn import LazyConv1d, Linear, Dropout, Module, SiLU, Sequential
+from torch.nn import Conv1d, Linear, Dropout, Module, SiLU, Sequential
 from torch.nn.functional import scaled_dot_product_attention, silu
 from torch.nn.attention import SDPBackend, sdpa_kernel
 from layers import HRLayer, MultiHeadAttention, PreProcessing
@@ -26,6 +26,7 @@ from typing import Union
 class CNNModel(nn.Module):
     def __init__(
         self,
+        in_channels: int = 1,
         out_channels: int = 2,
         hidden_size: int = 512,
         kernel_size: int = 3,
@@ -34,7 +35,7 @@ class CNNModel(nn.Module):
         num_heads: int = 8,
         qkv_bias: bool = False,
         attention_dropout: float = 0.0,
-        flash_attention: bool = False,
+        flash_attention: bool = True,
         colum_padding: tuple[int, int, int, int] = (0, 0, 1, 0),
         inter_padding: tuple[int, int, int, int] = (0, 0, 1, 1),
         path_to_params: str = None,
@@ -44,6 +45,7 @@ class CNNModel(nn.Module):
         if isinstance(dilation_rates, range):
             dilation_rates = list(dilation_rates)
 
+        self.in_channels = in_channels
         self.out_channels = out_channels
         self.hidden_size = hidden_size
         self.kernel_size = kernel_size
@@ -63,32 +65,45 @@ class CNNModel(nn.Module):
         )
 
         # Dilated convolution block to make the information propaate faster
-        print(self.dilation_rates)
         drates = [2**i for i in self.dilation_rates]
-        print(f"Using dilation rates: {drates}")
-        self.conv_block_with_dilation = Sequential()
-        for drate in drates:
-            self.conv_block_with_dilation.append(
-                LazyConv1d(
-                    self.hidden_size,
-                    kernel_size=self.kernel_size,
-                    padding="same",
-                    dilation=drate,
+        layers = []
+        for i, drate in enumerate(drates):
+            if i == 0:
+                layers.append(
+                    Conv1d(
+                        self.in_channels,
+                        self.hidden_size,
+                        kernel_size=self.kernel_size,
+                        padding="same",
+                        dilation=drate,
+                    )
                 )
-            )
-            self.conv_block_with_dilation.append(SiLU())
+            else:
+                layers.append(
+                    Conv1d(
+                        self.hidden_size,
+                        self.hidden_size,
+                        kernel_size=self.kernel_size,
+                        padding="same",
+                        dilation=drate,
+                    )
+                )
+            layers.append(SiLU())
+        self.conv_block_with_dilation = Sequential(*layers)
 
         # Regular convolution block
-        self.conv_block = Sequential()
+        layers = []
         for _ in range(self.conv_layers):
-            self.conv_block.append(
-                LazyConv1d(
+            layers.append(
+                Conv1d(
+                    self.hidden_size,
                     self.hidden_size,
                     kernel_size=self.kernel_size,
                     padding="same",
                 ),
             )
-            self.conv_block.append(SiLU())
+            layers.append(SiLU())
+        self.conv_block = Sequential(*layers)
 
         # Attention layers
         self.mha_1 = MultiHeadAttention(
@@ -107,8 +122,19 @@ class CNNModel(nn.Module):
         )
 
         # Flux layers
-        self.lw = Sequential(LazyConv1d(2, 1, padding="same"), Linear(2, 2, bias=True))
-        self.sw = Sequential(LazyConv1d(2, 1, padding="same"), Linear(2, 2, bias=True))
+        # self.lw = Sequential(
+        #     Conv1d(self.hidden_size, self.out_channels, 1, padding="same"),
+        #     Linear(self.out_channels, self.out_channels, bias=True),
+        # )
+        self.lw_conv = Conv1d(self.hidden_size, self.out_channels, 1, padding="same")
+        self.lw_lin = Linear(self.out_channels, self.out_channels, bias=True)
+
+        self.sw_conv = Conv1d(self.hidden_size, self.out_channels, 1, padding="same")
+        self.sw_lin = Linear(self.out_channels, self.out_channels, bias=True)
+        # self.sw = Sequential(
+        #     Conv1d(self.hidden_size, self.out_channels, 1, padding="same"),
+        #     Linear(self.out_channels, self.out_channels, bias=True),
+        # )
         # Heating rate layers
         self.hr_lw = HRLayer()
         self.hr_sw = HRLayer()
@@ -118,16 +144,26 @@ class CNNModel(nn.Module):
         x = self.preprocess(inputs)
 
         # Convolutional layers
-        B, T, _ = x.size()  # batch size, sequence length, channels
+        B, T, C = x.size()  # batch size, sequence length, channels
+        x = x.permute(0, 2, 1)  # B, C, T
 
         x = self.conv_block_with_dilation(x)
+        x = x.permute(0, 2, 1)  # B, T, C
         x = self.mha_1(x)
+        x = x.permute(0, 2, 1)  # B, C, T
         x = self.conv_block(x)
+        x = x.permute(0, 2, 1)
         x = self.mha_2(x)
+        x = x.permute(0, 2, 1)
 
         # Flux layers
-        lw = self.lw_conv(x)  # B, T, 2
-        sw = self.sw_conv(x)  # B, T, 2
+        lw = self.lw_conv(x)
+        lw = lw.permute(0, 2, 1)
+        lw = self.lw_lin(lw)  # B, T, 2
+
+        sw = self.sw_conv(x)
+        sw = sw.permute(0, 2, 1)
+        sw = self.sw_lin(sw)  # B, T, 2
 
         # Heating rate layers
         hr_lw = self.hr_lw([lw, inputs["pressure_hl"]])
@@ -143,7 +179,7 @@ class CNNModel(nn.Module):
         }
 
 
-class RNNModel(nn.Module):
-    def __init__(self):
-        super().__init__()
-        pass
+# class RNNModel(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         pass

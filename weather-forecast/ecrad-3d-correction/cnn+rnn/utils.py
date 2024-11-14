@@ -64,7 +64,9 @@ class Keys:
     iinter_keys: tuple[str, ...] = ("overlap_param",)
 
     # Input variables
-    input_keys: tuple[str, ...] = isca_keys + icol_keys + ihl_keys + iinter_keys
+    input_keys: tuple[str, ...] = (
+        isca_keys + icol_keys + ihl_keys + iinter_keys + ("pressure_hl",)
+    )
 
     # Output variables
     output_keys: tuple[str, ...] = ("sw", "lw", "hr_sw", "hr_lw")
@@ -85,7 +87,7 @@ class VarInfo:
     sca_variables: Dict[str, Dict[str, Any]] = field(
         default_factory=lambda: {
             "skin_temperature": {"shape": [], "idx": 0},
-            "cos_solar_zenith_angle": {"shape": [1], "idx": 1},
+            "cos_solar_zenith_angle": {"shape": [], "idx": 1},
             "sw_albedo": {"shape": [6], "idx": range(2, 2 + 6)},
             "sw_albedo_direct": {"shape": [6], "idx": range(8, 8 + 6)},
             "lw_emissivity": {"shape": [2], "idx": range(14, 14 + 2)},

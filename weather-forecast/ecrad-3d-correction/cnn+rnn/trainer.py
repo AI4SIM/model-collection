@@ -16,13 +16,12 @@ from torch import set_float32_matmul_precision
 
 from main import RadiationCorrectionModel
 from data import RadiationCorrectionDataModule
-from utils import range_deserializer
 
 
 def cli_main():
     LightningCLI(
-        model_class=RadiationCorrectionModel,
-        datamodule_class=RadiationCorrectionDataModule,
+        # model_class=RadiationCorrectionModel,
+        # datamodule_class=RadiationCorrectionDataModule,
         parser_kwargs={"parser_mode": "omegaconf"},
     )
 

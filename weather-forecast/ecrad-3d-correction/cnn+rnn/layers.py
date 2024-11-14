@@ -63,19 +63,20 @@ class MultiHeadAttention(Module):
                     q,
                     k,
                     v,
-                    attn_mask=False,
-                    dropout=self.attention_dropout if self.training else 0.0,
+                    attn_mask=None,
+                    dropout_p=self.attention_dropout if self.training else 0.0,
                     is_causal=False,
                 )
         else:
-            x = scaled_dot_product_attention(
-                q,
-                k,
-                v,
-                attn_mask=False,
-                dropout=self.attention_dropout if self.training else 0.0,
-                is_causal=False,
-            )
+            with sdpa_kernel(SDPBackend.EFFICIENT_ATTENTION):
+                x = scaled_dot_product_attention(
+                    q,
+                    k,
+                    v,
+                    attn_mask=None,
+                    dropout_p=self.attention_dropout if self.training else 0.0,
+                    is_causal=False,
+                )
         x = x.transpose(1, 2).contiguous().view(B, T, self.hidden_size)
 
         # Output projection
@@ -120,18 +121,17 @@ class Normalization(Module):
             Normalized data.
     """
 
-    eps: torch.Tensor = torch.tensor(1.0e-12)
-
     def __init__(self, mean: torch.Tensor, std: torch.Tensor) -> None:
         super().__init__()
 
         self.mean = mean
         self.std = std
+        self.register_buffer("eps", torch.tensor(1.0e-12))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Compute the forward pass."""
-        assert x.shape[1:] == self.mean.shape[1:]
-        assert x.shape[1:] == self.std.shape[1:]
+        assert x.shape[1:] == self.mean.shape
+        assert x.shape[1:] == self.std.shape
 
         return x.sub(self.mean).div(self.std + self.eps)
 
@@ -264,6 +264,8 @@ class HLLayer(Module):
         self.register_buffer("hl_mean", mean)
         self.register_buffer("hl_std", std)
 
+        self.normalization = Normalization(self.hl_mean, self.hl_std)
+
     def forward(self, x: dict[str, torch.Tensor]) -> torch.Tensor:
         """Compute the forward pass.
 
@@ -276,7 +278,7 @@ class HLLayer(Module):
         """
         hl_variables = []
         for key in Keys().ihl_keys:
-            inputs = x[key]
+            inputs = x[key].unsqueeze(dim=-1)
             hl_variables.append(inputs)
 
         inputs = torch.cat(hl_variables, dim=-1)
@@ -316,7 +318,7 @@ class InterLayer(Module):
             torch.Tensor:
                 Resulting model forward pass.
         """
-        inputs = x[Keys().iinter_keys].unsqueeze(dim=-1)
+        inputs = x[Keys().iinter_keys[0]].unsqueeze(dim=-1)
         inputs = self.normalization(inputs)
 
         return inputs
