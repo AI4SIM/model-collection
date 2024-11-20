@@ -14,6 +14,9 @@ coverage.xml
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# Shell scripts
+.sh
+
 # Environments
 .env
 .venv
