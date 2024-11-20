@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 import lightning as L
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 from climetlab_maelstrom_radiation.radiation_tf import features_size
 from utils import Keys, VarInfo
@@ -174,6 +174,26 @@ def tfrecord_pipeline(
     # return (*(data[key] for key in feature_description.keys()),)
 
 
+# @pipeline_def
+# def val_tfrecord_pipeline(
+#     tfrecord_path, index_path, shard_id=0, num_shards=1, device="cpu"
+# ):
+#     data = fn.readers.tfrecord(
+#         path=tfrecord_path,
+#         index_path=index_path,
+#         features=feature_description,
+#         shard_id=shard_id,
+#         random_shuffle=False,
+#         num_shards=num_shards,
+#         device=device,
+#         name="TFRecord_Reader",
+#     )
+#     results = split_dataset(data)
+
+#     return (*(results[key] for key in results.keys()),)
+#     # return (*(data[key] for key in feature_description.keys()),)
+
+
 class RadiationTestDataset(Dataset):
     """
     A PyTorch Dataset for loading and processing radiation test dataset in NETCDF format.
@@ -302,6 +322,7 @@ class RadiationCorrectionDataModule(L.LightningDataModule):
         )
 
         for stage in ["train", "val"]:
+            print(f"Creating indexes for {stage} dataset.")
             create_tfrecord_indexes(osp.join(self.cache_dir, stage))
 
         # The dataset used for testing is stored as reguler Netcdf files.
@@ -328,6 +349,10 @@ class RadiationCorrectionDataModule(L.LightningDataModule):
             num_shards = 1
 
         if stage == "fit":
+            if self.trainer.global_rank == 0:
+                print(
+                    f"Length of train dataset: {67840 * len(self.train_timestep) * len(self.train_filenum)}"
+                )
             self.train_pipeline = tfrecord_pipeline(
                 tfrecord_path=sorted(
                     glob.glob(osp.join(self.cache_dir, "train", "*.tfrecord"))
@@ -342,6 +367,10 @@ class RadiationCorrectionDataModule(L.LightningDataModule):
                 batch_size=self.batch_size,
                 num_threads=self.num_threads,
             )
+            if self.trainer.global_rank == 0:
+                print(
+                    f"Length of val dataset: {67840 * len(self.val_timestep) * len(self.val_filenum)}"
+                )
             self.val_pipeline = tfrecord_pipeline(
                 tfrecord_path=sorted(
                     glob.glob(osp.join(self.cache_dir, "val", "*.tfrecord"))
@@ -365,14 +394,16 @@ class RadiationCorrectionDataModule(L.LightningDataModule):
             [self.train_pipeline],
             output_map=output_map,
             reader_name="TFRecord_Reader",
+            auto_reset=True,
             last_batch_policy=LastBatchPolicy.DROP,
         )
 
     def val_dataloader(self):
         return DALIGenericIterator(
-            [self.train_pipeline],
+            [self.val_pipeline],
             output_map=output_map,
             reader_name="TFRecord_Reader",
+            auto_reset=True,
             last_batch_policy=LastBatchPolicy.DROP,
         )
 
@@ -388,14 +419,14 @@ class RadiationCorrectionDataModule(L.LightningDataModule):
 
 
 # if __name__ == "__main__":
-#     datamodule = RadiationDataModule(
+#     datamodule = RadiationCorrectionDataModule(
 #         cache_dir="/fs1/ECMWF/3dcorrection/data",
 #         train_subset=None,
-#         train_timestep=[2019013100],
-#         train_filenum=list(range(0, 52, 5)),
+#         train_timestep=list(range(0, 3501, 500)),
+#         train_filenum=list(range(52)),
 #         val_subset=None,
 #         val_timestep=[2019013100],
-#         val_filenum=[0],
+#         val_filenum=list(range(0, 52, 5)),
 #         test_date=[20190531, 20191028],
 #         test_timestep=list(range(0, 3501, 1000)),
 #         batch_size=8,
@@ -403,7 +434,9 @@ class RadiationCorrectionDataModule(L.LightningDataModule):
 #     )
 #     datamodule.prepare_data()
 #     datamodule.setup(stage="fit")
-#     for batch in datamodule.train_dataloader():
-#         for k in batch[0].keys():
-#             print(k, batch[0][k].shape)
-#         break
+#     print(len(datamodule.train_dataloader()))
+#     print(len(datamodule.val_dataloader()))
+#     # for batch in datamodule.train_dataloader():
+#     #     for k in batch[0].keys():
+#     #         print(k, batch[0][k].shape)
+#     #     break

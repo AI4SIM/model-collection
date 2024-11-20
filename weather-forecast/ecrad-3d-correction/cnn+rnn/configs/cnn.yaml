@@ -3,19 +3,19 @@ model:
     init_args:
         in_channels: 47
         out_channels: 2
-        hidden_size: 512
-        kernel_size: 3
+        hidden_size: 128
+        kernel_size: 5
         dilation_rates: range(4)
-        conv_layers: 8
+        conv_layers: 4
         num_heads: 8
-        qkv_bias: True
+        qkv_bias: False
         attention_dropout: 0.
         flash_attention: False
         colum_padding: [0, 0, 1, 0]
         inter_padding: [0, 0, 1, 1]
         path_to_params: ${oc.decode:${oc.env:PARAMS_PATH}}
         flux_weights: 1.e3
-        hr_weights: 1.e5
+        hr_weights: 1.e4
         lr: 0.001
         min_lr: 1.e-07
         beta1: 0.9
@@ -29,15 +29,15 @@ data:
   init_args:
     cache_dir: ${oc.decode:${oc.env:CACHE_DIR}}
     train_subset: null
-    train_timestep: [0]
-    train_filenum: [0]
+    train_timestep: range(0, 3501, 500)
+    train_filenum: range(52)
     val_subset: null
     val_timestep: [2019013100]
-    val_filenum: range(2)
+    val_filenum: range(52)
     test_date: [20190531, 20191028]
     test_timestep: range(0, 3501, 1000)
-    batch_size: 64
-    num_threads: 8
+    batch_size: 128
+    num_threads: 4
 
 trainer:
     default_root_dir: ${oc.decode:${oc.env:LOGDIR}}
@@ -48,26 +48,30 @@ trainer:
     strategy: 
         class_path: lightning.pytorch.strategies.DDPStrategy
         init_args:
-            gradient_as_bucket_view: True
+            gradient_as_bucket_view: False
             bucket_cap_mb: 25
             static_graph: True
-    fast_dev_run: 5
-    max_epochs: 200
+    fast_dev_run: False
+    # max_epochs: 200
+    max_steps: 137_800
+    # max_steps: 106_000
     # limit_train_batches: 500
     # limit_val_batches: 500
     num_sanity_val_steps: 1
     check_val_every_n_epoch: 1
+    log_every_n_steps: 10
     precision: '32-true'
     enable_checkpointing: True
     enable_model_summary: False
-    benchmark: True
-    detect_anomaly: True
-    log_every_n_steps: 100
+    benchmark: False
+    detect_anomaly: False
     logger:
         class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
         init_args:
             save_dir: ${oc.decode:${oc.env:LOGDIR}}/logs
-            log_graph: True
+            max_queue: ${trainer.log_every_n_steps}
+            log_graph: False
+            default_hp_metric: False
     callbacks:
         - class_path: lightning.pytorch.callbacks.LearningRateMonitor
           init_args:

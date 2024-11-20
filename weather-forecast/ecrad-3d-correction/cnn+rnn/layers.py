@@ -42,8 +42,10 @@ class MultiHeadAttention(Module):
         self.proj = Linear(self.hidden_size, self.hidden_size, bias=self.qkv_bias)
         self.resid_dropout = Dropout(p=self.attention_dropout)
 
+        self._reset_parameters()
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        B, T, C = x.size()
+        B, T, _ = x.size()
 
         q, k, v = self.qkv(x).chunk(3, dim=-1)
         k = k.view(B, T, self.num_heads, self.hidden_size // self.num_heads).transpose(
@@ -68,7 +70,7 @@ class MultiHeadAttention(Module):
                     is_causal=False,
                 )
         else:
-            with sdpa_kernel(SDPBackend.EFFICIENT_ATTENTION):
+            with sdpa_kernel(SDPBackend.MATH):
                 x = scaled_dot_product_attention(
                     q,
                     k,
@@ -84,6 +86,14 @@ class MultiHeadAttention(Module):
 
         return x
 
+    def _reset_parameters(self) -> None:
+        torch.nn.init.xavier_uniform_(self.qkv.weight)
+        torch.nn.init.xavier_uniform_(self.proj.weight)
+
+        if self.qkv_bias:
+            torch.nn.init.zeros_(self.qkv.bias)
+            torch.nn.init.zeros_(self.proj.bias)
+
 
 class HRLayer(Module):
     """
@@ -98,9 +108,9 @@ class HRLayer(Module):
 
     def forward(self, inputs: list[torch.Tensor]) -> torch.Tensor:
         # test the input shape
+        netflux = inputs[0][..., 0]
         hlpress = inputs[1]
         net_press = hlpress[..., 1:] - hlpress[..., :-1]
-        netflux = inputs[0][..., 0]
         flux_diff = netflux[..., 1:] - netflux[..., :-1]
 
         return -self.g_cp * torch.Tensor.divide(flux_diff, net_press)

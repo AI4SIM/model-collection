@@ -35,8 +35,8 @@ class RadiationCorrectionModel(L.LightningModule):
     ):
         super().__init__()
 
-        self.flux_weights = flux_weights
-        self.hr_weights = hr_weights
+        # self.flux_weights = flux_weights
+        # self.hr_weights = hr_weights
         self.lr = lr
         self.min_lr = min_lr
         self.beta1 = beta1
@@ -49,26 +49,36 @@ class RadiationCorrectionModel(L.LightningModule):
         self.num_levels = var_info.hl_variables["temperature_hl"]["shape"][0]
         self.num_features = get_total_features(var_info)
 
+        self.register_buffer("flux_weights", torch.tensor(flux_weights))
+        self.register_buffer("hr_weights", torch.tensor(hr_weights))
+
     def forward(self, x: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
         return self.rad_model(x)
 
     def common_step(
-        self, batch: dict[str, torch.Tensor], batch_idx: int
+        self, batch: dict[str, torch.Tensor], stage: str
     ) -> dict[str, torch.Tensor]:
         batch = batch[0]
+
         batch["delta_sw_diff"] = batch["sw"][..., 0] - batch["sw"][..., 1]
         batch["delta_sw_add"] = batch["sw"][..., 0] + batch["sw"][..., 1]
         batch["delta_lw_diff"] = batch["lw"][..., 0] - batch["lw"][..., 1]
         batch["delta_lw_add"] = batch["lw"][..., 0] + batch["lw"][..., 1]
+        batch.pop("sw")
+        batch.pop("lw")
 
         batch["hr_sw"] = batch["hr_sw"].squeeze(dim=-1)
         batch["hr_lw"] = batch["hr_lw"].squeeze(dim=-1)
 
-        # add inputs = batch[...]
         inputs = {
             key: value for key, value in batch.items() if key in Keys().input_keys
         }
         predictions = self(inputs)
+
+        # if self.trainer.global_rank == 0:
+        #     print(batch["hr_lw"].dtype)
+        #     print(batch["hr_sw"][0, ...])
+        #     print(predictions["hr_sw"][0, ...])
 
         # Check if the model returns sw or lw --> RNN_SW or RNN_LW
         if len(predictions) == 3:
@@ -80,21 +90,32 @@ class RadiationCorrectionModel(L.LightningModule):
                     lw_key = key.replace("sw", "lw")
                     predictions[lw_key] = torch.empty_like(predictions[key])
 
+        # losses = {
+        #     "delta_sw_diff": F.mse_loss(
+        #         predictions["delta_sw_diff"], batch["delta_sw_diff"]
+        #     ),
+        #     "delta_sw_add": F.mse_loss(
+        #         predictions["delta_sw_add"], batch["delta_sw_add"]
+        #     ),
+        #     "delta_lw_diff": F.mse_loss(
+        #         predictions["delta_lw_diff"], batch["delta_lw_diff"]
+        #     ),
+        #     "delta_lw_add": F.mse_loss(
+        #         predictions["delta_lw_add"], batch["delta_lw_add"]
+        #     ),
+        #     "hr_sw": F.mse_loss(predictions["hr_sw"], batch["hr_sw"]),
+        #     "hr_lw": F.mse_loss(predictions["hr_lw"], batch["hr_lw"]),
+        # }
         losses = {
-            "delta_sw_diff": F.mse_loss(
-                predictions["delta_sw_diff"], batch["delta_sw_diff"]
-            ),
-            "delta_sw_add": F.mse_loss(
-                predictions["delta_sw_add"], batch["delta_sw_add"]
-            ),
-            "delta_lw_diff": F.mse_loss(
-                predictions["delta_lw_diff"], batch["delta_lw_diff"]
-            ),
-            "delta_lw_add": F.mse_loss(
-                predictions["delta_lw_add"], batch["delta_lw_add"]
-            ),
-            "hr_sw": F.mse_loss(predictions["hr_sw"], batch["hr_sw"]),
-            "hr_lw": F.mse_loss(predictions["hr_lw"], batch["hr_lw"]),
+            k: F.mse_loss(predictions[k], batch[k])
+            for k in [
+                "delta_sw_diff",
+                "delta_sw_add",
+                "delta_lw_diff",
+                "delta_lw_add",
+                "hr_sw",
+                "hr_lw",
+            ]
         }
         loss_weights = {
             "delta_sw_diff": self.flux_weights,
@@ -105,30 +126,68 @@ class RadiationCorrectionModel(L.LightningModule):
             "hr_lw": self.hr_weights,
         }
 
+        individual_loss = {
+            f"{stage}_{key}": losses[key] * loss_weights[key] for key in losses
+        }
         total_loss = torch.sum(
             torch.tensor(
-                [losses[key] * loss_weights[key] for key in losses],
+                [value for _, value in individual_loss.items()],
                 requires_grad=True,
+                device=self.flux_weights.device,
             )
         )
 
-        return predictions, total_loss
+        losses_ = {f"{stage}_total_loss": total_loss, **individual_loss}
+        self.log_dict(
+            losses_,
+            on_epoch=True,
+            on_step=True,
+            prog_bar=False,
+            sync_dist=True,
+        )
+
+        metrics = {
+            f"{stage}_mae_delta_sw_diff": F.l1_loss(
+                predictions["delta_sw_diff"], batch["delta_sw_diff"]
+            ),
+            f"{stage}_mae_delta_sw_add": F.l1_loss(
+                predictions["delta_sw_add"], batch["delta_sw_add"]
+            ),
+            f"{stage}_mae_delta_lw_diff": F.l1_loss(
+                predictions["delta_lw_diff"], batch["delta_lw_diff"]
+            ),
+            f"{stage}_mae_delta_lw_add": F.l1_loss(
+                predictions["delta_lw_add"], batch["delta_lw_add"]
+            ),
+            f"{stage}_mae_hr_sw": F.l1_loss(predictions["hr_sw"], batch["hr_sw"]),
+            f"{stage}_mae_hr_lw": F.l1_loss(predictions["hr_lw"], batch["hr_lw"]),
+        }
+        self.log_dict(
+            metrics,
+            on_epoch=True,
+            on_step=False,
+            prog_bar=False,
+            sync_dist=True,
+        )
+
+        return predictions, losses_
 
     def training_step(
         self, batch: dict[str, torch.Tensor], batch_idx: int
     ) -> dict[str, torch.Tensor]:
-        _, loss = self.common_step(batch, batch_idx)
+        _, losses = self.common_step(batch, "train")
+        loss = losses["train_total_loss"]
         return loss
 
     def validation_step(
         self, batch: dict[str, torch.Tensor], batch_idx: int
     ) -> dict[str, torch.Tensor]:
-        predictions, _ = self.common_step(batch, batch_idx)
+        predictions, _ = self.common_step(batch, "val")
 
     def test_test(
         self, batch: dict[str, torch.Tensor], batch_idx: int
     ) -> dict[str, torch.Tensor]:
-        predictions, _ = self.common_step(batch, batch_idx)
+        predictions, _ = self.common_step(batch, "test")
 
     def optimizer_zero_grad(self, epoch, batch_idx, optimizer):
         optimizer.zero_grad(set_to_none=True)
@@ -141,14 +200,21 @@ class RadiationCorrectionModel(L.LightningModule):
             weight_decay=self.weight_decay,
             fused=self.fused,
         )
-        scheduler = get_cosine_with_min_lr_schedule_with_warmup(
-            optimizer,
-            num_warmup_steps=self.num_warmup_steps,
-            num_training_steps=self.trainer.max_steps,
-            min_lr=self.min_lr,
-        )
+        # scheduler = get_cosine_with_min_lr_schedule_with_warmup(
+        #     optimizer,
+        #     num_warmup_steps=self.num_warmup_steps,
+        #     num_training_steps=self.trainer.max_steps,
+        #     min_lr=self.min_lr,
+        # )
 
-        return [optimizer], [scheduler]
+        # lr_scheduler_config = {
+        #     "scheduler": scheduler,
+        #     "interval": "step",
+        #     "frequency": 1,
+        # }
+
+        # return {"optimizer": optimizer, "lr_scheduler": lr_scheduler_config}
+        return optimizer
 
 
 class LitCNNModel(RadiationCorrectionModel):
@@ -206,7 +272,7 @@ class LitCNNModel(RadiationCorrectionModel):
         self.save_hyperparameters()
 
     def setup(self, stage: str):
-        with self.trainer.init_module(empty_init=True):
+        with self.trainer.init_module(empty_init=False):
             self.rad_model = CNNModel(
                 self.in_channels,
                 self.out_channels,
