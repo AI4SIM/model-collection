@@ -17,7 +17,7 @@ Input features:
 
 Output targets:
 
-* ``filt_grad_8``: filtered flame surface density (FSD), Sigma := |grad c|, the density of flame surface. Used sa proxy for the local amount of combustion.
+* ``filt_grad_8``: filtered flame surface density (FSD), Sigma := |grad c|, the density of flame surface. Used as a proxy for the local amount of combustion.
 
 ## Models
 
