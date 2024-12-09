@@ -49,7 +49,7 @@ All the models are placed in the repository with a path following the rule:
 
 ``<domain>/<use-case>/<NN architecture>``
 
-For example, the code in the path ``cfd/combustion/gnns`` implements some **Graph Neural Network (GNN)** architectures developed for **Computational Fluid Dynamics (CFD)** and applied to a **Combustion** use-case.
+For example, the code in the path ``reactive-flows/cnf-combustion/gnns`` implements some **Graph Neural Network (GNN)** architectures developed for **Computational Fluid Dynamics (CFD)** and applied to a **Combustion** use-case.
 
 ### Model Project Files
 
@@ -136,8 +136,8 @@ You can find, in all model project directories, a ``README.md`` file that descri
 
 - Computational Fluid Dynamics
     - Combustion
-        - [Unets](cfd/combustion/unets/README.md)
-        - [GNNs](cfd/combustion/gnns/README.md)
+        - [Unets](reactive-flows/cnf-combustion/unets/README.md)
+        - [GNNs](reactive-flows/cnf-combustion/gnns/README.md)
 
 - Weather Forecast
     - Gravity Wave Drag 
@@ -477,8 +477,8 @@ jobs:
     strategy:
       matrix:
         model-project:
-          - cfd/combustion/gnns
-          - cfd/combustion/unets
+          - reactive-flows/cnf-combustion/gnns
+          - reactive-flows/cnf-combustion/unets
           - weather-forecast/gravity-wave-drag/cnns
           - weather-forecast/ecrad-3d-correction/unets
           - <domain>/<use-case>/<NN architecture>       <-- Your new model project path
