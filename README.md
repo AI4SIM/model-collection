@@ -455,7 +455,7 @@ Before creating the *Pull Request* itself, you must generate the final *requirem
 In your development environment use:
 
 ```bash
-pip freeze > requirements.txt
+pip freeze --all > requirements.txt
 ```
 
 Then commit this last change.
