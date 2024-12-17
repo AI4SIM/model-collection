@@ -13,8 +13,7 @@
 
 import config
 import os
-import pytorch_lightning as pl
-from pytorch_lightning.utilities.cli import MODEL_REGISTRY
+import lightning as pl
 import torch
 import torch.nn as nn
 import torch_optimizer as optim
@@ -57,7 +56,7 @@ class NOGWDModule(pl.LightningModule):
         y_val = y_val / self.y_std.to(self.device)
         y_hat = self(x_val)
 
-        loss = tmf.mean_squared_error(y_hat, y_val)
+        loss = tmf.mean_squared_error(y_hat.contiguous(), y_val.contiguous())
         # TODO: Add epsilon in TSS for R2 score computation.
         # Currently returns NaN sometimes.
         r2 = tmf.r2_score(y_hat, y_val)
@@ -107,7 +106,6 @@ class NOGWDModule(pl.LightningModule):
         return optim.AdamP(self.parameters(), lr=self.lr)
 
 
-@MODEL_REGISTRY
 class LitMLP(NOGWDModule):
     """Create a good old MLP."""
 
@@ -131,7 +129,6 @@ class LitMLP(NOGWDModule):
         )
 
 
-@MODEL_REGISTRY
 class LitCNN(NOGWDModule):
     """Create a simple 1D ConvNet working on columnar data. Input layer reshapes the data to
     broadcast surface parameters at every Atmospheric level.

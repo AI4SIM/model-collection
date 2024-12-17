@@ -14,8 +14,7 @@
 import h5py
 import numpy as np
 import os
-import pytorch_lightning as pl
-from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
+import lightning as pl
 import torch
 from typing import List, Tuple, Optional
 import yaml
@@ -130,7 +129,6 @@ class NOGWDDataset(torch.utils.data.Dataset):
         return self.x[idx, :], self.y[idx, :]
 
 
-@DATAMODULE_REGISTRY
 class NOGWDDataModule(pl.LightningDataModule):
     """Create a datamodule structure for use in a PyTorch Lightning Trainer. Basically a wrapper
     around the Dataset. Train, val, test split is given by data/filenames-split.yaml. Training set

@@ -25,12 +25,11 @@ fit:
         class_path: data.NOGWDDataModule
         init_args:
             batch_size: 10
-            num_workers: 
+            num_workers: 1
             splitting_ratios: [0.6, 0.2]
             shard_len: 100
     
     trainer:
         max_epochs: 1
         accelerator: "cpu"
-        devices: 
-            - 0
+        devices: 1

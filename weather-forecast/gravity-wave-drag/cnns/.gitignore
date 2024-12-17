@@ -1,9 +1,3 @@
-!data
-data/*
-!data/filenames.yaml
-!data/filenames-split.yaml
-experiments
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 
@@ -28,3 +22,10 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+.vscode
+
+# Data
+data/
+
+# Experiments
+experiments/
