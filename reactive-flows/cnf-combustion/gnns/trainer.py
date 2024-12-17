@@ -14,9 +14,11 @@
 import json
 import logging
 import os
-import pytorch_lightning as pl
-from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities.cli import LightningCLI
+from lightning.pytorch.trainer import Trainer
+from lightning.pytorch.accelerators import Accelerator
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.cli import LightningCLI
 import torch
 from typing import List, Union
 
@@ -24,14 +26,14 @@ import config
 import data  # noqa: F401 'data' imported but unused
 
 
-class Trainer(pl.Trainer):
+class CLITrainer(Trainer):
     """
     Modified PyTorch Lightning Trainer that automatically tests, logs, and writes artifacts by
     the end of training.
     """
 
     def __init__(self,
-                 accelerator: Union[str, pl.accelerators.Accelerator, None],
+                 accelerator: Union[str, Accelerator, None],
                  devices: Union[List[int], str, int, None],
                  max_epochs: int,
                  # TODO: delete.
@@ -50,10 +52,7 @@ class Trainer(pl.Trainer):
         self._devices = devices
         self._max_epochs = max_epochs
 
-        if self._accelerator == 'cpu':
-            self._devices = None
-
-        logger = pl.loggers.TensorBoardLogger(config.logs_path, name=None)
+        logger = TensorBoardLogger(config.logs_path, name=None)
         super().__init__(
             default_root_dir=config.logs_path,
             logger=logger,
@@ -84,6 +83,6 @@ class Trainer(pl.Trainer):
 
 
 if __name__ == '__main__':
-    cli = LightningCLI(trainer_class=Trainer, run=False)
+    cli = LightningCLI(trainer_class=CLITrainer, run=False)
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)

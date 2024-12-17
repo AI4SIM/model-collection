@@ -15,8 +15,7 @@ import h5py
 import networkx as nx
 import numpy as np
 import os
-import pytorch_lightning as pl
-from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
+import lightning as pl
 import torch
 import torch_geometric as pyg
 from typing import List
@@ -182,7 +181,6 @@ class CnfDataset(CombustionDataset):
             i += 1
 
 
-@DATAMODULE_REGISTRY
 class LitCombustionDataModule(pl.LightningDataModule):
     """
     Create train, val, and test splits for the CNF Combustion UC—current setup being (111, 8, 8).
