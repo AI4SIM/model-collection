@@ -38,11 +38,12 @@ def _wheel_version(wheel: str, req_file: str = 'requirements.txt') -> str:
         (str): the pip version extracted from the requirement.txt file if torch is present,
             an empty string otherwise.
     """
-    version = ''
+    version = wheel
     with open(req_file, encoding='utf-8') as file:
         for line in file.readlines():
             if f"{wheel}==" in line:
                 version = line.rstrip()
+                break
     return version
 
 
@@ -56,12 +57,9 @@ def _torch_version(req_file: str = 'requirements.txt') -> str:
         (str): the torch version extracted from the requirement.txt file if torch is present,
             an empty string otherwise.
     """
-    version = ''
-    cuda = ''
+    cuda = 'cpu'
     version = _wheel_version("torch", req_file).split('==')[1]
-    if "+" not in version:
-        cuda = "cpu"
-    else:
+    if "+" in version:
         version, cuda = version.split('+')
     return version, cuda
 
