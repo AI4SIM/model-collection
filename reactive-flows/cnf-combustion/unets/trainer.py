@@ -13,11 +13,11 @@
 import config
 from json import dump
 from os.path import join
-from pytorch_lightning import Trainer
-from pytorch_lightning.accelerators import Accelerator
-from pytorch_lightning.loggers import TensorBoardLogger
-from pytorch_lightning.callbacks.base import Callback
-from pytorch_lightning.utilities.cli import LightningCLI
+from lightning import Trainer
+from lightning.pytorch.accelerators import Accelerator
+from lightning.pytorch.loggers import TensorBoardLogger
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.cli import LightningCLI
 from torch import save
 from typing import List, Union
 
@@ -25,7 +25,7 @@ import data  # noqa: F401 'data' imported but unused
 import models  # noqa: F401 'data' imported but unused
 
 
-class Trainer(Trainer):
+class CLITrainer(Trainer):
 
     def __init__(self,
                  accelerator: Union[str, Accelerator, None],
@@ -39,8 +39,6 @@ class Trainer(Trainer):
             max_epochs (int): Maximum number of epochs if no early stopping logic is implemented.
         """
         self._devices = devices
-        if accelerator == 'cpu':
-            self._devices = None
         logger = TensorBoardLogger(config.logs_path, name=None)
 
         super().__init__(
@@ -62,7 +60,7 @@ class Trainer(Trainer):
 
 
 def main():
-    cli = LightningCLI(trainer_class=Trainer, run=False)
+    cli = LightningCLI(trainer_class=CLITrainer, run=False)
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 

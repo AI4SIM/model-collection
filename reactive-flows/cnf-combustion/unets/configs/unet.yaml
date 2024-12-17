@@ -30,6 +30,6 @@ data:
 
 trainer:
     max_epochs: 10
-    accelerator: "cpu"
+    accelerator: "gpu"
     devices:
         - 0

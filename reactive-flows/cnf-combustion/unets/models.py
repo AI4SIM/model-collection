@@ -10,8 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pytorch_lightning import LightningModule
-from pytorch_lightning.utilities.cli import MODEL_REGISTRY
+from lightning import LightningModule
 from torch import flatten
 from torch_optimizer import AdamP
 from torchmetrics.functional import mean_squared_error, r2_score
@@ -48,7 +47,6 @@ class CombustionModule(LightningModule):
         self._common_step(batch, "test")
 
 
-@MODEL_REGISTRY
 class LitUnet3D(CombustionModule):
     """Lit wrapper to compile a 3D U-net, generic volume shapes."""
 

@@ -14,8 +14,7 @@ import config
 from h5py import File
 from os.path import join, isfile
 from os import listdir, makedirs
-from pytorch_lightning import LightningDataModule
-from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
+from lightning import LightningDataModule
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch import load, tensor, save
 from typing import Union, Optional
@@ -84,7 +83,6 @@ class CnfCombustionDataset(Dataset):
         save((c, sigma), join(self.processed_dir, self.processed_filenames[i]))
 
 
-@DATAMODULE_REGISTRY
 class CnfCombustionDataModule(LightningDataModule):
     """
     Providing 3D blocks of the CNF combustion dataset.
