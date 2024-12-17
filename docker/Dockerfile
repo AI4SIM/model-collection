@@ -26,26 +26,29 @@ RUN apt-get update \
   libffi-dev \
   vim \
  && apt-get clean
+RUN ln -sf /usr/bin/python${PYTHON_VERS} /usr/bin/python3
 
 # create user ai4sim
 ARG uid=1000
 ARG gid=1000
-ARG AI4SIM_HOME=/home/ai4sim
-RUN groupadd -g ${gid} ai4sim \
-  && useradd -u ${uid} -g ${gid} -m -s /bin/bash ai4sim \
-  && chown -R ai4sim:ai4sim ${AI4SIM_HOME}
+ARG uname=ai4sim
+ARG gname=ai4sim
+ARG AI4SIM_HOME=/home/${uname}
+RUN groupadd -g ${gid} ${gname} \
+  && useradd -u ${uid} -g ${gid} -m -s /bin/bash ${uname} \
+  && chown -R ${uname}:${gname} ${AI4SIM_HOME}
 
 # Retrieve use-case related files
-ADD --chown=ai4sim:ai4sim ${MODEL_PROJECT_PATH} ${AI4SIM_HOME}/${MODEL_PROJECT_PATH}
-ADD --chown=ai4sim:ai4sim tools ${AI4SIM_HOME}/tools
+ADD --chown=${uname}:${gname} ${MODEL_PROJECT_PATH} ${AI4SIM_HOME}/${MODEL_PROJECT_PATH}
+ADD --chown=${uname}:${gname} tools ${AI4SIM_HOME}/tools
 
 # change user
-USER ai4sim
-ENV PATH=${PATH}:/home/ai4sim/.local/bin
+USER ${uname}
+ENV PATH=${PATH}:${AI4SIM_HOME}/.local/bin
 
 # Install all the python dependencies in the environment
 WORKDIR ${AI4SIM_HOME}/${MODEL_PROJECT_PATH}
-RUN pip install $(grep nox== ${AI4SIM_HOME}/${MODEL_PROJECT_PATH}/requirements.txt) \
+RUN python3 -m pip install $(grep nox== ${AI4SIM_HOME}/${MODEL_PROJECT_PATH}/requirements.txt || echo "nox") \
  && python3 -m nox -s dev_dependencies --no-venv -- purge
 
 CMD ["bash"]

@@ -338,7 +338,7 @@ The 4 following parameters are mandatory and must be passed to the Dockerfile, u
 - UBUNTU_IMAGE_TAG: the base Ubuntu docker image tag indicated in the ``env.yaml`` file.
 - PYTHON_VERS: the Python version indicated in the ``env.yaml`` file.
 
-To build the Docker image from the repository root directory:
+To build the Docker image from the repository root directory, for example:
 
 ```bash
 docker build \
@@ -347,7 +347,11 @@ docker build \
     --build-arg MODEL_PROJECT_PATH=<domain>/<use-case>/<NN architecture> \
     --build-arg UBUNTU_IMAGE_NAME=nvidia/cuda \
     --build-arg UBUNTU_IMAGE_TAG=11.7.1-cudnn8-runtime-ubuntu20.04 \
-    --build-arg PYTHON_VERS=3.8
+    --build-arg PYTHON_VERS=3.8 \
+    --build-arg uid=$(id -u) \
+    --build-arg gid=$(id -g) \
+    --build-arg uname=$(id -un) \
+    --build-arg gname=$(id -gn)
 ```
 
 Finally, start the container, binding your source code path to ease the development:
