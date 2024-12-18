@@ -18,6 +18,8 @@ This file is generic and aims at:
 # limitations under the License.
 
 import os
+import sys
+import re
 import nox
 
 REPORTS_DIR = ".ci-reports/"
@@ -26,6 +28,20 @@ FLAKE8_CFG = os.path.join(ROOT_PATH, 'tools', 'flake8', 'flake8.cfg')
 
 # The list of the default targets executed with the simple command "nox".
 nox.options.sessions = ["lint", "tests"]
+
+# Check the required python version is available
+current_python = f'{sys.version_info.major}.{sys.version_info.minor}'
+with open("env.yaml", 'r') as env_file:
+    python_req = None
+    for line in env_file.readlines():
+        if 'python_version:' in line:
+            match = re.search(r'python_version: ([0-9\.]*)', line)
+            python_req = match.group(1)
+    if not python_req:
+        raise RuntimeError("Required python version not found in the env.yaml file.")
+    elif current_python != python_req:
+        raise RuntimeError("Current python version does not match the required version: "
+                           f"{current_python} != {python_req}.")
 
 
 def _wheel_version(wheel: str, req_file: str = 'requirements.txt') -> str:
