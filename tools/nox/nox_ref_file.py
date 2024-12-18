@@ -140,8 +140,8 @@ def docs(session):
 @nox.session
 def generate_synthetic_data(session):
     """Target to generate synthetic data related to the use case."""
-    # Install base python dependencies
-    base_dependencies(session)
+    # Install python dependencies
+    dev_dependencies(session)
 
     # Install requirement related to synthetic data generation
     req_file = "ci/requirements_data.txt"
@@ -163,8 +163,7 @@ def train_test(session):
     """Target to launch a basic training of the use-case (not yet implemented)."""
     # Generate the synthetic dataset required for the functional tests
     generate_synthetic_data(session)
-    # Install all the dependencies required to run a training
-    dev_dependencies(session)
+
     # Run te functional tests
     session.run('bash','./ci/run.sh')
     if "clean_data" in session.posargs:
