@@ -11,21 +11,24 @@
 # limitations under the License.
 
 from lightning.pytorch.cli import LightningCLI
-from jsonargparse.typing import register_type
 from torch import set_float32_matmul_precision
+import torch
 
-from main import RadiationCorrectionModel
-from data import RadiationCorrectionDataModule
+
+class MyLightningCLI(LightningCLI):
+    def add_arguments_to_parser(self, parser):
+        parser.link_arguments(
+            "data.batch_size", "model.init_args.batch_size", apply_on="instantiate"
+        )
 
 
 def cli_main():
-    LightningCLI(
-        # model_class=RadiationCorrectionModel,
-        # datamodule_class=RadiationCorrectionDataModule,
+    MyLightningCLI(
         parser_kwargs={"parser_mode": "omegaconf"},
     )
 
 
 if __name__ == "__main__":
+    torch.backends.cudnn.allow_tf32 = True
     set_float32_matmul_precision("high")
     cli_main()

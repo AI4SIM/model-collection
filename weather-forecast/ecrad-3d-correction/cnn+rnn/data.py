@@ -31,6 +31,8 @@ from nvidia.dali.plugin.pytorch import DALIGenericIterator
 from nvidia.dali.plugin.base_iterator import LastBatchPolicy
 
 
+HR_SCALE = 24 * 3600  # Convert {K s-1} to {K d-1}
+
 feature_description = {}
 for k in features_size:
     feature_description[k] = tfrec.FixedLenFeature(
@@ -138,7 +140,10 @@ def split_dataset(data):
 
     # Output variables
     for k in keys.output_keys:
-        results.update({k: data[k]})
+        if k in ["hr_sw", "hr_lw"]:
+            results.update({k: data[k] * HR_SCALE})
+        else:
+            results.update({k: data[k]})
 
     return results
 
@@ -171,27 +176,6 @@ def tfrecord_pipeline(
     results = split_dataset(data)
 
     return (*(results[key] for key in results.keys()),)
-    # return (*(data[key] for key in feature_description.keys()),)
-
-
-# @pipeline_def
-# def val_tfrecord_pipeline(
-#     tfrecord_path, index_path, shard_id=0, num_shards=1, device="cpu"
-# ):
-#     data = fn.readers.tfrecord(
-#         path=tfrecord_path,
-#         index_path=index_path,
-#         features=feature_description,
-#         shard_id=shard_id,
-#         random_shuffle=False,
-#         num_shards=num_shards,
-#         device=device,
-#         name="TFRecord_Reader",
-#     )
-#     results = split_dataset(data)
-
-#     return (*(results[key] for key in results.keys()),)
-#     # return (*(data[key] for key in feature_description.keys()),)
 
 
 class RadiationTestDataset(Dataset):
@@ -226,16 +210,17 @@ class RadiationTestDataset(Dataset):
             minimal_outputs=False,
             hr_units="K d-1",
         )
+
         self.test_dataset = test_ds.to_xarray()
 
     def __getitem__(self, idx):
         inputs = self.test_dataset[list(keys.input_keys)].isel(column=idx)
         outputs = self.test_dataset[list(keys.output_keys)].isel(column=idx)
 
-        input_dict = {k: torch.tensor(inputs[k].values) for k in keys.input_keys}
-        output_dict = {k: torch.tensor(outputs[k].values) for k in keys.output_keys}
+        input_dict = {k: torch.from_numpy(inputs[k].values) for k in keys.input_keys}
+        output_dict = {k: torch.from_numpy(outputs[k].values) for k in keys.output_keys}
 
-        return input_dict, output_dict
+        return {**input_dict, **output_dict}
 
     def __len__(self):
         return self.test_dataset.sizes["column"]
@@ -416,27 +401,3 @@ class RadiationCorrectionDataModule(L.LightningDataModule):
             pin_memory=True,
             drop_last=True,
         )
-
-
-# if __name__ == "__main__":
-#     datamodule = RadiationCorrectionDataModule(
-#         cache_dir="/fs1/ECMWF/3dcorrection/data",
-#         train_subset=None,
-#         train_timestep=list(range(0, 3501, 500)),
-#         train_filenum=list(range(52)),
-#         val_subset=None,
-#         val_timestep=[2019013100],
-#         val_filenum=list(range(0, 52, 5)),
-#         test_date=[20190531, 20191028],
-#         test_timestep=list(range(0, 3501, 1000)),
-#         batch_size=8,
-#         num_threads=1,
-#     )
-#     datamodule.prepare_data()
-#     datamodule.setup(stage="fit")
-#     print(len(datamodule.train_dataloader()))
-#     print(len(datamodule.val_dataloader()))
-#     # for batch in datamodule.train_dataloader():
-#     #     for k in batch[0].keys():
-#     #         print(k, batch[0][k].shape)
-#     #     break

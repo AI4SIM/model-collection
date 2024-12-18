@@ -120,19 +120,11 @@ class CNNModel(nn.Module):
         )
 
         # Flux layers
-        # self.lw = Sequential(
-        #     Conv1d(self.hidden_size, self.out_channels, 1, padding="same"),
-        #     Linear(self.out_channels, self.out_channels, bias=True),
-        # )
         self.lw_conv = Conv1d(self.hidden_size, self.out_channels, 1, padding="same")
         self.lw_lin = Linear(self.out_channels, self.out_channels)
 
         self.sw_conv = Conv1d(self.hidden_size, self.out_channels, 1, padding="same")
         self.sw_lin = Linear(self.out_channels, self.out_channels)
-        # self.sw = Sequential(
-        #     Conv1d(self.hidden_size, self.out_channels, 1, padding="same"),
-        #     Linear(self.out_channels, self.out_channels, bias=True),
-        # )
         # Heating rate layers
         # self.hr_lw = HRLayer()
         # self.hr_sw = HRLayer()
@@ -144,25 +136,23 @@ class CNNModel(nn.Module):
         x = self.preprocess(inputs)
 
         # Convolutional layers
-        # B, T, C = x.size()  # batch size, sequence length, channels
-        x = x.permute(0, 2, 1)  # B, C, T
-
+        x = x.transpose(1, 2)  # B, C, T
         x = self.conv_block_with_dilation(x)
-        x = x.permute(0, 2, 1)  # B, T, C
-        x = self.mha_1(x)
-        x = x.permute(0, 2, 1)  # B, C, T
+        x = x.transpose(1, 2)  # B, T, C
+        x = x + self.mha_1(x)
+        x = x.transpose(1, 2)  # B, C, T
         x = self.conv_block(x)
-        x = x.permute(0, 2, 1)
-        x = self.mha_2(x)
-        x = x.permute(0, 2, 1)
+        x = x.transpose(1, 2)
+        x = x + self.mha_2(x)
+        x = x.transpose(1, 2)
 
         # Flux layers
         lw = self.lw_conv(x)
-        lw = lw.permute(0, 2, 1)
+        lw = lw.transpose(1, 2)
         lw = self.lw_lin(lw)  # B, T, 2
 
         sw = self.sw_conv(x)
-        sw = sw.permute(0, 2, 1)
+        sw = sw.transpose(1, 2)
         sw = self.sw_lin(sw)  # B, T, 2
 
         # Heating rate layers
@@ -187,11 +177,7 @@ class CNNModel(nn.Module):
 
     def _reset_parameters(self):
         for m in self.modules():
-            if isinstance(m, Conv1d):
-                nn.init.xavier_uniform_(m.weight)
-                if m.bias is not None:
-                    nn.init.zeros_(m.bias)
-            elif isinstance(m, Linear):
+            if isinstance(m, nn.Conv1d) or isinstance(m, nn.Linear):
                 nn.init.xavier_uniform_(m.weight)
                 if m.bias is not None:
                     nn.init.zeros_(m.bias)

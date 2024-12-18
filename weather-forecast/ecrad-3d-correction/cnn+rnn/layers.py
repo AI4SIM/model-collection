@@ -38,16 +38,24 @@ class MultiHeadAttention(Module):
         self.attention_dropout = attention_dropout
         self.flash_attention = flash_attention
 
-        self.qkv = Linear(self.hidden_size, self.hidden_size * 3, bias=self.qkv_bias)
+        # self.qkv = Linear(self.hidden_size, self.hidden_size * 3, bias=True)
+        self.q_proj = Linear(self.hidden_size, self.hidden_size, bias=self.qkv_bias)
+        self.k_proj = Linear(self.hidden_size, self.hidden_size, bias=self.qkv_bias)
+        self.v_proj = Linear(self.hidden_size, self.hidden_size, bias=self.qkv_bias)
+
         self.proj = Linear(self.hidden_size, self.hidden_size, bias=self.qkv_bias)
         self.resid_dropout = Dropout(p=self.attention_dropout)
 
-        self._reset_parameters()
+        # self._reset_parameters()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, T, _ = x.size()
 
-        q, k, v = self.qkv(x).chunk(3, dim=-1)
+        # q, k, v = self.qkv(x).chunk(3, dim=-1)
+        q = self.q_proj(x)
+        k = self.k_proj(x)
+        v = self.v_proj(x)
+
         k = k.view(B, T, self.num_heads, self.hidden_size // self.num_heads).transpose(
             1, 2
         )  # (B, nH, T, hs)
@@ -61,33 +69,36 @@ class MultiHeadAttention(Module):
         # Scaled dot-product attention
         if self.flash_attention:
             with sdpa_kernel(SDPBackend.FLASH_ATTENTION):
-                x = scaled_dot_product_attention(
+                y = scaled_dot_product_attention(
                     q,
                     k,
                     v,
                     attn_mask=None,
-                    dropout_p=self.attention_dropout if self.training else 0.0,
+                    dropout_p=(self.attention_dropout if self.training else 0.0),
                     is_causal=False,
                 )
         else:
-            with sdpa_kernel(SDPBackend.MATH):
-                x = scaled_dot_product_attention(
+            with sdpa_kernel(SDPBackend.EFFICIENT_ATTENTION):
+                y = scaled_dot_product_attention(
                     q,
                     k,
                     v,
                     attn_mask=None,
-                    dropout_p=self.attention_dropout if self.training else 0.0,
+                    dropout_p=(self.attention_dropout if self.training else 0.0),
                     is_causal=False,
                 )
-        x = x.transpose(1, 2).contiguous().view(B, T, self.hidden_size)
+
+        y = y.transpose(1, 2).view(B, T, self.hidden_size)
 
         # Output projection
-        x = self.resid_dropout(self.proj(x))
+        y = self.resid_dropout(self.proj(y))
 
-        return x
+        return y
 
     def _reset_parameters(self) -> None:
-        torch.nn.init.xavier_uniform_(self.qkv.weight)
+        torch.nn.init.xavier_uniform_(self.q_proj.weight)
+        torch.nn.init.xavier_uniform_(self.k_proj.weight)
+        torch.nn.init.xavier_uniform_(self.v_proj.weight)
         torch.nn.init.xavier_uniform_(self.proj.weight)
 
         if self.qkv_bias:
@@ -144,21 +155,6 @@ class Normalization(Module):
         assert x.shape[1:] == self.std.shape
 
         return x.sub(self.mean).div(self.std + self.eps)
-
-
-# class Layer(Module):
-#     """
-#     Base class for preprocessing the inputs. Normalization is instanciated here.
-#     """
-#     def __init__(self, mean: dict, std: dict, label: str) -> None:
-#         super().__init__()
-
-#         self.mean = mean
-#         self.std = std
-#         self.normalization = Normalization(self.mean, self.std, label=label)
-
-#     def forward(self, x):
-#         raise NotImplementedError
 
 
 class ScaLayer(Module):
