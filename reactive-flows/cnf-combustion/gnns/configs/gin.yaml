@@ -31,7 +31,7 @@ trainer:
     max_epochs: 1
     accelerator: "gpu"
     callbacks:
-      - class_path: pytorch_lightning.callbacks.EarlyStopping
+      - class_path: lightning.pytorch.callbacks.EarlyStopping
         init_args:
           monitor: val_loss
           patience: 30

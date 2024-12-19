@@ -19,8 +19,8 @@ import networkx as nx
 import numpy
 import torch
 import torch_geometric as pyg
-from pytorch_lightning import LightningModule
-from pytorch_lightning.utilities.cli import LightningCLI
+from lightning import LightningModule
+from lightning.pytorch.cli import LightningCLI
 
 CWD = os.getcwd()
 

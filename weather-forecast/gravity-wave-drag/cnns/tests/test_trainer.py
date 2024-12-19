@@ -18,7 +18,7 @@ from unittest.mock import patch
 import torch
 
 import config
-from trainer import Trainer
+from trainer import CLITrainer
 
 
 @skipIf(not torch.cuda.is_available(), "Cuda not available.")
@@ -30,13 +30,13 @@ class TestTrainerGpu(unittest.TestCase):
         args_gpu = {"max_epochs": 1,
                     "accelerator": "gpu",
                     "devices": [0]}
-        self.test_trainer_gpu = Trainer(**args_gpu)
+        self.test_trainer_gpu = CLITrainer(**args_gpu)
 
     def test_trainer_gpu_init(self):
         """Tests the 'devices' mother attribute is properly set if gpu mode is activated."""
-        self.assertEqual(self.test_trainer_gpu.devices, [0])
+        self.assertEqual(self.test_trainer_gpu._devices, [0])
 
-    @patch('pytorch_lightning.Trainer.test')
+    @patch('lightning.Trainer.test')
     def test_trainer_cpu_test(self, mock_test):
         """Tests the 'test' method properly save the result file and model, running on GPUs."""
         # patch the super().test() returned value
@@ -53,16 +53,16 @@ class TestTrainerCPU(unittest.TestCase):
         """Prepare config file parameters-like settings."""
         args_cpu = {"max_epochs": 1,
                     "accelerator": "cpu",
-                    "devices": [0]}
-        self.test_trainer_cpu = Trainer(**args_cpu)
+                    "devices": 1}
+        self.test_trainer_cpu = CLITrainer(**args_cpu)
 
     def test_trainer_cpu_init(self):
-        """Tests the 'devices' mother attribute is set to the default value (1) if the cpu mode is
+        """Tests the 'devices' mother attribute is set to 1 if the cpu mode is
         activated.
         """
-        self.assertEqual(self.test_trainer_cpu.devices, 1)
+        self.assertEqual(self.test_trainer_cpu._devices, 1)
 
-    @patch('pytorch_lightning.Trainer.test')
+    @patch('lightning.Trainer.test')
     def test_trainer_cpu_test(self, mock_test):
         """Tests the 'test' method properly save the result file and model, running on CPUs."""
         # patch the super().test() returned value

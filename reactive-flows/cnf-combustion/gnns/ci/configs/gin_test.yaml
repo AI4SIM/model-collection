@@ -31,11 +31,10 @@ trainer:
     max_epochs: 1
     accelerator: "cpu"
     callbacks:
-      - class_path: pytorch_lightning.callbacks.EarlyStopping
+      - class_path: lightning.pytorch.callbacks.EarlyStopping
         init_args:
           monitor: val_loss
           patience: 30
           mode: min
           min_delta: 0.0
-    devices:
-        - 0
+    devices: 1

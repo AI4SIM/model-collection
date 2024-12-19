@@ -15,7 +15,7 @@ import unittest
 import warnings
 import torch
 
-from trainer import Trainer
+from trainer import CLITrainer
 
 
 class TestTrainer(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestTrainer(unittest.TestCase):
         self.args_cpu = {
             "max_epochs": 1,
             "accelerator": "cpu",
-            "devices": [0]
+            "devices": 1
         }
         self.args_gpu = {
             "max_epochs": 1,
@@ -37,14 +37,14 @@ class TestTrainer(unittest.TestCase):
     def test_trainer(self) -> None:
         """Test trainer file."""
         if torch.cuda.is_available():
-            _ = Trainer(**self.args_gpu)
+            test_trainer_gpu = CLITrainer(**self.args_gpu)
+            self.assertEqual(test_trainer_gpu._devices, [0])
 
         # avoids GPU warning when testing CPU usage.
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-
-            test_trainer_cpu = Trainer(**self.args_cpu)
-            self.assertEqual(test_trainer_cpu._devices, None)
+            test_trainer_cpu = CLITrainer(**self.args_cpu)
+            self.assertEqual(test_trainer_cpu._devices, 1)
 
 
 if __name__ == '__main__':

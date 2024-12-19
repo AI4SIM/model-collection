@@ -12,8 +12,7 @@
 # limitations under the License.
 
 import numpy as np
-import pytorch_lightning as pl
-from pytorch_lightning.utilities.cli import MODEL_REGISTRY
+import lightning as pl
 import torch
 import torch.nn as nn
 import torch_geometric as pyg
@@ -34,6 +33,9 @@ class CombustionModule(pl.LightningModule):
         """Init the CombustionModule class."""
         super().__init__()
         self.grid_shape = None
+
+        self.ys_test = list()
+        self.y_hats_test = list()
 
     def forward(self, x_val: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         """Compute the forward pass.
@@ -104,24 +106,15 @@ class CombustionModule(pl.LightningModule):
         if not self.grid_shape:
             self.grid_shape = (x_max + 1, y_max + 1, z_max + 1)
 
+        self.ys_test.append(batch.y)
+        self.y_hats_test.append(y_hat)
+
         return batch.y, y_hat
 
-    def test_epoch_end(self, outputs: list) -> None:
-        """Gather all the outputs from the test_step to plot the test Dataset.
-
-        Args:
-            outputs (List[Tuple[torch.Tensor]]): all batches containing a pair of
-                (ground truth, prediction)
-        """
-        ys = list()
-        y_hats = list()
-
-        for out in outputs:
-            ys.append(out[0])
-            y_hats.append(out[1])
-
-        ys = torch.stack(ys)
-        y_hats = torch.stack(y_hats)
+    def on_test_epoch_end(self) -> None:
+        """Gather all the outputs from the test_step to plot the test Dataset."""
+        ys = torch.stack(self.ys_test)
+        y_hats = torch.stack(self.y_hats_test)
 
         # Inference/Test should be done on 1 GPU as data would likely be duplicated
         self.ys = self.all_gather(ys)
@@ -147,7 +140,6 @@ class CombustionModule(pl.LightningModule):
         return optim.AdamP(self.parameters(), lr=self.lr)
 
 
-@MODEL_REGISTRY
 class LitGAT(CombustionModule):
     """Graph-ATtention net as described in the “Graph Attention Networks” paper."""
 
@@ -175,7 +167,6 @@ class LitGAT(CombustionModule):
                                 jk=jk)
 
 
-@MODEL_REGISTRY
 class LitGCN(CombustionModule):
     """Classic stack of GCN layers.
     “Semi-supervised Classification with Graph Convolutional Networks”.
@@ -203,7 +194,6 @@ class LitGCN(CombustionModule):
                                 act=nn.SiLU(inplace=True))
 
 
-@MODEL_REGISTRY
 class LitGraphUNet(CombustionModule):
     """Graph-Unet as described in “Graph U-Nets”."""
 
@@ -227,7 +217,6 @@ class LitGraphUNet(CombustionModule):
                                       act=nn.SiLU(inplace=True))
 
 
-@MODEL_REGISTRY
 class LitGIN(CombustionModule):
     """GNN implementation of “How Powerful are Graph Neural Networks?”."""
 

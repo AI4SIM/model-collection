@@ -18,6 +18,8 @@ This file is generic and aims at:
 # limitations under the License.
 
 import os
+import sys
+import re
 import nox
 
 REPORTS_DIR = ".ci-reports/"
@@ -26,6 +28,20 @@ FLAKE8_CFG = os.path.join(ROOT_PATH, 'tools', 'flake8', 'flake8.cfg')
 
 # The list of the default targets executed with the simple command "nox".
 nox.options.sessions = ["lint", "tests"]
+
+# Check the required python version is available
+current_python = f'{sys.version_info.major}.{sys.version_info.minor}'
+with open("env.yaml", 'r') as env_file:
+    python_req = None
+    for line in env_file.readlines():
+        if 'python_version:' in line:
+            match = re.search(r'python_version: ([0-9\.]*)', line)
+            python_req = match.group(1)
+    if not python_req:
+        raise RuntimeError("Required python version not found in the env.yaml file.")
+    elif current_python != python_req:
+        raise RuntimeError("Current python version does not match the required version: "
+                           f"{current_python} != {python_req}.")
 
 
 def _wheel_version(wheel: str, req_file: str = 'requirements.txt') -> str:
@@ -38,11 +54,12 @@ def _wheel_version(wheel: str, req_file: str = 'requirements.txt') -> str:
         (str): the pip version extracted from the requirement.txt file if torch is present,
             an empty string otherwise.
     """
-    version = ''
+    version = wheel
     with open(req_file, encoding='utf-8') as file:
         for line in file.readlines():
             if f"{wheel}==" in line:
                 version = line.rstrip()
+                break
     return version
 
 
@@ -56,12 +73,9 @@ def _torch_version(req_file: str = 'requirements.txt') -> str:
         (str): the torch version extracted from the requirement.txt file if torch is present,
             an empty string otherwise.
     """
-    version = ''
-    cuda = ''
+    cuda = 'cpu'
     version = _wheel_version("torch", req_file).split('==')[1]
-    if "+" not in version:
-        cuda = "cpu"
-    else:
+    if "+" in version:
         version, cuda = version.split('+')
     return version, cuda
 
@@ -142,8 +156,8 @@ def docs(session):
 @nox.session
 def generate_synthetic_data(session):
     """Target to generate synthetic data related to the use case."""
-    # Install base python dependencies
-    base_dependencies(session)
+    # Install python dependencies
+    dev_dependencies(session)
 
     # Install requirement related to synthetic data generation
     req_file = "ci/requirements_data.txt"
@@ -165,8 +179,7 @@ def train_test(session):
     """Target to launch a basic training of the use-case (not yet implemented)."""
     # Generate the synthetic dataset required for the functional tests
     generate_synthetic_data(session)
-    # Install all the dependencies required to run a training
-    dev_dependencies(session)
+
     # Run te functional tests
     session.run('bash','./ci/run.sh')
     if "clean_data" in session.posargs:

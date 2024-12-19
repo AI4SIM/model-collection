@@ -10,8 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytorch_lightning as pl
-from pytorch_lightning.utilities.cli import MODEL_REGISTRY
+import lightning as pl
 import torch
 from torchmetrics.functional import mean_squared_error
 from typing import Tuple, Union
@@ -69,10 +68,9 @@ class ThreeDCorrectionModule(pl.LightningModule):
                 if param.requires_grad:
                     self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
 
-    def normalize(self,
-                  x: torch.Tensor) -> Tuple[torch.Tensor]:
+    def normalize(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
         """
-        Normalize nside the network.
+        Normalize inside the network.
         If y is None, then only process x (e.g. forward mode).
         """
         eps = torch.tensor(1.e-8)
@@ -85,29 +83,28 @@ class ThreeDCorrectionModule(pl.LightningModule):
         x, y = batch
 
         y_hat = self(x)
-        loss = mean_squared_error(y_hat, y)
+        loss = mean_squared_error(y_hat.contiguous(), y.contiguous())
 
         self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(x))
         return y_hat, loss
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch):
         _, loss = self._common_step(batch, "train")
         return loss
 
     def on_after_backward(self):
         self.gradient_histograms_adder()
 
-    def training_epoch_end(self, outputs):
+    def on_train_epoch_end(self):
         self.weight_histograms_adder()
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch):
         self._common_step(batch, "val")
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch):
         self._common_step(batch, "test")
 
 
-@MODEL_REGISTRY
 class LitUnet1D(ThreeDCorrectionModule):
     """Compile a 1D U-Net, which needs a stats.pt (in the folder of data_path)."""
 

@@ -11,8 +11,7 @@
 # limitations under the License.
 
 import os.path as osp
-import pytorch_lightning as pl
-from pytorch_lightning.utilities.cli import DATAMODULE_REGISTRY
+import lightning as pl
 from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 from typing import Tuple, Optional
 import numpy as np
@@ -62,7 +61,6 @@ class ThreeDCorrectionDataset(Dataset):
         return self.n_data
 
 
-@DATAMODULE_REGISTRY
 class LitThreeDCorrectionDataModule(pl.LightningDataModule):
     """DataModule for the 3dcorrection dataset."""
 

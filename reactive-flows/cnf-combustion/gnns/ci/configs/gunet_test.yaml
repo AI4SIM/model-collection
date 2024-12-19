@@ -30,5 +30,4 @@ data:
 trainer:
     max_epochs: 1
     accelerator: "cpu"
-    devices:
-        - 0
+    devices: 1
