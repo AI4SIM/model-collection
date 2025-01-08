@@ -2,6 +2,11 @@ name: ai4sim-ci-cd
 
 on: [push, pull_request]
 
+permissions:
+  actions: write
+  checks: write
+  pull-requests: write
+
 jobs:
   run-checks:
     runs-on: ubuntu-latest
@@ -43,7 +48,7 @@ jobs:
 
     - name: Run functional tests
       working-directory: ${{ matrix.model-project }}
-      run: nox -s train_test -v -- clean_data 
+      run: nox -s train_test -v -- clean_data
 
     - name: Coverage Commentator
       uses: 5monkeys/cobertura-action@master
