@@ -47,7 +47,7 @@ idna==3.10
 imageio==2.36.1
 importlib_metadata==8.5.0
 importlib_resources==6.4.5
-Jinja2==3.1.4
+Jinja2==3.1.5
 jsonargparse==4.35.0
 keras==3.7.0
 libclang==18.1.1
