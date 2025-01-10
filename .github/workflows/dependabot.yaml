@@ -2,7 +2,9 @@
   
 name: dependabot-auto-merge
 
-on: [push, pull_request]
+on:
+  check_suite:
+    types: [completed]
 
 permissions:
   pull-requests: write
