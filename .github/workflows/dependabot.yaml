@@ -3,8 +3,7 @@
 name: dependabot-auto-merge
 
 on:
-  check_suite:
-    types: [completed]
+  status
 
 permissions:
   pull-requests: write
@@ -13,7 +12,7 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
 
-    if: github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/')
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/') && github.event.state == 'success'
 
     steps:
       - name: Approve a PR
