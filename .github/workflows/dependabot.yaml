@@ -16,9 +16,12 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
 
-    if: github.event.pull_request.user.login == 'dependabot[bot]' && ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.pull_request.user.login == 'dependabot[bot]' && github.event.workflow_run.conclusion == 'success' }}
 
     steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
       - name: Approve a PR
         run: gh pr review --approve "$PR_URL"
         env:
