@@ -35,3 +35,13 @@ jobs:
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  not-dependabot:
+    runs-on: ubuntu-latest
+
+    if: github.event.pull_request.user.login != 'dependabot[bot]'
+
+    steps:
+      - name: Echo error
+        run: echo "Not a depenbabot[bot] job (${{ github.event.pull_request.user.login }})"
+
