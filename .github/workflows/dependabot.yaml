@@ -3,7 +3,11 @@
 name: dependabot-auto-merge
 
 on:
-  status
+  workflow_run:
+    workflows: [ai4sim-ci-cd]
+    branches: [dependabot/**]
+    types:
+      - completed
 
 permissions:
   pull-requests: write
@@ -12,7 +16,7 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
 
-    if: github.event.pull_request.user.login == 'dependabot[bot]' && startsWith(github.head_ref, 'dependabot/') && github.event.state == 'success'
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - name: Approve a PR
