@@ -16,7 +16,7 @@ jobs:
   dependabot:
     runs-on: ubuntu-latest
 
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    if: github.event.workflow_run.actor.login == 'dependabot[bot]'
 
     steps:
       - name: Checkout sources
@@ -39,9 +39,9 @@ jobs:
   not-dependabot:
     runs-on: ubuntu-latest
 
-    if: github.event.pull_request.user.login != 'dependabot[bot]'
+    if: github.event.workflow_run.actor.login != 'dependabot[bot]'
 
     steps:
       - name: Echo error
-        run: echo "Not a depenbabot[bot] job (${{ github.event.pull_request.user.login }})"
+        run: echo "Not a depenbabot[bot] job (${{ github.event.workflow_run.actor.login }})"
 
