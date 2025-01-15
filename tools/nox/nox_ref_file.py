@@ -148,6 +148,18 @@ def lint(session):
 
 
 @nox.session
+def import_sort(session):
+    """Target to sort automatically the import in the code with isort."""
+    # Install base python dependencies
+    base_dependencies(session)
+    session.run("python3", "-m", "pip", "install", "isort")
+    if "check-only" in session.posargs:
+        session.run("isort", "--profile", "black", "--check-only", ".")
+    else:
+        session.run("isort", "--profile", "black", ".")
+
+
+@nox.session
 def docs(session):
     """Target to build the documentation (not yet implemented)."""
     raise NotImplementedError("This target is not yet implemented.")
