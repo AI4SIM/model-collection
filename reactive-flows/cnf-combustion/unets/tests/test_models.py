@@ -23,22 +23,23 @@ class TestModels(TestCase):
 
     def setUp(self) -> None:
         self.initParam = {
-            'in_channels': 1,
-            'out_channels': 2,
-            'n_levels': 2,
-            'n_features_root': 32,
-            'lr': .0001}
+            "in_channels": 1,
+            "out_channels": 2,
+            "n_levels": 2,
+            "n_features_root": 32,
+            "lr": 0.0001,
+        }
 
     def test_forward_common_step(self):
         # Fake data, of dim (n_batchs, n_channels, x, y, z).
-        x = from_numpy(zeros((1, self.initParam['in_channels'], 10, 10, 10)))
-        y = from_numpy(zeros((1, self.initParam['in_channels'], 10, 10, 10)))
+        x = from_numpy(zeros((1, self.initParam["in_channels"], 10, 10, 10)))
+        y = from_numpy(zeros((1, self.initParam["in_channels"], 10, 10, 10)))
 
         # Forward.
         test_unet = LitUnet3D(**self.initParam)
         y = test_unet.forward(x)
         self.assertTrue(isinstance(y, Tensor))
-        self.assertEqual(y.shape, (1, self.initParam['out_channels'], 10, 10, 10))
+        self.assertEqual(y.shape, (1, self.initParam["out_channels"], 10, 10, 10))
 
         # Common step.
         loss = test_unet._common_step(batch=(x, y), stage="train")
@@ -50,5 +51,5 @@ class TestModels(TestCase):
         self.assertTrue(isinstance(op, Optimizer))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -59,7 +59,8 @@ class LitUnet3D(CombustionModule):
             inp_ch=in_channels,
             out_ch=out_channels,
             n_levels=n_levels,
-            n_features_root=n_features_root)
+            n_features_root=n_features_root,
+        )
 
     def configure_optimizers(self):
         return AdamP(self.parameters(), lr=self.lr)

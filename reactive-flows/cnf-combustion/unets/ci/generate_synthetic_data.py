@@ -26,23 +26,23 @@ import config  # noqa:
 
 def create_data():
     """Create data folder with fake raw data"""
-    filenames = ['test_1.h5', 'test_2.h5', 'test_3.h5']
+    filenames = ["test_1.h5", "test_2.h5", "test_3.h5"]
 
-    if (not exists(config.data_path)):
+    if not exists(config.data_path):
         makedirs(join(config.data_path, "raw"))
         for file_h5 in filenames:
-            with File(join(config.data_path, "raw", file_h5), 'w') as f:
-                f['filt_8'] = np.random.normal(0, 1, (320, 160, 160))
-                f['filt_grad_8'] = np.random.normal(0, 1, (320, 160, 160))
-                f['grad_filt_8'] = np.random.normal(0, 1, (320, 160, 160))
+            with File(join(config.data_path, "raw", file_h5), "w") as f:
+                f["filt_8"] = np.random.normal(0, 1, (320, 160, 160))
+                f["filt_grad_8"] = np.random.normal(0, 1, (320, 160, 160))
+                f["grad_filt_8"] = np.random.normal(0, 1, (320, 160, 160))
 
-        temp_file_path = join(config.data_path, 'filenames.yaml')
-        with open(temp_file_path, 'w') as tmpfile:
+        temp_file_path = join(config.data_path, "filenames.yaml")
+        with open(temp_file_path, "w") as tmpfile:
             dump(filenames, tmpfile)
     else:
         raise Exception(f"Remove manually {config.data_path}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     create_data()

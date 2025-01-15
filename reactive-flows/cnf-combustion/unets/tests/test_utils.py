@@ -31,5 +31,5 @@ class TestData(TestCase):
         self.assertEqual(x_[0, 0, 0], y_[0, 0, 0])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -25,15 +25,18 @@ from utils import RandomCropper3D
 
 class CnfCombustionDataset(Dataset):
 
-    def __init__(self,
-                 root: str,
-                 y_normalizer: float = None,
-                 subblock_shape: Union[int, tuple] = None):
+    def __init__(
+        self,
+        root: str,
+        y_normalizer: float = None,
+        subblock_shape: Union[int, tuple] = None,
+    ):
         super().__init__()
         self.root = root
         self.y_normalizer = y_normalizer
-        self.random_cropper = RandomCropper3D(subblock_shape) if subblock_shape is not None \
-            else None
+        self.random_cropper = (
+            RandomCropper3D(subblock_shape) if subblock_shape is not None else None
+        )
         for i, filename in enumerate(self.raw_filenames):
             raw_path = join(self.raw_dir, filename)
             processed_path = join(self.processed_dir, self.processed_filenames[i])
@@ -66,7 +69,9 @@ class CnfCombustionDataset(Dataset):
         makedirs(self.processed_dir, exist_ok=True)
         with File(path, "r") as file:
             c = tensor(file["/filt_8"][:])
-            sigma = tensor(file["/filt_grad_8"][:])  # Or try with surrogate 'grad_filt_8'.
+            sigma = tensor(
+                file["/filt_grad_8"][:]
+            )  # Or try with surrogate 'grad_filt_8'.
 
         # Crop first boundary (equal to the opposite one).
         c = c[1:, 1:, 1:]
@@ -95,13 +100,15 @@ class CnfCombustionDataModule(LightningDataModule):
         subblock_shape (int or tuple): data augmentation by randomly cropping sub-blocks.
     """
 
-    def __init__(self,
-                 batch_size: int,
-                 num_workers: int,
-                 splitting_lengths: list,
-                 shuffling: bool = False,
-                 y_normalizer: float = None,
-                 subblock_shape: Union[int, tuple] = None):
+    def __init__(
+        self,
+        batch_size: int,
+        num_workers: int,
+        splitting_lengths: list,
+        shuffling: bool = False,
+        y_normalizer: float = None,
+        subblock_shape: Union[int, tuple] = None,
+    ):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.splitting_lengths = splitting_lengths
@@ -112,12 +119,15 @@ class CnfCombustionDataModule(LightningDataModule):
 
     def prepare_data(self, data_path: str = config.data_path):
         """Initialize dataset."""
-        self.dataset = CnfCombustionDataset(data_path, self.y_normalizer, self.subblock_shape)
+        self.dataset = CnfCombustionDataset(
+            data_path, self.y_normalizer, self.subblock_shape
+        )
 
     def setup(self, stage: Optional[str] = None):
         """Preprocessing: splitting and shuffling."""
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(
-            self.dataset, self.splitting_lengths)
+            self.dataset, self.splitting_lengths
+        )
         if self.shuffling:
             self.train_dataset = self.train_dataset.shuffle()
 
@@ -126,16 +136,15 @@ class CnfCombustionDataModule(LightningDataModule):
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+        )
 
     def val_dataloader(self):
         return DataLoader(
-            self.val_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers)
+            self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+        )
 
     def test_dataloader(self):
         return DataLoader(
-            self.test_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers)
+            self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+        )
