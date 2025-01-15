@@ -62,5 +62,5 @@ class TestUnet1D(TestCase):
         self.assertEqual(shp, (1, 4, 32))  # last DoubleConv enforces the out_ch.
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

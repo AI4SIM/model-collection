@@ -37,12 +37,12 @@ class ThreeDCorrectionDataset(Dataset):
         super().__init__()
 
         # Lazily load and assemble chunks.
-        self.x = da.from_npy_stack(osp.join(data_path, 'x'))
-        self.y = da.from_npy_stack(osp.join(data_path, 'y'))
+        self.x = da.from_npy_stack(osp.join(data_path, "x"))
+        self.y = da.from_npy_stack(osp.join(data_path, "y"))
 
         # Load number of data.
         stats = torch.load(osp.join(data_path, "stats.pt"))
-        self.n_data = stats['x_nb'].item()
+        self.n_data = stats["x_nb"].item()
 
     def __getitem__(self, i: int) -> Tuple[np.ndarray]:
         """
@@ -65,11 +65,13 @@ class ThreeDCorrectionDataset(Dataset):
 class LitThreeDCorrectionDataModule(pl.LightningDataModule):
     """DataModule for the 3dcorrection dataset."""
 
-    def __init__(self,
-                 data_path: str,
-                 batch_size: int,
-                 num_workers: int,
-                 splitting_ratios: Tuple[float, float, float] = (0.8, 0.1, 0.1)):
+    def __init__(
+        self,
+        data_path: str,
+        batch_size: int,
+        num_workers: int,
+        splitting_ratios: Tuple[float, float, float] = (0.8, 0.1, 0.1),
+    ):
         """
         Args:
             data_path (str): Path containing the preprocessed data (by dataproc).
@@ -92,9 +94,9 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         tr, va, te = self.splitting_ratios
         length = len(self.dataset)
         idx = list(range(length))
-        train_idx = idx[:int(tr * length)]
-        val_idx = idx[int(tr * length):int((tr + va) * length)]
-        test_idx = idx[int((tr + va) * length):]
+        train_idx = idx[: int(tr * length)]
+        val_idx = idx[int(tr * length) : int((tr + va) * length)]
+        test_idx = idx[int((tr + va) * length) :]
 
         # Define samplers.
         self.train_sampler = SubsetRandomSampler(train_idx)
@@ -106,18 +108,21 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             self.dataset,
             batch_size=self.batch_size,
             sampler=self.train_sampler,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+        )
 
     def val_dataloader(self):
         return DataLoader(
             self.dataset,
             batch_size=self.batch_size,
             sampler=self.val_sampler,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+        )
 
     def test_dataloader(self):
         return DataLoader(
             self.dataset,
             batch_size=self.batch_size,
             sampler=self.test_sampler,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+        )

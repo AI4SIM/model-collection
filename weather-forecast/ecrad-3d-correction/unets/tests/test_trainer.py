@@ -21,12 +21,8 @@ from trainer import CLITrainer
 class TestTrainer(TestCase):
 
     def setUp(self) -> None:
-        self.args_cpu = {"max_epochs": 1,
-                         "accelerator": "cpu",
-                         "devices": 1}
-        self.args_gpu = {"max_epochs": 1,
-                         "accelerator": "gpu",
-                         "devices": [0]}
+        self.args_cpu = {"max_epochs": 1, "accelerator": "cpu", "devices": 1}
+        self.args_gpu = {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}
 
     def test_trainer(self) -> None:
         if cuda.is_available():
@@ -40,5 +36,5 @@ class TestTrainer(TestCase):
             self.assertEqual(test_trainer_cpu._devices, 1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

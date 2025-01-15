@@ -25,12 +25,14 @@ class UNet1D(nn.Module):
         bilinear: Whether to use bilinear interpolation or transposed convolutions for upsampling.
     """
 
-    def __init__(self,
-                 inp_ch: int,
-                 out_ch: int,
-                 n_levels: int,
-                 n_features_root: int,
-                 bilinear: bool = False):
+    def __init__(
+        self,
+        inp_ch: int,
+        out_ch: int,
+        n_levels: int,
+        n_features_root: int,
+        bilinear: bool = False,
+    ):
         super().__init__()
         self.n_levels = n_levels
 
@@ -56,11 +58,11 @@ class UNet1D(nn.Module):
         xi = [self.layers[0](x)]
 
         # Downward path.
-        for layer in self.layers[1:self.n_levels]:
+        for layer in self.layers[1 : self.n_levels]:
             xi.append(layer(xi[-1]))
 
         # Upward path.
-        for i, layer in enumerate(self.layers[self.n_levels:-1]):
+        for i, layer in enumerate(self.layers[self.n_levels : -1]):
             xi[-1] = layer(xi[-1], xi[-2 - i])  # upsamplers taking skip-connections.
 
         return self.layers[-1](xi[-1])
@@ -82,7 +84,8 @@ class DoubleConv(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv1d(out_ch, out_ch, kernel_size=3, padding=1),
             nn.BatchNorm1d(out_ch),
-            nn.ReLU(inplace=True))
+            nn.ReLU(inplace=True),
+        )
 
         self.res = None
         if residual:
@@ -98,8 +101,8 @@ class Downsampler(nn.Module):
     def __init__(self, inp_ch: int, out_ch: int):
         super().__init__()
         self.net = nn.Sequential(
-            nn.MaxPool1d(kernel_size=2, stride=2),
-            DoubleConv(inp_ch, out_ch))
+            nn.MaxPool1d(kernel_size=2, stride=2), DoubleConv(inp_ch, out_ch)
+        )
 
     def forward(self, x: Tensor) -> Tensor:
         return self.net(x)
@@ -116,14 +119,17 @@ class Upsampler(nn.Module):
         super().__init__()
         self.upsample = None
         if inp_ch < 2:
-            raise ValueError(f'Input channel ({inp_ch}) too low.')
+            raise ValueError(f"Input channel ({inp_ch}) too low.")
 
         if bilinear:
             self.upsample = nn.Sequential(
                 nn.Upsample(scale_factor=2, mode="bilinear", align_corners=True),
-                nn.Conv1d(inp_ch, inp_ch // 2, kernel_size=1))
+                nn.Conv1d(inp_ch, inp_ch // 2, kernel_size=1),
+            )
         else:
-            self.upsample = nn.ConvTranspose1d(inp_ch, inp_ch // 2, kernel_size=2, stride=2)
+            self.upsample = nn.ConvTranspose1d(
+                inp_ch, inp_ch // 2, kernel_size=2, stride=2
+            )
         self.conv = DoubleConv(inp_ch, out_ch)
 
     def forward(self, x1: Tensor, x2: Tensor) -> Tensor:

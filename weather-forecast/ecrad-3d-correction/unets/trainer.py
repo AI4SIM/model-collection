@@ -32,12 +32,14 @@ class CLITrainer(Trainer):
     logs, and writes artifacts by the end of training.
     """
 
-    def __init__(self,
-                 accelerator: Union[str, Accelerator, None],
-                 devices: Union[List[int], str, int, None],
-                 max_epochs: int,
-                 fast_dev_run: Union[int, bool] = False,
-                 callbacks: Union[List[Callback], Callback, None] = None) -> None:
+    def __init__(
+        self,
+        accelerator: Union[str, Accelerator, None],
+        devices: Union[List[int], str, int, None],
+        max_epochs: int,
+        fast_dev_run: Union[int, bool] = False,
+        callbacks: Union[List[Callback], Callback, None] = None,
+    ) -> None:
         """
         Args:
             accelerator (Union[str, Accelerator, None]): Type of accelerator to use for training.
@@ -55,7 +57,8 @@ class CLITrainer(Trainer):
             max_epochs=max_epochs,
             # for some reason, a forward pass happens in the model before datamodule creation.
             # TODO: learn normalizers (mean, std) in a layer
-            num_sanity_val_steps=0)
+            num_sanity_val_steps=0,
+        )
 
     def test(self, **kwargs) -> None:
         """
@@ -65,7 +68,7 @@ class CLITrainer(Trainer):
         results = super().test(**kwargs)[0]
         with open(os.path.join(config.artifacts_path, "results.json"), "w") as f:
             json.dump(results, f)
-        torch.save(self.model, os.path.join(config.artifacts_path, 'model.pth'))
+        torch.save(self.model, os.path.join(config.artifacts_path, "model.pth"))
 
 
 def main():
@@ -74,5 +77,5 @@ def main():
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
