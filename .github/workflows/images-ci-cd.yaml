@@ -59,6 +59,12 @@ jobs:
           separator: ":"
           limit: -1
 
+      - name: Build the Docker image name and tag
+        id: image
+        run: |
+          echo "name=${{ steps.split_tag.outputs._0 }}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ steps.split_path.outputs._0 }}-${{ steps.split_path.outputs._1 }}-${{ steps.split_path.outputs._2 }}" >> "$GITHUB_OUTPUT"
+
       - name: Read model-project env.yaml file
         uses: pietrobolcato/action-read-yaml@1.1.0
         id: uc_env
@@ -76,7 +82,7 @@ jobs:
             PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
             MODEL_PROJECT_PATH=${{ matrix.model-project }}
           load: true
-          tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._0 }}-${{ steps.split_path.outputs._1 }}-${{ steps.split_path.outputs._2 }}"
+          tags: "${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}"
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Test the Docker image
@@ -85,7 +91,7 @@ jobs:
           docker run \
             --rm \
             -w /home/ai4sim/${{ matrix.model-project }} \
-            ${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._0 }}-${{ steps.split_path.outputs._1 }}-${{ steps.split_path.outputs._2 }} \
+            ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }} \
             nox -s train_test -v -- clean_data
 
       - name: Push the previously built Docker image
@@ -99,5 +105,5 @@ jobs:
             PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
             MODEL_PROJECT_PATH=${{ matrix.model-project }}
           push: true
-          tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._0 }}-${{ steps.split_path.outputs._1 }}-${{ steps.split_path.outputs._2 }}"
+          tags: "${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}"
           labels: ${{ steps.meta.outputs.labels }}
