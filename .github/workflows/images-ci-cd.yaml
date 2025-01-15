@@ -92,7 +92,7 @@ jobs:
             --rm \
             -w /home/ai4sim/${{ matrix.model-project }} \
             ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }} \
-            nox -s train_test -v -- clean_data
+            nox -s train_test --no-venv -v -- clean_data
 
       - name: Push the previously built Docker image
         uses: docker/build-push-action@v6
