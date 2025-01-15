@@ -11,8 +11,9 @@
 # limitations under the License.
 
 import os
-from randomname import get_name
 from os.path import dirname, join, realpath
+
+from randomname import get_name
 
 root_path = dirname(realpath(__file__))
 

@@ -11,9 +11,11 @@
 # limitations under the License.
 
 from unittest import TestCase, main
-from utils import RandomCropper3D
+
 from numpy import copy
 from numpy.random import rand
+
+from utils import RandomCropper3D
 
 
 class TestData(TestCase):

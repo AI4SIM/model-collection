@@ -10,14 +10,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import config
-from h5py import File
-from os.path import join, isfile
 from os import listdir, makedirs
+from os.path import isfile, join
+from typing import Optional, Union
+
+from h5py import File
 from lightning import LightningDataModule
-from torch.utils.data import Dataset, DataLoader, random_split
-from torch import load, tensor, save
-from typing import Union, Optional
+from torch import load, save, tensor
+from torch.utils.data import DataLoader, Dataset, random_split
+
+import config
 from utils import RandomCropper3D
 
 

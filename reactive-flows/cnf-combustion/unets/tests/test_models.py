@@ -11,10 +11,12 @@
 # limitations under the License.
 
 from unittest import TestCase, main
+
 from numpy import zeros
 from torch import Tensor, from_numpy
-from models import LitUnet3D
 from torch_optimizer import Optimizer
+
+from models import LitUnet3D
 
 
 class TestModels(TestCase):

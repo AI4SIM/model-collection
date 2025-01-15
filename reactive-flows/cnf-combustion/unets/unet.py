@@ -10,8 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from torch import cat, Tensor
 import torch.nn as nn
+from torch import Tensor, cat
 
 
 class UNet3D(nn.Module):

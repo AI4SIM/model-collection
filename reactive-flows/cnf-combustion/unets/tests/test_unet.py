@@ -11,9 +11,11 @@
 # limitations under the License.
 
 from unittest import TestCase, main
+
 from numpy.random import rand
 from torch import from_numpy
-from unet import UNet3D, Downsampler, Upsampler
+
+from unet import Downsampler, UNet3D, Upsampler
 
 
 class TestUnet3D(TestCase):

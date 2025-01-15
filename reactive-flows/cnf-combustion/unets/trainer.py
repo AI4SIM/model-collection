@@ -10,17 +10,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import config
 from json import dump
 from os.path import join
-from lightning import Trainer
-from lightning.pytorch.accelerators import Accelerator
-from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.cli import LightningCLI
-from torch import save
 from typing import List, Union
 
+from lightning import Trainer
+from lightning.pytorch.accelerators import Accelerator
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.loggers import TensorBoardLogger
+from torch import save
+
+import config
 import data  # noqa: F401 'data' imported but unused
 import models  # noqa: F401 'data' imported but unused
 

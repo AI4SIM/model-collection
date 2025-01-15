@@ -10,17 +10,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import TestCase, main
-from os.path import join, exists
-from os import mkdir, listdir
-from h5py import File
-from data import CnfCombustionDataset, CnfCombustionDataModule
-from yaml import dump
-from tempfile import mkdtemp
+from os import listdir, mkdir
+from os.path import exists, join
 from shutil import rmtree
+from tempfile import mkdtemp
+from unittest import TestCase, main
+from warnings import catch_warnings, simplefilter
+
+from h5py import File
 from numpy import zeros
 from torch.utils.data import DataLoader
-from warnings import catch_warnings, simplefilter
+from yaml import dump
+
+from data import CnfCombustionDataModule, CnfCombustionDataset
 
 
 class TestData(TestCase):

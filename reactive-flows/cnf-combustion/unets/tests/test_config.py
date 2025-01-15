@@ -12,8 +12,8 @@
 
 import os
 import subprocess
-from unittest import TestCase, main
 from os.path import exists
+from unittest import TestCase, main
 
 import config
 
