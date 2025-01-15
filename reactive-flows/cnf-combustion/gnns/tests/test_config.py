@@ -1,4 +1,5 @@
 """This module provides a test suite for the config.py file."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -32,7 +33,9 @@ class TestConfig(unittest.TestCase):
         self.assertTrue(os.path.exists(config.experiment_path))
         self.assertTrue(os.getenv("AI4SIM_EXPERIMENT_PATH"), config.experiment_path)
         # Execute again config.py to ensure experiment_path is given by AISIM_EXPERIMENT_PATH
-        subprocess.run(['python3', os.path.join(os.path.dirname(os.getcwd()), "config.py")])
+        subprocess.run(
+            ["python3", os.path.join(os.path.dirname(os.getcwd()), "config.py")]
+        )
         self.assertTrue(config.experiment_path, os.getenv("AI4SIM_EXPERIMENT_PATH"))
 
     def test_logs_path(self):
@@ -54,15 +57,15 @@ class TestConfig(unittest.TestCase):
         os.makedirs(os.path.join(tempdir, "local_data", "raw"), exist_ok=True)
         os.makedirs(os.path.join(tempdir, "local_data", "processed"), exist_ok=True)
 
-        self.filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
+        self.filenames = ["DNS1_00116000.h5", "DNS1_00117000.h5", "DNS1_00118000.h5"]
         for file_h5 in self.filenames:
-            with h5py.File(os.path.join(tempdir, "raw_data", file_h5), 'w') as file:
-                file['filt_8'] = np.zeros((10, 10, 10))
-                file['filt_grad_8'] = np.zeros((10, 10, 10))
-                file['grad_filt_8'] = np.zeros((10, 10, 10))
+            with h5py.File(os.path.join(tempdir, "raw_data", file_h5), "w") as file:
+                file["filt_8"] = np.zeros((10, 10, 10))
+                file["filt_grad_8"] = np.zeros((10, 10, 10))
+                file["grad_filt_8"] = np.zeros((10, 10, 10))
 
-        temp_file_path = os.path.join(tempdir, 'local_data', 'filenames.yaml')
-        with open(temp_file_path, 'w') as tmpfile:
+        temp_file_path = os.path.join(tempdir, "local_data", "filenames.yaml")
+        with open(temp_file_path, "w") as tmpfile:
             _ = yaml.dump(self.filenames, tmpfile)
 
     def create_obj_rm_warning(self, raw_path, local_path):
@@ -77,8 +80,7 @@ class TestConfig(unittest.TestCase):
             self.create_env(tempdir)
 
             self.create_obj_rm_warning(
-                os.path.join(tempdir, "raw_data"),
-                os.path.join(tempdir, "local_data")
+                os.path.join(tempdir, "raw_data"), os.path.join(tempdir, "local_data")
             )
             num_files_raw_path = len(os.listdir(os.path.join(tempdir, "raw_data")))
             local_filenames = os.listdir(os.path.join(tempdir, "local_data", "raw"))
@@ -88,5 +90,5 @@ class TestConfig(unittest.TestCase):
             self.assertTrue(self.filenames, local_filenames)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

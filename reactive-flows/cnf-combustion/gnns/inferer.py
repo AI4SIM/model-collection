@@ -1,4 +1,5 @@
 """This module proposes classes for inference in the gnn use-case"""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -31,10 +32,7 @@ class Inferer:
     provided saved file.
     """
 
-    def __init__(self,
-                 model_path: str,
-                 data_path: str,
-                 wkd: str = CWD) -> None:
+    def __init__(self, model_path: str, data_path: str, wkd: str = CWD) -> None:
         """Init the Inferer class.
         The model is automatically loaded from the input file during the initialization.
 
@@ -79,7 +77,7 @@ class Inferer:
         """Provide a path to store the preprocessed data, in order to save time between successive
         inference runs on the same data.
         """
-        path_name = os.path.splitext(os.path.basename(self.data_path))[0] + '.data'
+        path_name = os.path.splitext(os.path.basename(self.data_path))[0] + ".data"
         return os.path.join(self.wkd, path_name)
 
     def preprocess(self, save: bool = False) -> None:
@@ -105,11 +103,13 @@ class InferencePthGnn(Inferer):
     learned on R2 data and provided through a checkpoint save file.
     """
 
-    def __init__(self,
-                 model_path: str,
-                 data_path: str,
-                 model_class: LightningModule,
-                 wkd: str = CWD) -> None:
+    def __init__(
+        self,
+        model_path: str,
+        data_path: str,
+        model_class: LightningModule,
+        wkd: str = CWD,
+    ) -> None:
         """Init the InferencePthGnn class with additional args required (model_class).
         The model is automatically loaded from the checkpoint during the initialization.
 
@@ -135,7 +135,7 @@ class InferencePthGnn(Inferer):
         Returns:
             (numpy.ndarray): the array of the data to be inferred.
         """
-        with h5py.File(self.data_path, 'r') as file:
+        with h5py.File(self.data_path, "r") as file:
             feat = file["/c_filt"][:]
             logging.info("Data input R3 loaded")
             return feat
@@ -147,7 +147,7 @@ class InferencePthGnn(Inferer):
         Returns:
             (numpy.ndarray): the array of the DNS data.
         """
-        with h5py.File(self.data_path, 'r') as file:
+        with h5py.File(self.data_path, "r") as file:
             y_gt = file["/c_grad_filt"][:]
             logging.info("Data ground truth R3 loaded")
             return y_gt
@@ -159,7 +159,7 @@ class InferencePthGnn(Inferer):
         Returns:
             (numpy.ndarray): the array of the LES data.
         """
-        with h5py.File(self.data_path, 'r') as file:
+        with h5py.File(self.data_path, "r") as file:
             y_les = file["/c_filt_grad"][:]
             logging.info("Data ground truth LES loaded")
             return y_les
@@ -173,7 +173,7 @@ class InferencePthGnn(Inferer):
             save (bool): if the processed data are saved in a pickle file, or not. Default: False.
         """
         try:
-            with open(self.data_processed_path, 'rb') as file:
+            with open(self.data_processed_path, "rb") as file:
                 self.data = pickle.load(file)
 
         except FileNotFoundError:
@@ -189,7 +189,7 @@ class InferencePthGnn(Inferer):
             )
 
             if save:
-                with open(self.data_processed_path, 'wb') as file:
+                with open(self.data_processed_path, "wb") as file:
                     pickle.dump(self.data, file)
 
     def preprocess(self, save: bool = False):
@@ -225,13 +225,14 @@ if __name__ == "__main__":
     from data import (  # noqa: F401 imported but unused (mandatory for CLI)
         CombustionDataset,
     )
+
     cli = LightningCLI(run=False)
 
     inferer = InferencePthGnn(
         model_path="/scratch/vincentl/ai4sim/gnn_r2_r3_exp/exp_save/gin_1000epoch_0.96r2/offline-burrito/logs/version_0/checkpoints/epoch=999-step=35999.ckpt",  # noqa: E501 line too long
-        data_path='/net/172.16.118.188/data/raise/R2_flame/combustiondatabase/R2-filtered/R3-data/smaller_new_filt_15_F_4_cropped_progvar_R3.h5',  # noqa: E501 line too long
+        data_path="/net/172.16.118.188/data/raise/R2_flame/combustiondatabase/R2-filtered/R3-data/smaller_new_filt_15_F_4_cropped_progvar_R3.h5",  # noqa: E501 line too long
         model_class=cli.model.__class__,
-        wkd='/scratch/vincentl/ai4sim/gnn_r2_r3_exp/'
+        wkd="/scratch/vincentl/ai4sim/gnn_r2_r3_exp/",
     )
 
     logging.info("Start creating data from input data ...")

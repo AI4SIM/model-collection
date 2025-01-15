@@ -1,4 +1,5 @@
 """This module configures the experiment environment."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -22,10 +23,10 @@ source_raw_data_path = "/path/to/your/local/data"
 #
 
 root_path = os.path.dirname(os.path.realpath(__file__))
-data_path = os.path.join(root_path, 'data')
+data_path = os.path.join(root_path, "data")
 
 # Create all path for the current experiment
-experiments_path = os.path.join(root_path, 'experiments')
+experiments_path = os.path.join(root_path, "experiments")
 os.makedirs(experiments_path, exist_ok=True)
 _existing_xps = os.listdir(experiments_path)
 
@@ -43,16 +44,11 @@ if os.getenv("AI4SIM_EXPERIMENT_PATH") is None:
 else:
     experiment_path = os.getenv("AI4SIM_EXPERIMENT_PATH")
 
-logs_path = os.path.join(experiment_path, 'logs')
-artifacts_path = os.path.join(experiment_path, 'artifacts')
-plots_path = os.path.join(experiment_path, 'plots')
+logs_path = os.path.join(experiment_path, "logs")
+artifacts_path = os.path.join(experiment_path, "artifacts")
+plots_path = os.path.join(experiment_path, "plots")
 
-_paths = [
-    experiment_path,
-    logs_path,
-    artifacts_path,
-    plots_path
-]
+_paths = [experiment_path, logs_path, artifacts_path, plots_path]
 for path in _paths:
     os.makedirs(path, exist_ok=True)
 
@@ -64,13 +60,15 @@ class LinkRawData:
         """Link the source_raw_data_path in the data_path, if it does not already exists."""
         self.source_raw_data_path = source_raw_data_path
         self.local_data_path = data_path
-        self.local_raw_data = os.path.join(self.local_data_path, 'raw')
+        self.local_raw_data = os.path.join(self.local_data_path, "raw")
 
         if os.path.exists(self.source_raw_data_path):
             if os.path.exists(self.local_raw_data):
                 try:
-                    if len(os.listdir(self.local_raw_data)) == 0 \
-                            or os.readlink(self.local_raw_data) != self.source_raw_data_path:
+                    if (
+                        len(os.listdir(self.local_raw_data)) == 0
+                        or os.readlink(self.local_raw_data) != self.source_raw_data_path
+                    ):
                         self.rm_old_dataset()
                         self.symlink_dataset()
                     else:
@@ -83,8 +81,8 @@ class LinkRawData:
     def symlink_dataset(self):
         """Create the filenames.yaml file from the content of the source_raw_data_path."""
         filenames = os.listdir(self.source_raw_data_path)
-        temp_file_path = os.path.join(self.local_data_path, 'filenames.yaml')
-        with open(temp_file_path, 'w') as file:
+        temp_file_path = os.path.join(self.local_data_path, "filenames.yaml")
+        with open(temp_file_path, "w") as file:
             yaml.dump(filenames, file)
 
         if not os.path.exists(self.local_raw_data):
@@ -93,12 +91,12 @@ class LinkRawData:
         for filename in filenames:
             os.symlink(
                 os.path.join(self.source_raw_data_path, filename),
-                os.path.join(self.local_raw_data, filename)
+                os.path.join(self.local_raw_data, filename),
             )
 
     def rm_old_dataset(self):
         """Clean the local_data_path."""
-        for item in ['raw', 'filenames.yaml', 'processed']:
+        for item in ["raw", "filenames.yaml", "processed"]:
             file_location = os.path.join(self.local_data_path, item)
             try:
                 os.remove(file_location)

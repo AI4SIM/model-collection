@@ -1,4 +1,5 @@
 """This module proposes a Pytorch Lightning style Trainer class for the gnn use-case."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -33,14 +34,16 @@ class CLITrainer(Trainer):
     the end of training.
     """
 
-    def __init__(self,
-                 accelerator: Union[str, Accelerator, None],
-                 devices: Union[List[int], str, int, None],
-                 max_epochs: int,
-                 # TODO: delete.
-                 # For some reason, those two are mandatory in current version of Lightning.
-                 fast_dev_run: Union[int, bool] = False,
-                 callbacks: Union[List[Callback], Callback, None] = None) -> None:
+    def __init__(
+        self,
+        accelerator: Union[str, Accelerator, None],
+        devices: Union[List[int], str, int, None],
+        max_epochs: int,
+        # TODO: delete.
+        # For some reason, those two are mandatory in current version of Lightning.
+        fast_dev_run: Union[int, bool] = False,
+        callbacks: Union[List[Callback], Callback, None] = None,
+    ) -> None:
         """Init the Trainer.
 
         Args:
@@ -60,7 +63,8 @@ class CLITrainer(Trainer):
             accelerator=self._accelerator,
             devices=self._devices,
             max_epochs=self._max_epochs,
-            num_sanity_val_steps=0)
+            num_sanity_val_steps=0,
+        )
 
     def save(self, results, path=config.artifacts_path):
         """Save the results of the training and the learned model."""
@@ -68,7 +72,7 @@ class CLITrainer(Trainer):
         with open(result_file, "w") as f:
             json.dump(results, f)
 
-        torch.save(self.model, os.path.join(path, 'model.pth'))
+        torch.save(self.model, os.path.join(path, "model.pth"))
         logging.info(f"Torch model saved in {os.path.join(path, 'model.pth')}")
 
     def test(self, **kwargs) -> None:
@@ -83,7 +87,7 @@ class CLITrainer(Trainer):
         self.save(results)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli = LightningCLI(trainer_class=CLITrainer, run=False)
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)

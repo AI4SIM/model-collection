@@ -1,4 +1,5 @@
 """This module proposes Pytorch style LightningModule classes for the gnn use-case."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -50,17 +51,18 @@ class CombustionModule(pl.LightningModule):
         """
         return self.model(x_val, edge_index)
 
-    def _common_step(self,
-                     batch: torch.Tensor,
-                     batch_idx: int,
-                     stage: str) -> List[torch.Tensor]:
+    def _common_step(
+        self, batch: torch.Tensor, batch_idx: int, stage: str
+    ) -> List[torch.Tensor]:
         """Define the common operations performed on data."""
         batch_size = batch.ptr[0] - 1
         y_hat = self(batch.x, batch.edge_index)
         loss = tmf.mean_squared_error(y_hat, batch.y)
         r2 = tmf.r2_score(y_hat, batch.y)
 
-        self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=batch_size)
+        self.log(
+            f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=batch_size
+        )
         self.log(f"{stage}_r2", r2, on_step=True, batch_size=batch_size)
 
         return y_hat, loss, r2
@@ -144,28 +146,32 @@ class CombustionModule(pl.LightningModule):
 class LitGAT(CombustionModule):
     """Graph-ATtention net as described in the “Graph Attention Networks” paper."""
 
-    def __init__(self,
-                 in_channels: int,
-                 hidden_channels: int,
-                 out_channels: int,
-                 num_layers: int,
-                 dropout: float,
-                 heads: int,
-                 jk: str,
-                 lr: float) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        hidden_channels: int,
+        out_channels: int,
+        num_layers: int,
+        dropout: float,
+        heads: int,
+        jk: str,
+        lr: float,
+    ) -> None:
         """Init the LitGAT class."""
         super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
-        self.model = pyg.nn.GAT(in_channels=in_channels,
-                                hidden_channels=hidden_channels,
-                                out_channels=out_channels,
-                                num_layers=num_layers,
-                                dropout=dropout,
-                                act=nn.SiLU(inplace=True),
-                                heads=heads,
-                                jk=jk)
+        self.model = pyg.nn.GAT(
+            in_channels=in_channels,
+            hidden_channels=hidden_channels,
+            out_channels=out_channels,
+            num_layers=num_layers,
+            dropout=dropout,
+            act=nn.SiLU(inplace=True),
+            heads=heads,
+            jk=jk,
+        )
 
 
 class LitGCN(CombustionModule):
@@ -173,69 +179,81 @@ class LitGCN(CombustionModule):
     “Semi-supervised Classification with Graph Convolutional Networks”.
     """
 
-    def __init__(self,
-                 in_channels: int,
-                 hidden_channels: int,
-                 out_channels: int,
-                 num_layers: int,
-                 dropout: float,
-                 jk: str,
-                 lr: float) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        hidden_channels: int,
+        out_channels: int,
+        num_layers: int,
+        dropout: float,
+        jk: str,
+        lr: float,
+    ) -> None:
         """Init the LitGCN."""
         super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
-        self.model = pyg.nn.GCN(in_channels=in_channels,
-                                hidden_channels=hidden_channels,
-                                out_channels=out_channels,
-                                num_layers=num_layers,
-                                dropout=dropout,
-                                jk=jk,
-                                act=nn.SiLU(inplace=True))
+        self.model = pyg.nn.GCN(
+            in_channels=in_channels,
+            hidden_channels=hidden_channels,
+            out_channels=out_channels,
+            num_layers=num_layers,
+            dropout=dropout,
+            jk=jk,
+            act=nn.SiLU(inplace=True),
+        )
 
 
 class LitGraphUNet(CombustionModule):
     """Graph-Unet as described in “Graph U-Nets”."""
 
-    def __init__(self,
-                 in_channels: int,
-                 hidden_channels: int,
-                 out_channels: int,
-                 depth: int,
-                 pool_ratios: float,
-                 lr: float) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        hidden_channels: int,
+        out_channels: int,
+        depth: int,
+        pool_ratios: float,
+        lr: float,
+    ) -> None:
         """Init the LitGraphUNet class."""
         super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
-        self.model = pyg.nn.GraphUNet(in_channels=in_channels,
-                                      hidden_channels=hidden_channels,
-                                      out_channels=out_channels,
-                                      depth=depth,
-                                      pool_ratios=pool_ratios,
-                                      act=nn.SiLU(inplace=True))
+        self.model = pyg.nn.GraphUNet(
+            in_channels=in_channels,
+            hidden_channels=hidden_channels,
+            out_channels=out_channels,
+            depth=depth,
+            pool_ratios=pool_ratios,
+            act=nn.SiLU(inplace=True),
+        )
 
 
 class LitGIN(CombustionModule):
     """GNN implementation of “How Powerful are Graph Neural Networks?”."""
 
-    def __init__(self,
-                 in_channels: int,
-                 hidden_channels: int,
-                 out_channels: int,
-                 num_layers: int,
-                 dropout: float,
-                 lr: float) -> None:
+    def __init__(
+        self,
+        in_channels: int,
+        hidden_channels: int,
+        out_channels: int,
+        num_layers: int,
+        dropout: float,
+        lr: float,
+    ) -> None:
         """Init the LitGIN class."""
         super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
-        self.model = pyg.nn.GIN(in_channels=in_channels,
-                                hidden_channels=hidden_channels,
-                                out_channels=out_channels,
-                                num_layers=num_layers,
-                                dropout=dropout,
-                                act=nn.SiLU(inplace=True))
+        self.model = pyg.nn.GIN(
+            in_channels=in_channels,
+            hidden_channels=hidden_channels,
+            out_channels=out_channels,
+            num_layers=num_layers,
+            dropout=dropout,
+            act=nn.SiLU(inplace=True),
+        )

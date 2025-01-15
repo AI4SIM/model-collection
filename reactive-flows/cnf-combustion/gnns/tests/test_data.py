@@ -1,4 +1,5 @@
 """This module proposes a test suite for the data module."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -29,8 +30,8 @@ class TestData(unittest.TestCase):
 
     def setUp(self) -> None:
         """Define default parameters."""
-        self.filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
-        self.initParam = {'batch_size': 1, 'num_workers': 0, 'y_normalizer': 342.553}
+        self.filenames = ["DNS1_00116000.h5", "DNS1_00117000.h5", "DNS1_00118000.h5"]
+        self.initParam = {"batch_size": 1, "num_workers": 0, "y_normalizer": 342.553}
 
     def create_env(self, tempdir):
         """Create a test environment and data test."""
@@ -38,13 +39,13 @@ class TestData(unittest.TestCase):
         os.mkdir(os.path.join(tempdir, "data", "raw"))
 
         for file_h5 in self.filenames:
-            with h5py.File(os.path.join(tempdir, "data", "raw", file_h5), 'w') as file:
-                file['filt_8'] = np.zeros((10, 10, 10))
-                file['filt_grad_8'] = np.zeros((10, 10, 10))
-                file['grad_filt_8'] = np.zeros((10, 10, 10))
+            with h5py.File(os.path.join(tempdir, "data", "raw", file_h5), "w") as file:
+                file["filt_8"] = np.zeros((10, 10, 10))
+                file["filt_grad_8"] = np.zeros((10, 10, 10))
+                file["grad_filt_8"] = np.zeros((10, 10, 10))
 
-        temp_file_path = os.path.join(tempdir, 'data', 'filenames.yaml')
-        with open(temp_file_path, 'w') as tmpfile:
+        temp_file_path = os.path.join(tempdir, "data", "filenames.yaml")
+        with open(temp_file_path, "w") as tmpfile:
             _ = yaml.dump(self.filenames, tmpfile)
 
     def create_obj_rm_warning(self, path):
@@ -80,7 +81,7 @@ class TestData(unittest.TestCase):
 
             with self.assertRaises(RuntimeError) as context:
                 _ = data_test.download()
-                self.assertTrue('Data not found.' in str(context.exception))
+                self.assertTrue("Data not found." in str(context.exception))
 
     def test_process(self):
         """Test download raise error."""
@@ -94,7 +95,7 @@ class TestData(unittest.TestCase):
             # insert +2 to have transform and filter files
             self.assertEqual(
                 len(os.listdir(os.path.join(tempdir, "data", "processed"))),
-                len(self.filenames) + 2
+                len(self.filenames) + 2,
             )
 
     def test_get(self):
@@ -117,15 +118,21 @@ class TestData(unittest.TestCase):
             with self.assertRaises(ValueError) as context:
                 dataset_test.setup(stage=None, data_path=os.path.join(tempdir, "data"))
                 self.assertTrue(
-                    'The dataset is too small to be split properly.' in str(context.exception)
+                    "The dataset is too small to be split properly."
+                    in str(context.exception)
                 )
 
-            self.assertEqual(len(dataset_test.train_dataset),
-                             int(len(self.filenames) * 0.8))
-            self.assertEqual(len(dataset_test.val_dataset),
-                             int(len(self.filenames)) - int(len(self.filenames) * 0.9))
-            self.assertEqual(len(dataset_test.test_dataset),
-                             int(len(self.filenames) * 0.9) - int(len(self.filenames) * 0.8))
+            self.assertEqual(
+                len(dataset_test.train_dataset), int(len(self.filenames) * 0.8)
+            )
+            self.assertEqual(
+                len(dataset_test.val_dataset),
+                int(len(self.filenames)) - int(len(self.filenames) * 0.9),
+            )
+            self.assertEqual(
+                len(dataset_test.test_dataset),
+                int(len(self.filenames) * 0.9) - int(len(self.filenames) * 0.8),
+            )
 
     def test_train_dataloader(self):
         """Test the "train_dataloader"."""
@@ -136,7 +143,9 @@ class TestData(unittest.TestCase):
             dataset_test = LitCombustionDataModule(**self.initParam)
 
             with self.assertRaises(ValueError):
-                _ = dataset_test.setup(stage=None, data_path=os.path.join(tempdir, "data"))
+                _ = dataset_test.setup(
+                    stage=None, data_path=os.path.join(tempdir, "data")
+                )
 
             test_train_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_train_dl, torch.utils.data.DataLoader))
@@ -150,7 +159,9 @@ class TestData(unittest.TestCase):
             dataset_test = LitCombustionDataModule(**self.initParam)
 
             with self.assertRaises(ValueError):
-                _ = dataset_test.setup(stage=None, data_path=os.path.join(tempdir, "data"))
+                _ = dataset_test.setup(
+                    stage=None, data_path=os.path.join(tempdir, "data")
+                )
 
             test_val_dl = dataset_test.val_dataloader()
             self.assertTrue(isinstance(test_val_dl, torch.utils.data.DataLoader))
@@ -164,11 +175,13 @@ class TestData(unittest.TestCase):
             dataset_test = LitCombustionDataModule(**self.initParam)
 
             with self.assertRaises(ValueError):
-                _ = dataset_test.setup(stage=None, data_path=os.path.join(tempdir, "data"))
+                _ = dataset_test.setup(
+                    stage=None, data_path=os.path.join(tempdir, "data")
+                )
 
             test_test_dl = dataset_test.test_dataloader()
             self.assertTrue(isinstance(test_test_dl, torch.utils.data.DataLoader))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
