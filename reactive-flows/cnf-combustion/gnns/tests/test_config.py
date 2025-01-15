@@ -11,14 +11,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import h5py
 import os
+import subprocess
 import tempfile
 import unittest
-import yaml
 import warnings
+
+import h5py
 import numpy as np
-import subprocess
+import yaml
 
 import config
 

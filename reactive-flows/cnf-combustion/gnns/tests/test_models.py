@@ -11,16 +11,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import os
 import tempfile
+import unittest
+
 import h5py
-import numpy as np
-import yaml
 import networkx as nx
+import numpy as np
 import torch
 import torch_geometric as pyg
 import torch_optimizer as optim
+import yaml
 
 import models
 

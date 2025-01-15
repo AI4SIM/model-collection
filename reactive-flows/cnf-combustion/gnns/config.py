@@ -12,9 +12,9 @@
 # limitations under the License.
 
 import os
-import yaml
-import randomname
 
+import randomname
+import yaml
 
 # CAUTION : A refactoring of this file might be requiered for further development
 # raw_data_path to be adapted to your local data path.

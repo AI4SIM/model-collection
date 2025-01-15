@@ -11,9 +11,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 import os
 import pickle
-import logging
+
 import h5py
 import networkx as nx
 import numpy
@@ -221,7 +222,9 @@ if __name__ == "__main__":
     python inferer.py --config ./configs/gin.yaml
     ```
     """
-    from data import CombustionDataset  # noqa: F401 imported but unused (mandatory for CLI)
+    from data import (  # noqa: F401 imported but unused (mandatory for CLI)
+        CombustionDataset,
+    )
     cli = LightningCLI(run=False)
 
     inferer = InferencePthGnn(

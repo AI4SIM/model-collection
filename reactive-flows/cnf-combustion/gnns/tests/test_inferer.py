@@ -12,17 +12,18 @@
 # limitations under the License.
 
 import os
-from pathlib import Path
+import pickle
 import unittest
+from pathlib import Path
+
 import h5py
 import numpy
-import pickle
 import torch
 import torch.nn as nn
 import torch_geometric as pyg
 
+from inferer import InferencePthGnn, Inferer
 from models import LitGIN
-from inferer import Inferer, InferencePthGnn
 
 CURRENT_DIR = Path(__file__).parent.absolute()
 TEST_DATA_PATH = os.path.join(CURRENT_DIR, "test_data")

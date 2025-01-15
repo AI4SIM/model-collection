@@ -11,11 +11,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
-import plotters
-import tempfile
-import numpy as np
 import os
+import tempfile
+import unittest
+
+import numpy as np
+
+import plotters
 
 
 class TestPlotters(unittest.TestCase):

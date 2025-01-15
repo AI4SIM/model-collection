@@ -11,14 +11,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import numpy as np
+from typing import List, Tuple
+
 import lightning as pl
+import numpy as np
 import torch
 import torch.nn as nn
 import torch_geometric as pyg
 import torch_optimizer as optim
 import torchmetrics.functional as tmf
-from typing import List, Tuple
 
 import plotters
 

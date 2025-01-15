@@ -12,13 +12,14 @@
 # limitations under the License.
 
 import os
-import unittest
-import h5py
-import yaml
 import tempfile
+import unittest
+import warnings
+
+import h5py
 import numpy as np
 import torch
-import warnings
+import yaml
 
 from data import CnfDataset, LitCombustionDataModule
 

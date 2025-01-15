@@ -12,13 +12,14 @@
 # limitations under the License.
 
 import os
+
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
-from matplotlib.colors import LogNorm
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 import torch
+from matplotlib.colors import LogNorm
+from matplotlib.lines import Line2D
+from plotly.subplots import make_subplots
 
 import config
 

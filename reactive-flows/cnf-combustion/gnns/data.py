@@ -11,14 +11,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from typing import List
+
 import h5py
+import lightning as pl
 import networkx as nx
 import numpy as np
-import os
-import lightning as pl
 import torch
 import torch_geometric as pyg
-from typing import List
 import yaml
 
 import config
