@@ -160,6 +160,18 @@ def import_sort(session):
 
 
 @nox.session
+def black(session):
+    """Target to reformat automatically the code with black."""
+    # Install base python dependencies
+    base_dependencies(session)
+    session.run("python3", "-m", "pip", "install", "black")
+    if "check-only" in session.posargs:
+        session.run("black", "--check", ".")
+    else:
+        session.run("black", ".")
+
+
+@nox.session
 def docs(session):
     """Target to build the documentation (not yet implemented)."""
     raise NotImplementedError("This target is not yet implemented.")
