@@ -59,14 +59,43 @@ jobs:
           separator: ":"
           limit: -1
 
+      - name: Build the Docker image name and tag
+        id: image
+        run: |
+          echo "name=${{ steps.split_tag.outputs._0 }}" >> "$GITHUB_OUTPUT"
+          echo "tag=${{ steps.split_path.outputs._0 }}-${{ steps.split_path.outputs._1 }}-${{ steps.split_path.outputs._2 }}" >> "$GITHUB_OUTPUT"
+
       - name: Read model-project env.yaml file
         uses: pietrobolcato/action-read-yaml@1.1.0
         id: uc_env
         with:
           config: ${{ matrix.model-project }}/env.yaml
 
-      - name: Build and push Docker images
-        uses: docker/build-push-action@v5
+      - name: Build the Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: "./docker/Dockerfile"
+          build-args: |
+            UBUNTU_IMAGE_NAME=${{ steps.uc_env.outputs['ubuntu_base_image.name'] }}
+            UBUNTU_IMAGE_TAG=${{ steps.uc_env.outputs['ubuntu_base_image.tag'] }}
+            PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
+            MODEL_PROJECT_PATH=${{ matrix.model-project }}
+          load: true
+          tags: "${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}"
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Test the Docker image
+        working-directory: ${{ matrix.model-project }}
+        run: |
+          docker run \
+            --rm \
+            -w /home/ai4sim/${{ matrix.model-project }} \
+            ${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }} \
+            nox -s train_test --no-venv -v -- clean_data
+
+      - name: Push the previously built Docker image
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: "./docker/Dockerfile"
@@ -76,5 +105,5 @@ jobs:
             PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
             MODEL_PROJECT_PATH=${{ matrix.model-project }}
           push: true
-          tags: "${{ steps.split_tag.outputs._0 }}:${{ steps.split_path.outputs._0 }}-${{ steps.split_path.outputs._1 }}-${{ steps.split_path.outputs._2 }}"
+          tags: "${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}"
           labels: ${{ steps.meta.outputs.labels }}
