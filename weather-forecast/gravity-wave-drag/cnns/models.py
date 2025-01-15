@@ -1,4 +1,5 @@
 """This module proposes Pytorch style LightningModule classes for the gwd use-case."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -34,11 +35,11 @@ class NOGWDModule(pl.LightningModule):
         self.x_std = torch.tensor(1)
         self.y_std = torch.tensor(1)
 
-        if os.path.exists(os.path.join(config.data_path, 'stats.pt')):
-            stats = torch.load(os.path.join(config.data_path, 'stats.pt'))
-            self.x_mean = stats['x_mean']
-            self.x_std = stats['x_std']
-            self.y_std = stats['y_std'].max()
+        if os.path.exists(os.path.join(config.data_path, "stats.pt")):
+            stats = torch.load(os.path.join(config.data_path, "stats.pt"))
+            self.x_mean = stats["x_mean"]
+            self.x_std = stats["x_std"]
+            self.y_std = stats["y_std"].max()
 
     def forward(self, features: torch.Tensor):
         """Compute the forward pass.
@@ -51,7 +52,9 @@ class NOGWDModule(pl.LightningModule):
         """
         return self.net(features)
 
-    def _common_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, stage: str):
+    def _common_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, stage: str
+    ):
         """Define the common operations performed on data."""
         x_val, y_val = batch
         x_val = (x_val - self.x_mean.to(self.device)) / self.x_std.to(self.device)
@@ -111,11 +114,9 @@ class NOGWDModule(pl.LightningModule):
 class LitMLP(NOGWDModule):
     """Create a good old MLP."""
 
-    def __init__(self,
-                 in_channels: int,
-                 hidden_channels: int,
-                 out_channels: int,
-                 lr: float):
+    def __init__(
+        self, in_channels: int, hidden_channels: int, out_channels: int, lr: float
+    ):
         """Define the network LitMLP architecture."""
         super().__init__()
 
@@ -150,18 +151,20 @@ class LitCNN(NOGWDModule):
             Returns:
                 (torch.Tensor): the reshaped tensor.
             """
-            t0 = torch.reshape(tensor[:, :3 * 63], [-1, 3, 63])
-            t1 = torch.tile(tensor[:, 3 * 63:].unsqueeze(2), (1, 1, 63))
+            t0 = torch.reshape(tensor[:, : 3 * 63], [-1, 3, 63])
+            t1 = torch.tile(tensor[:, 3 * 63 :].unsqueeze(2), (1, 1, 63))
 
             return torch.cat((t0, t1), dim=1)
 
-    def __init__(self,
-                 in_channels: int,
-                 init_feat: int,
-                 conv_size: int,
-                 pool_size: int,
-                 out_channels: int,
-                 lr: float):
+    def __init__(
+        self,
+        in_channels: int,
+        init_feat: int,
+        conv_size: int,
+        pool_size: int,
+        out_channels: int,
+        lr: float,
+    ):
         """Define the network LitCNN architecture."""
         super().__init__()
 
@@ -176,5 +179,5 @@ class LitCNN(NOGWDModule):
             nn.MaxPool1d(pool_size),
             nn.Flatten(),
             nn.Linear(480, out_channels),
-            nn.Linear(out_channels, out_channels)
+            nn.Linear(out_channels, out_channels),
         )

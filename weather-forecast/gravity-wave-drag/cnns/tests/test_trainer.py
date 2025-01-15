@@ -1,4 +1,5 @@
 """This module provides a unit tests suite for the trainer.py module."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -28,23 +29,25 @@ class TestTrainerGpu(unittest.TestCase):
 
     def setUp(self) -> None:
         """Prepare config file parameters-like settings."""
-        args_gpu = {"max_epochs": 1,
-                    "accelerator": "gpu",
-                    "devices": [0]}
+        args_gpu = {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}
         self.test_trainer_gpu = CLITrainer(**args_gpu)
 
     def test_trainer_gpu_init(self):
         """Tests the 'devices' mother attribute is properly set if gpu mode is activated."""
         self.assertEqual(self.test_trainer_gpu._devices, [0])
 
-    @patch('lightning.Trainer.test')
+    @patch("lightning.Trainer.test")
     def test_trainer_cpu_test(self, mock_test):
         """Tests the 'test' method properly save the result file and model, running on GPUs."""
         # patch the super().test() returned value
-        mock_test.return_value = [{'a': 1, 'b': 2}]
+        mock_test.return_value = [{"a": 1, "b": 2}]
         self.test_trainer_gpu.test()
-        self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'model.pth')))
-        self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'results.json')))
+        self.assertTrue(
+            os.path.exists(os.path.join(config.artifacts_path, "model.pth"))
+        )
+        self.assertTrue(
+            os.path.exists(os.path.join(config.artifacts_path, "results.json"))
+        )
 
 
 class TestTrainerCPU(unittest.TestCase):
@@ -52,9 +55,7 @@ class TestTrainerCPU(unittest.TestCase):
 
     def setUp(self) -> None:
         """Prepare config file parameters-like settings."""
-        args_cpu = {"max_epochs": 1,
-                    "accelerator": "cpu",
-                    "devices": 1}
+        args_cpu = {"max_epochs": 1, "accelerator": "cpu", "devices": 1}
         self.test_trainer_cpu = CLITrainer(**args_cpu)
 
     def test_trainer_cpu_init(self):
@@ -63,15 +64,19 @@ class TestTrainerCPU(unittest.TestCase):
         """
         self.assertEqual(self.test_trainer_cpu._devices, 1)
 
-    @patch('lightning.Trainer.test')
+    @patch("lightning.Trainer.test")
     def test_trainer_cpu_test(self, mock_test):
         """Tests the 'test' method properly save the result file and model, running on CPUs."""
         # patch the super().test() returned value
-        mock_test.return_value = [{'a': 1, 'b': 2}]
+        mock_test.return_value = [{"a": 1, "b": 2}]
         self.test_trainer_cpu.test()
-        self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'model.pth')))
-        self.assertTrue(os.path.exists(os.path.join(config.artifacts_path, 'results.json')))
+        self.assertTrue(
+            os.path.exists(os.path.join(config.artifacts_path, "model.pth"))
+        )
+        self.assertTrue(
+            os.path.exists(os.path.join(config.artifacts_path, "results.json"))
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

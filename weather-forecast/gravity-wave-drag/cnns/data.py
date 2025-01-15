@@ -1,4 +1,5 @@
 """This module proposes Pytorch style Dataset classes for the gwd use-case."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -56,11 +57,11 @@ class NOGWDDataset(torch.utils.data.Dataset):
     def _compute_stats(self) -> None:
         """Compute some x and y statistics and store them in a file."""
         stats = {
-            'x_mean': torch.mean(self.x, dim=0, dtype=torch.float32),
-            'x_std': torch.std(self.x, dim=0),
-            'y_std': torch.std(self.y, dim=0)
+            "x_mean": torch.mean(self.x, dim=0, dtype=torch.float32),
+            "x_std": torch.std(self.x, dim=0),
+            "y_std": torch.std(self.y, dim=0),
         }
-        torch.save(stats, os.path.join(self.root, 'stats.pt'))
+        torch.save(stats, os.path.join(self.root, "stats.pt"))
 
     # TODO: Implement a method to download the data with Climetlab
     def download(self) -> None:
@@ -80,9 +81,9 @@ class NOGWDDataset(torch.utils.data.Dataset):
 
         print(self.raw_filenames)
         for filename in self.raw_filenames:
-            with h5py.File(os.path.join(self.raw_dir, filename), 'r') as file:
-                x_raw = file['/x'][:]
-                y_raw = file['/y'][:]
+            with h5py.File(os.path.join(self.raw_dir, filename), "r") as file:
+                x_raw = file["/x"][:]
+                y_raw = file["/y"][:]
 
                 x_temp.append(np.reshape(x_raw, (191, -1)).T)
                 y_temp.append(np.reshape(y_raw, (126, -1)).T)
@@ -136,11 +137,13 @@ class NOGWDDataModule(pl.LightningDataModule):
     is randomized.
     """
 
-    def __init__(self,
-                 batch_size: int,
-                 num_workers: int,
-                 splitting_ratios: Tuple[float, float] = (0.8, 0.1),
-                 shard_len: int = 2355840) -> None:
+    def __init__(
+        self,
+        batch_size: int,
+        num_workers: int,
+        splitting_ratios: Tuple[float, float] = (0.8, 0.1),
+        shard_len: int = 2355840,
+    ) -> None:
         """Init the NOGWDDataModule class.
 
         Args:
@@ -166,12 +169,12 @@ class NOGWDDataModule(pl.LightningDataModule):
             stage (str): Stage for which to setup the DataLoader. If 'fit', it will prepare the
                 train and val DataLoaders. If 'test', it will prepare the test DataLoader.
         """
-        if stage == 'fit':
-            self.train = NOGWDDataset(config.data_path, 'train', self.shard_len)
-            self.val = NOGWDDataset(config.data_path, 'val', self.shard_len)
+        if stage == "fit":
+            self.train = NOGWDDataset(config.data_path, "train", self.shard_len)
+            self.val = NOGWDDataset(config.data_path, "val", self.shard_len)
 
-        if stage == 'test':
-            self.test = NOGWDDataset(config.data_path, 'test', self.shard_len)
+        if stage == "test":
+            self.test = NOGWDDataset(config.data_path, "test", self.shard_len)
 
     def train_dataloader(self) -> torch.utils.data.DataLoader:
         """Return the train DataLoader.
@@ -184,7 +187,8 @@ class NOGWDDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=True,
             drop_last=True,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+        )
 
     def val_dataloader(self) -> torch.utils.data.DataLoader:
         """Return the val DataLoader.
@@ -196,7 +200,8 @@ class NOGWDDataModule(pl.LightningDataModule):
             self.val,
             batch_size=self.batch_size,
             drop_last=True,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+        )
 
     def test_dataloader(self) -> torch.utils.data.DataLoader:
         """Return the test DataLoader.
@@ -205,6 +210,5 @@ class NOGWDDataModule(pl.LightningDataModule):
             (torch.utils.data.DataLoader): Test DataLoader.
         """
         return torch.utils.data.DataLoader(
-            self.test,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers)
+            self.test, batch_size=self.batch_size, num_workers=self.num_workers
+        )

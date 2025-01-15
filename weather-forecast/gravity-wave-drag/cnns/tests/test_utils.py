@@ -1,4 +1,5 @@
 """This module provides utils functions to be used in test modules."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -28,7 +29,7 @@ def get_filenames(filenames_file):
     Returns:
         filenames (list): the filenames extracted from the input file.
     """
-    with open(filenames_file, 'r') as file:
+    with open(filenames_file, "r") as file:
         yaml_content = yaml.safe_load(file)
         filenames = []
         for files in yaml_content.values():
@@ -47,6 +48,6 @@ def populate_test_data(root_data_path, filenames) -> None:
     Path(data_path).mkdir(parents=True, exist_ok=True)
 
     for file_h5 in filenames:
-        with h5py.File(os.path.join(data_path, file_h5), 'w') as file:
-            file['/x'] = np.random.rand(191, 36, 10)
-            file['/y'] = np.random.rand(126, 36, 10)
+        with h5py.File(os.path.join(data_path, file_h5), "w") as file:
+            file["/x"] = np.random.rand(191, 36, 10)
+            file["/y"] = np.random.rand(126, 36, 10)

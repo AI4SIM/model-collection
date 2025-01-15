@@ -1,4 +1,5 @@
 """This module provides a unit tests suite for the config.py module."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -26,7 +27,9 @@ class TestConfigPath(unittest.TestCase):
         self.assertTrue(os.path.exists(config.experiment_path))
         self.assertTrue(os.getenv("AI4SIM_EXPERIMENT_PATH"), config.experiment_path)
         # Execute again config.py to ensure experiment_path is given by AISIM_EXPERIMENT_PATH
-        subprocess.run(['python3', os.path.join(os.path.dirname(os.getcwd()), "config.py")])
+        subprocess.run(
+            ["python3", os.path.join(os.path.dirname(os.getcwd()), "config.py")]
+        )
         self.assertTrue(config.experiment_path, os.getenv("AI4SIM_EXPERIMENT_PATH"))
 
     def test_logs_path(self):
@@ -42,5 +45,5 @@ class TestConfigPath(unittest.TestCase):
         self.assertTrue(os.path.exists(config.plots_path))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

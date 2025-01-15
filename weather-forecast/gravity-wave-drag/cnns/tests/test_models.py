@@ -1,4 +1,5 @@
 """This module provides a unit tests suite for the models.py module."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -44,13 +45,12 @@ class TestLitMLP(unittest.TestCase):
     def setUp(self) -> None:
         """Instantiate the LitMLP class and produce input dataset."""
         # Generate data fir test purpose
-        data_test = NOGWDDataset(root=TEST_DATA_PATH, mode='train', shard_len=1)
+        data_test = NOGWDDataset(root=TEST_DATA_PATH, mode="train", shard_len=1)
         self.data = data_test.load()
         # Instantiate a LitMLP
-        self.model_test = LitMLP(in_channels=191,
-                                 hidden_channels=10,
-                                 out_channels=126,
-                                 lr=0.001)
+        self.model_test = LitMLP(
+            in_channels=191, hidden_channels=10, out_channels=126, lr=0.001
+        )
 
     def test_forward(self):
         """Test the 'forward' method returns a properly formatted tensor."""
@@ -101,15 +101,17 @@ class TestLitCNN(unittest.TestCase):
     def setUp(self) -> None:
         """Instantiate the LitMLP class and produce input dataset."""
         # Generate data fir test purpose
-        data_test = NOGWDDataset(root=TEST_DATA_PATH, mode='train', shard_len=1)
+        data_test = NOGWDDataset(root=TEST_DATA_PATH, mode="train", shard_len=1)
         self.data = data_test.load()
         # Instantiate a LitCNN
-        self.model_test = LitCNN(in_channels=5,
-                                 init_feat=16,
-                                 out_channels=126,
-                                 conv_size=1,
-                                 pool_size=2,
-                                 lr=0.001)
+        self.model_test = LitCNN(
+            in_channels=5,
+            init_feat=16,
+            out_channels=126,
+            conv_size=1,
+            pool_size=2,
+            lr=0.001,
+        )
 
     def test_forward(self):
         """Test the 'forward' method returns a properly formatted tensor."""
@@ -142,5 +144,5 @@ class TestLitCNN(unittest.TestCase):
         shutil.rmtree(TEST_DATA_PATH, ignore_errors=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
