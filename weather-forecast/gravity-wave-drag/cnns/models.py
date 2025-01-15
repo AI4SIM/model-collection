@@ -11,14 +11,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import config
 import os
+from typing import Tuple
+
 import lightning as pl
 import torch
 import torch.nn as nn
 import torch_optimizer as optim
 import torchmetrics.functional as tmf
-from typing import Tuple
+
+import config
 
 
 class NOGWDModule(pl.LightningModule):

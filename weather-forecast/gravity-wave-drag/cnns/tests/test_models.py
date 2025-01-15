@@ -13,14 +13,15 @@
 
 import os
 import shutil
-from pathlib import Path
 import unittest
+from pathlib import Path
+
 import torch
 import torch_optimizer as optim
-
 from test_utils import get_filenames, populate_test_data
+
 from data import NOGWDDataset
-from models import LitMLP, LitCNN
+from models import LitCNN, LitMLP
 
 CURRENT_DIR = Path(__file__).parent.absolute()
 TEST_DATA_PATH = os.path.join(CURRENT_DIR, "test_data", "data")

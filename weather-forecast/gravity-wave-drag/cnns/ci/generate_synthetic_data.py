@@ -10,17 +10,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from os.path import join, exists
+import os
+import sys
 from os import makedirs
+from os.path import exists, join
+
+import numpy as np
 from h5py import File
 from yaml import dump, safe_load
-import numpy as np
-import sys
-import os
 
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
 
-import config  # noqa: 
+import config  # noqa:
 
 
 def create_data():

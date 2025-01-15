@@ -16,9 +16,9 @@ and make them available for the model project.
 This file can be enriched by model project specific targets.
 """
 
+import inspect
 import os
 import sys
-import inspect
 
 # Insert the tools/nox folder to the python path to fetch the nox_ref_file.py content
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -30,4 +30,3 @@ sys.path.insert(0, build_ref_dir)
 from nox_ref_file import *
 
 # Insert below the model project specific targets
-
