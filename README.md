@@ -402,6 +402,20 @@ Nevertheless, if after all your best effort, you think a checkstyle violation ca
 example = lambda: 'example'  # noqa: E731
 ```
 
+In addition to the pure flake8 linting the CI/CD will check the import sorting using [isort](https://pycqa.github.io/isort/) and the code format using [black](https://github.com/psf/black).
+
+You can evaluate the compliancy of your code running:
+```bash
+nox -s import_sort -v -- check-only
+nox -s black -v -- check-only
+```
+
+In case of unconsistencies, you can let *isort* and *black* do the job, removing the `-- check-only` option to the previous nox targets:
+```bash
+nox -s import_sort -v
+nox -s black -v
+```
+
 ##### Unit Tests
 
 The new code should be provided with as many unit tests as possible. Because the main part of the code is based on *lightning* and *torch*, it is not interesting to test all classes and methods inherited from these libraries, but there is still some part of the code interesting to be tested.
