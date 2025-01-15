@@ -12,7 +12,9 @@
 
 from unittest import TestCase, main
 from warnings import catch_warnings, simplefilter
+
 from torch import cuda
+
 from trainer import CLITrainer
 
 

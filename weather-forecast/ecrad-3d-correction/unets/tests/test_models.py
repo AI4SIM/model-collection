@@ -10,14 +10,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import TestCase, main
-from torch import Tensor, zeros, rand
-from tempfile import mkdtemp
-from shutil import rmtree
-from models import LitUnet1D
-from torch_optimizer import Optimizer
-import torch
 import os.path as osp
+from shutil import rmtree
+from tempfile import mkdtemp
+from unittest import TestCase, main
+
+import torch
+from torch import Tensor, rand, zeros
+from torch_optimizer import Optimizer
+
+from models import LitUnet1D
 
 
 class TestModels(TestCase):

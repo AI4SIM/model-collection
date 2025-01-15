@@ -10,11 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import TestCase, main
 import os.path as osp
-from dataproc import ThreeDCorrectionDataproc
-from tempfile import mkdtemp
 from shutil import rmtree
+from tempfile import mkdtemp
+from unittest import TestCase, main
+
+from dataproc import ThreeDCorrectionDataproc
 
 
 class TestDataproc(TestCase):

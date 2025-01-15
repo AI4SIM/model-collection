@@ -10,16 +10,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import dask.array as da
 import os.path as osp
+import sys
+
+import dask.array as da
 import numpy as np
 import xarray as xr
-import sys
 
 sys.path.insert(1, "/".join(osp.realpath(__file__).split("/")[0:-2]))
 
-from dataproc import ThreeDCorrectionDataproc # noqa:  E402
-import config # noqa:  E402
+import config  # noqa:  E402
+from dataproc import ThreeDCorrectionDataproc  # noqa:  E402
 
 
 class ThreeDCorrectionDataprocSyntheticData(ThreeDCorrectionDataproc):

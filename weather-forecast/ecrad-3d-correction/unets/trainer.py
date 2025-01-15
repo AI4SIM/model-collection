@@ -12,13 +12,14 @@
 
 import json
 import os
+from typing import List, Union
+
+import torch
 from lightning import Trainer
 from lightning.pytorch.accelerators import Accelerator
-from lightning.pytorch.loggers import TensorBoardLogger
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.cli import LightningCLI
-import torch
-from typing import List, Union
+from lightning.pytorch.loggers import TensorBoardLogger
 
 import config
 import data  # noqa: F401 'data' imported but unused

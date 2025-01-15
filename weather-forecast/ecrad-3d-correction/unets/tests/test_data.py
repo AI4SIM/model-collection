@@ -10,17 +10,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import TestCase, main
 import os
 import os.path as osp
-from data import ThreeDCorrectionDataset, LitThreeDCorrectionDataModule
-from tempfile import mkdtemp
 from shutil import rmtree
-from torch.utils.data import DataLoader
+from tempfile import mkdtemp
+from unittest import TestCase, main
 from warnings import catch_warnings, simplefilter
-import numpy as np
+
 import dask.array as da
+import numpy as np
 import torch
+from torch.utils.data import DataLoader
+
+from data import LitThreeDCorrectionDataModule, ThreeDCorrectionDataset
 
 
 class TestData(TestCase):
