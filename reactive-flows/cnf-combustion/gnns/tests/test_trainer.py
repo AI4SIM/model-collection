@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import unittest
 import warnings
 
@@ -25,8 +26,18 @@ class TestTrainer(unittest.TestCase):
 
     def setUp(self) -> None:
         """Define default parameters."""
-        self.args_cpu = {"max_epochs": 1, "accelerator": "cpu", "devices": 1}
-        self.args_gpu = {"max_epochs": 1, "accelerator": "gpu", "devices": [0]}
+        self.args_cpu = {
+            "max_epochs": 1,
+            "accelerator": "cpu",
+            "devices": 1,
+            "experiment_dir": "./experiments",
+        }
+        self.args_gpu = {
+            "max_epochs": 1,
+            "accelerator": "gpu",
+            "devices": [0],
+            "experiment_dir": "./experiments",
+        }
 
     def test_trainer(self) -> None:
         """Test trainer file."""
@@ -39,6 +50,36 @@ class TestTrainer(unittest.TestCase):
             warnings.simplefilter("ignore")
             test_trainer_cpu = CLITrainer(**self.args_cpu)
             self.assertEqual(test_trainer_cpu._devices, 1)
+
+
+class TestTrainerPaths(unittest.TestCase):
+    """Trainer test suite for paths."""
+
+    def setUp(self) -> None:
+        """Define default parameters."""
+        args = {
+            "max_epochs": 1,
+            "accelerator": "cpu",
+            "devices": 1,
+            "experiment_dir": "./experiments",
+        }
+        self.test_trainer = CLITrainer(**args)
+
+    def test_experiment_dir(self):
+        """Test if trainer creates the correct experiment dir."""
+        self.assertTrue(os.path.exists(self.test_trainer.experiment_dir))
+
+    def test_logs_path(self):
+        """Test if trainer creates the correct logs path."""
+        self.assertTrue(os.path.exists(self.test_trainer.log_dir))
+
+    def test_artifacts_path(self):
+        """Test if trainer creates the correct artifacts path."""
+        self.assertTrue(os.path.exists(self.test_trainer.artifacts_path))
+
+    def test_plots_path(self):
+        """Test if trainer creates the correct plots path."""
+        self.assertTrue(os.path.exists(self.test_trainer.plots_path))
 
 
 if __name__ == "__main__":

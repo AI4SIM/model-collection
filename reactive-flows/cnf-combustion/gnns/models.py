@@ -127,12 +127,15 @@ class CombustionModule(pl.LightningModule):
         self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
         self.y_hats = self.y_hats.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
 
-        self.plotter = plotters.Plotter(self.model.__class__.__name__, self.grid_shape)
-        self.plotter.cross_section(self.plotter.zslice, self.ys, self.y_hats)
-        self.plotter.dispersion_plot(self.ys, self.y_hats)
-        self.plotter.histo(self.ys, self.y_hats)
-        self.plotter.histo2d(self.ys, self.y_hats)
-        self.plotter.boxplot(self.ys, self.y_hats)
+        if self.trainer.is_global_zero:
+            self.plotter = plotters.Plotter(
+                self.model.__class__.__name__, self.trainer.plots_path, self.grid_shape
+            )
+            self.plotter.cross_section(self.plotter.zslice, self.ys, self.y_hats)
+            self.plotter.dispersion_plot(self.ys, self.y_hats)
+            self.plotter.histo(self.ys, self.y_hats)
+            self.plotter.histo2d(self.ys, self.y_hats)
+            self.plotter.boxplot(self.ys, self.y_hats)
 
     def configure_optimizers(self) -> optim.Optimizer:
         """Set the model optimizer.

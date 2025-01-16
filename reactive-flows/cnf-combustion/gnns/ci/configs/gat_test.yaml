@@ -28,8 +28,10 @@ data:
         batch_size: 1
         num_workers: 0
         y_normalizer: 3295.4
+        data_path: ./data
 
 trainer:
     max_epochs: 1
     accelerator: "cpu"
-    devices: 1
+    devices: 3
+    experiment_dir: ./experiments

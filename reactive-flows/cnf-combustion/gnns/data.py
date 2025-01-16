@@ -23,8 +23,6 @@ import torch
 import torch_geometric as pyg
 import yaml
 
-import config
-
 
 class CombustionDataset(pyg.data.Dataset):
     """Create graphs usable for GNNs using the standard PyG data structure. Each graph is built with
@@ -189,19 +187,28 @@ class LitCombustionDataModule(pl.LightningDataModule):
     Training set is randomized.
     """
 
-    def __init__(self, batch_size: int, num_workers: int, y_normalizer: float) -> None:
+    def __init__(
+        self,
+        batch_size: int,
+        num_workers: int,
+        y_normalizer: float,
+        data_path: str,
+        source_raw_data_path: str = None,
+    ) -> None:
         """Init the LitCombustionDataModule class.
 
         Args:
             batch_size (int): Batch size.
             num_workers (int): DataLoader number of workers for loading data.
             y_normalizer (float): Normalizing value.
-            data_path (str): path to raw data.
+            data_path (str): path to the data used by the training.
+            source_raw_data_path (str): path to raw data that will be symlinked in data_path.
         """
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.y_normalizer = y_normalizer
-        self.local_raw_data = os.path.join(config.data_path, "raw")
+        self.data_path = data_path
+        self.source_raw_data_path = source_raw_data_path
 
         super().__init__()
 
@@ -212,13 +219,11 @@ class LitCombustionDataModule(pl.LightningDataModule):
 
     def prepare_data(self) -> None:
         """Not used."""
-        CombustionDataset(config.data_path, self.y_normalizer)
+        CombustionDataset(self.data_path, self.y_normalizer)
 
     def setup(
         self,
         stage: str,
-        data_path: str = config.data_path,
-        source_raw_data_path: str = config.source_raw_data_path,
     ) -> None:
         """Create the main Dataset and splits the train, test and validation Datasets from the main
         Dataset. Currently the repartition is respectively, 80%, 10% and 10% from the main Dataset
@@ -230,9 +235,10 @@ class LitCombustionDataModule(pl.LightningDataModule):
         Raises:
             ValueError: if the main dataset is too small and leads to have an empty dataset.
         """
-        config.LinkRawData(source_raw_data_path, data_path)
+        if self.source_raw_data_path:
+            LinkRawData(self.source_raw_data_path, self.data_path)
 
-        dataset = R2Dataset(data_path, y_normalizer=self.y_normalizer).shuffle()
+        dataset = R2Dataset(self.data_path, y_normalizer=self.y_normalizer).shuffle()
         dataset_size = len(dataset)
 
         self.val_dataset = dataset[int(dataset_size * 0.9) :]
@@ -277,3 +283,56 @@ class LitCombustionDataModule(pl.LightningDataModule):
         return pyg.loader.DataLoader(
             self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
         )
+
+
+class LinkRawData:
+    """Link dataset to the use case."""
+
+    def __init__(self, source_raw_data_path, data_path):
+        """Link the source_raw_data_path in the data_path, if it does not already exists."""
+        self.source_raw_data_path = source_raw_data_path
+        self.local_data_path = data_path
+        self.local_raw_data = os.path.join(self.local_data_path, "raw")
+
+        if os.path.exists(self.source_raw_data_path):
+            if os.path.exists(self.local_raw_data):
+                try:
+                    if (
+                        len(os.listdir(self.local_raw_data)) == 0
+                        or os.readlink(self.local_raw_data) != self.source_raw_data_path
+                    ):
+                        self.rm_old_dataset()
+                        self.symlink_dataset()
+                    else:
+                        pass
+                except OSError:
+                    pass
+            else:
+                self.symlink_dataset()
+
+    def symlink_dataset(self):
+        """Create the filenames.yaml file from the content of the source_raw_data_path."""
+        filenames = os.listdir(self.source_raw_data_path)
+        temp_file_path = os.path.join(self.local_data_path, "filenames.yaml")
+        with open(temp_file_path, "w") as file:
+            yaml.dump(filenames, file)
+
+        if not os.path.exists(self.local_raw_data):
+            os.makedirs(self.local_raw_data, exist_ok=True)
+
+        for filename in filenames:
+            os.symlink(
+                os.path.join(self.source_raw_data_path, filename),
+                os.path.join(self.local_raw_data, filename),
+            )
+
+    def rm_old_dataset(self):
+        """Clean the local_data_path."""
+        for item in ["raw", "filenames.yaml", "processed"]:
+            file_location = os.path.join(self.local_data_path, item)
+            try:
+                os.remove(file_location)
+            except IsADirectoryError:
+                os.rmdir(file_location)
+            else:
+                pass

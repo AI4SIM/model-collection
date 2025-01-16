@@ -26,6 +26,7 @@ data:
         batch_size: 1
         num_workers: 0
         y_normalizer: 3295.4
+        data_path: ./data
 
 trainer:
     max_epochs: 1
@@ -38,3 +39,4 @@ trainer:
           mode: min
           min_delta: 0.0
     devices: 1
+    experiment_dir: ./experiments

@@ -41,8 +41,8 @@ class TestPlotters(unittest.TestCase):
     def test_dispersion_plot(self):
         """Test the "dispersion_plot" produces the result file."""
         with tempfile.TemporaryDirectory() as tempdir:
-            tt = plotters.Plotter(self.model_type, self.grid)
-            tt.dispersion_plot(self.y, self.y_hat, tempdir)
+            tt = plotters.Plotter(self.model_type, tempdir, self.grid)
+            tt.dispersion_plot(self.y, self.y_hat)
 
             self.assertTrue(len(os.listdir(tempdir)) == 1)
             self.assertTrue(
@@ -54,8 +54,8 @@ class TestPlotters(unittest.TestCase):
     def test_histo(self):
         """Test the "histo" produces the result file."""
         with tempfile.TemporaryDirectory() as tempdir:
-            tt = plotters.Plotter(self.model_type, self.grid)
-            tt.histo(self.y, self.y_hat, tempdir)
+            tt = plotters.Plotter(self.model_type, tempdir, self.grid)
+            tt.histo(self.y, self.y_hat)
 
             self.assertTrue(len(os.listdir(tempdir)) == 1)
             self.assertTrue(
@@ -68,8 +68,8 @@ class TestPlotters(unittest.TestCase):
         """Test the "histo2d" produces the result file."""
         with tempfile.TemporaryDirectory() as tempdir:
 
-            tt = plotters.Plotter(self.model_type, self.grid)
-            tt.histo2d(self.y, self.y_hat, tempdir)
+            tt = plotters.Plotter(self.model_type, tempdir, self.grid)
+            tt.histo2d(self.y, self.y_hat)
 
             self.assertTrue(len(os.listdir(tempdir)) == 1)
             self.assertTrue(
@@ -81,8 +81,8 @@ class TestPlotters(unittest.TestCase):
     def test_boxplot(self):
         """Test the "boxplot" produces the result file."""
         with tempfile.TemporaryDirectory() as tempdir:
-            tt = plotters.Plotter(self.model_type, self.grid)
-            tt.boxplot(self.y, self.y_hat, tempdir)
+            tt = plotters.Plotter(self.model_type, tempdir, self.grid)
+            tt.boxplot(self.y, self.y_hat)
 
             self.assertTrue(len(os.listdir(tempdir)) == 1)
             self.assertTrue(
@@ -92,8 +92,8 @@ class TestPlotters(unittest.TestCase):
     def test_total_flame_surface(self):
         """Test the "total_flame_surface" produces the result files."""
         with tempfile.TemporaryDirectory() as tempdir:
-            tt = plotters.Plotter(self.model_type, self.grid)
-            tt.total_flame_surface(self.y, self.y_hat, plot_path=tempdir, save=True)
+            tt = plotters.Plotter(self.model_type, tempdir, self.grid)
+            tt.total_flame_surface(self.y, self.y_hat, save=True)
 
             self.assertEqual(len(os.listdir(tempdir)), self.f_num)
             self.assertTrue(
@@ -121,8 +121,8 @@ class TestPlotters(unittest.TestCase):
     def test_cross_section(self):
         """Test the "cross_section" produces the result files."""
         with tempfile.TemporaryDirectory() as tempdir:
-            tt = plotters.Plotter(self.model_type, self.grid)
-            tt.cross_section(1, self.y, self.y_hat, plot_path=tempdir, save=True)
+            tt = plotters.Plotter(self.model_type, tempdir, self.grid)
+            tt.cross_section(1, self.y, self.y_hat, save=True)
 
             self.assertEqual(len(os.listdir(tempdir)), self.f_num)
             self.assertTrue(
