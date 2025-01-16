@@ -1,4 +1,5 @@
 """This module proposes Pytorch style Dataset classes for the gnn use-case"""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -11,14 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+from typing import List
+
 import h5py
+import lightning as pl
 import networkx as nx
 import numpy as np
-import os
-import lightning as pl
 import torch
 import torch_geometric as pyg
-from typing import List
 import yaml
 
 import config
@@ -76,7 +78,7 @@ class CombustionDataset(pyg.data.Dataset):
         Returns:
             (pyg.data.Data): Graph at the given index.
         """
-        data = torch.load(os.path.join(self.processed_dir, f'data-{idx}.pt'))
+        data = torch.load(os.path.join(self.processed_dir, f"data-{idx}.pt"))
         return data
 
     def len(self) -> int:
@@ -107,7 +109,7 @@ class R2Dataset(CombustionDataset):
         """
         i = 0
         for raw_path in self.raw_paths:
-            with h5py.File(raw_path, 'r') as file:
+            with h5py.File(raw_path, "r") as file:
                 feat = file["/c_filt"][:]
 
                 sigma = file["/c_grad_filt"][:]
@@ -128,10 +130,10 @@ class R2Dataset(CombustionDataset):
                 x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
                 edge_index=undirected_index.clone().detach().type(torch.LongTensor),
                 pos=torch.tensor(np.stack(coordinates)),
-                y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float)
+                y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float),
             )
 
-            torch.save(data, os.path.join(self.processed_dir, f'data-{i}.pt'))
+            torch.save(data, os.path.join(self.processed_dir, f"data-{i}.pt"))
             i += 1
 
 
@@ -154,7 +156,7 @@ class CnfDataset(CombustionDataset):
         """
         i = 0
         for raw_path in self.raw_paths:
-            with h5py.File(raw_path, 'r') as file:
+            with h5py.File(raw_path, "r") as file:
                 feat = file["/filt_8"][:]
 
                 sigma = file["/filt_grad_8"][:]
@@ -174,10 +176,10 @@ class CnfDataset(CombustionDataset):
                 x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
                 edge_index=undirected_index.type(torch.LongTensor),
                 pos=torch.tensor(np.stack(coordinates)),
-                y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float)
+                y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float),
             )
 
-            torch.save(data, os.path.join(self.processed_dir, f'data-{i}.pt'))
+            torch.save(data, os.path.join(self.processed_dir, f"data-{i}.pt"))
             i += 1
 
 
@@ -199,7 +201,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.y_normalizer = y_normalizer
-        self.local_raw_data = os.path.join(config.data_path, 'raw')
+        self.local_raw_data = os.path.join(config.data_path, "raw")
 
         super().__init__()
 
@@ -212,10 +214,12 @@ class LitCombustionDataModule(pl.LightningDataModule):
         """Not used."""
         CombustionDataset(config.data_path, self.y_normalizer)
 
-    def setup(self,
-              stage: str,
-              data_path: str = config.data_path,
-              source_raw_data_path: str = config.source_raw_data_path) -> None:
+    def setup(
+        self,
+        stage: str,
+        data_path: str = config.data_path,
+        source_raw_data_path: str = config.source_raw_data_path,
+    ) -> None:
         """Create the main Dataset and splits the train, test and validation Datasets from the main
         Dataset. Currently the repartition is respectively, 80%, 10% and 10% from the main Dataset
         size. Creates symbolic links from origin data.
@@ -231,13 +235,15 @@ class LitCombustionDataModule(pl.LightningDataModule):
         dataset = R2Dataset(data_path, y_normalizer=self.y_normalizer).shuffle()
         dataset_size = len(dataset)
 
-        self.val_dataset = dataset[int(dataset_size * 0.9):]
-        self.test_dataset = dataset[int(dataset_size * 0.8):int(dataset_size * 0.9)]
-        self.train_dataset = dataset[:int(dataset_size * 0.8)]
+        self.val_dataset = dataset[int(dataset_size * 0.9) :]
+        self.test_dataset = dataset[int(dataset_size * 0.8) : int(dataset_size * 0.9)]
+        self.train_dataset = dataset[: int(dataset_size * 0.8)]
 
         if not (self.val_dataset and self.test_dataset and self.train_dataset):
-            raise ValueError("The dataset is too small to be split properly. "
-                             f"Current length is : {dataset_size}.")
+            raise ValueError(
+                "The dataset is too small to be split properly. "
+                f"Current length is : {dataset_size}."
+            )
 
     def train_dataloader(self) -> pyg.loader.DataLoader:
         """Return the train DataLoader.
@@ -249,7 +255,8 @@ class LitCombustionDataModule(pl.LightningDataModule):
             self.train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=self.num_workers)
+            num_workers=self.num_workers,
+        )
 
     def val_dataloader(self) -> pyg.loader.DataLoader:
         """Return the validation DataLoader.
@@ -258,9 +265,8 @@ class LitCombustionDataModule(pl.LightningDataModule):
             (torch.utils.data.DataLoader): Validation DataLoader.
         """
         return pyg.loader.DataLoader(
-            self.val_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers)
+            self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+        )
 
     def test_dataloader(self) -> pyg.loader.DataLoader:
         """Return the test DataLoader.
@@ -269,6 +275,5 @@ class LitCombustionDataModule(pl.LightningDataModule):
             (torch.utils.data.DataLoader): Test DataLoader.
         """
         return pyg.loader.DataLoader(
-            self.test_dataset,
-            batch_size=self.batch_size,
-            num_workers=self.num_workers)
+            self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
+        )

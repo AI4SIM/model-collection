@@ -43,6 +43,14 @@ jobs:
       working-directory: ${{ matrix.model-project }}
       run: nox -s lint -v
 
+    - name: Analysing the code with isort
+      working-directory: ${{ matrix.model-project }}
+      run: nox -s import_sort -v -- check-only
+
+    - name: Analysing the code with black
+      working-directory: ${{ matrix.model-project }}
+      run: nox -s black -v -- check-only
+
     - name: Run unit tests with coverage report
       working-directory: ${{ matrix.model-project }}
       run: nox -s tests -v

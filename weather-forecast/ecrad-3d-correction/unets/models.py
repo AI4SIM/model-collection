@@ -10,13 +10,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import lightning as pl
-import torch
-from torchmetrics.functional import mean_squared_error
-from typing import Tuple, Union
 import os.path as osp
-from torch_optimizer import AdamP
+from typing import Tuple, Union
+
+import lightning as pl
 import numpy as np
+import torch
+from torch_optimizer import AdamP
+from torchmetrics.functional import mean_squared_error
 
 from unet import UNet1D
 
@@ -66,14 +67,16 @@ class ThreeDCorrectionModule(pl.LightningModule):
         if global_step % 50 == 0:
             for name, param in self.named_parameters():
                 if param.requires_grad:
-                    self.logger.experiment.add_histogram(f"{name}_grad", param.grad, global_step)
+                    self.logger.experiment.add_histogram(
+                        f"{name}_grad", param.grad, global_step
+                    )
 
     def normalize(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
         """
         Normalize inside the network.
         If y is None, then only process x (e.g. forward mode).
         """
-        eps = torch.tensor(1.e-8)
+        eps = torch.tensor(1.0e-8)
         x = (x - self.x_mean) / (self.x_std + eps)
 
         return x
@@ -108,13 +111,15 @@ class ThreeDCorrectionModule(pl.LightningModule):
 class LitUnet1D(ThreeDCorrectionModule):
     """Compile a 1D U-Net, which needs a stats.pt (in the folder of data_path)."""
 
-    def __init__(self,
-                 data_path: str,
-                 in_channels: int,
-                 out_channels: int,
-                 n_levels: int,
-                 n_features_root: int,
-                 lr: float):
+    def __init__(
+        self,
+        data_path: str,
+        in_channels: int,
+        out_channels: int,
+        n_levels: int,
+        n_features_root: int,
+        lr: float,
+    ):
         super(LitUnet1D, self).__init__(data_path)
         self.save_hyperparameters()
 
@@ -123,7 +128,8 @@ class LitUnet1D(ThreeDCorrectionModule):
             inp_ch=in_channels,
             out_ch=out_channels,
             n_levels=n_levels,
-            n_features_root=n_features_root)
+            n_features_root=n_features_root,
+        )
 
     def configure_optimizers(self):
         return AdamP(self.parameters(), lr=self.lr)

@@ -10,11 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from numpy.random import randint
 from typing import Union
 
+from numpy.random import randint
 
-class RandomCropper3D():
+
+class RandomCropper3D:
     """Randomly crop a sub-block out of a 3D tensor.
 
     Args:
@@ -40,6 +41,6 @@ class RandomCropper3D():
         tx = randint(0, h - bh)
         ty = randint(0, w - bw)
         tz = randint(0, d - bd)
-        x_cropped = x[tx:tx + bh, ty:ty + bw, tz:tz + bd]
-        y_cropped = y[tx:tx + bh, ty:ty + bw, tz:tz + bd]
+        x_cropped = x[tx : tx + bh, ty : ty + bw, tz : tz + bd]
+        y_cropped = y[tx : tx + bh, ty : ty + bw, tz : tz + bd]
         return x_cropped, y_cropped

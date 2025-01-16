@@ -1,4 +1,5 @@
 """This module proposes a test suite for the models.py file."""
+
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -11,16 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
 import os
 import tempfile
+import unittest
+
 import h5py
-import numpy as np
-import yaml
 import networkx as nx
+import numpy as np
 import torch
 import torch_geometric as pyg
 import torch_optimizer as optim
+import yaml
 
 import models
 
@@ -30,16 +32,16 @@ class TestModel(unittest.TestCase):
 
     def setUp(self) -> None:
         """Define default parameters."""
-        self.filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
+        self.filenames = ["DNS1_00116000.h5", "DNS1_00117000.h5", "DNS1_00118000.h5"]
 
         self.initParam = {
-            'in_channels': 1,
-            'hidden_channels': 32,
-            'out_channels': 1,
-            'num_layers': 4,
-            'dropout': .5,
-            'jk': "last",
-            'lr': .0001
+            "in_channels": 1,
+            "hidden_channels": 32,
+            "out_channels": 1,
+            "num_layers": 4,
+            "dropout": 0.5,
+            "jk": "last",
+            "lr": 0.0001,
         }
 
     def create_env(self, tempdir):
@@ -48,18 +50,18 @@ class TestModel(unittest.TestCase):
         os.mkdir(os.path.join(tempdir, "data", "raw"))
 
         for file_h5 in self.filenames:
-            with h5py.File(os.path.join(tempdir, "data", "raw", file_h5), 'w') as file:
-                file['filt_8'] = np.zeros((10, 10, 10))
-                file['filt_grad_8'] = np.zeros((10, 10, 10))
-                file['grad_filt_8'] = np.zeros((10, 10, 10))
+            with h5py.File(os.path.join(tempdir, "data", "raw", file_h5), "w") as file:
+                file["filt_8"] = np.zeros((10, 10, 10))
+                file["filt_grad_8"] = np.zeros((10, 10, 10))
+                file["grad_filt_8"] = np.zeros((10, 10, 10))
 
-        temp_file_path = os.path.join(tempdir, 'data', 'filenames.yaml')
-        with open(temp_file_path, 'w') as tmpfile:
+        temp_file_path = os.path.join(tempdir, "data", "filenames.yaml")
+        with open(temp_file_path, "w") as tmpfile:
             _ = yaml.dump(self.filenames, tmpfile)
 
     def create_graph(self, file_path):
         """Create a test graph."""
-        with h5py.File(file_path, 'r') as file:
+        with h5py.File(file_path, "r") as file:
             col = file["/filt_8"][:]
             sigma = file["/filt_grad_8"][:]
 
@@ -76,7 +78,8 @@ class TestModel(unittest.TestCase):
             x=torch.tensor(col.reshape(-1, 1), dtype=torch.float),
             edge_index=undirected_index.clone().detach().type(torch.LongTensor),
             pos=torch.tensor(np.stack(coordinates)),
-            y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float))
+            y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float),
+        )
 
         return data
 
@@ -147,5 +150,5 @@ class TestModel(unittest.TestCase):
             self.assertIsInstance(op, optim.Optimizer)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

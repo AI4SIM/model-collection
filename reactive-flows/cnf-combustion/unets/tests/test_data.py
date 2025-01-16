@@ -10,29 +10,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import TestCase, main
-from os.path import join, exists
-from os import mkdir, listdir
-from h5py import File
-from data import CnfCombustionDataset, CnfCombustionDataModule
-from yaml import dump
-from tempfile import mkdtemp
+from os import listdir, mkdir
+from os.path import exists, join
 from shutil import rmtree
+from tempfile import mkdtemp
+from unittest import TestCase, main
+from warnings import catch_warnings, simplefilter
+
+from h5py import File
 from numpy import zeros
 from torch.utils.data import DataLoader
-from warnings import catch_warnings, simplefilter
+from yaml import dump
+
+from data import CnfCombustionDataModule, CnfCombustionDataset
 
 
 class TestData(TestCase):
 
     def setUp(self) -> None:
-        self.filenames = ['DNS1_00116000.h5', 'DNS1_00117000.h5', 'DNS1_00118000.h5']
+        self.filenames = ["DNS1_00116000.h5", "DNS1_00117000.h5", "DNS1_00118000.h5"]
         self.data_module_params = {
-            'batch_size': 1,
-            'num_workers': 0,
-            'y_normalizer': 342.553,
-            'splitting_lengths': [1, 1, 1],
-            'subblock_shape': (32, 16, 16)}
+            "batch_size": 1,
+            "num_workers": 0,
+            "y_normalizer": 342.553,
+            "splitting_lengths": [1, 1, 1],
+            "subblock_shape": (32, 16, 16),
+        }
 
         # Creates a temporary environment.
         self.dir = mkdtemp()
@@ -54,21 +57,21 @@ class TestData(TestCase):
         mkdir(join(tempdir, "data", "raw"))
 
         for file_h5 in self.filenames:
-            with File(join(tempdir, "data", "raw", file_h5), 'w') as f:
-                f['filt_8'] = zeros((10, 10, 10))
-                f['filt_grad_8'] = zeros((10, 10, 10))
-                f['grad_filt_8'] = zeros((10, 10, 10))
+            with File(join(tempdir, "data", "raw", file_h5), "w") as f:
+                f["filt_8"] = zeros((10, 10, 10))
+                f["filt_grad_8"] = zeros((10, 10, 10))
+                f["grad_filt_8"] = zeros((10, 10, 10))
 
-        temp_file_path = join(tempdir, 'data', 'filenames.yaml')
-        with open(temp_file_path, 'w') as tmpfile:
+        temp_file_path = join(tempdir, "data", "filenames.yaml")
+        with open(temp_file_path, "w") as tmpfile:
             dump(self.filenames, tmpfile)
 
     def test_process(self):
         self.dataset.process(0, join(self.dir, "data", "raw", "DNS1_00116000.h5"))
         self.assertTrue(exists(join(self.dir, "data", "processed")))
         self.assertEqual(
-            len(listdir(join(self.dir, "data", "processed"))),
-            len(self.filenames))
+            len(listdir(join(self.dir, "data", "processed"))), len(self.filenames)
+        )
 
     def test_len(self):
         self.assertEqual(len(self.dataset), 3)
@@ -95,5 +98,5 @@ class TestData(TestCase):
         self.assertTrue(isinstance(test_test_dl, DataLoader))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

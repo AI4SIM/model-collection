@@ -11,9 +11,11 @@
 # limitations under the License.
 
 from unittest import TestCase, main
-from utils import RandomCropper3D
+
 from numpy import copy
 from numpy.random import rand
+
+from utils import RandomCropper3D
 
 
 class TestData(TestCase):
@@ -29,5 +31,5 @@ class TestData(TestCase):
         self.assertEqual(x_[0, 0, 0], y_[0, 0, 0])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

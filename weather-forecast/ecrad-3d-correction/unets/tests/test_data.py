@@ -10,17 +10,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import TestCase, main
 import os
 import os.path as osp
-from data import ThreeDCorrectionDataset, LitThreeDCorrectionDataModule
-from tempfile import mkdtemp
 from shutil import rmtree
-from torch.utils.data import DataLoader
+from tempfile import mkdtemp
+from unittest import TestCase, main
 from warnings import catch_warnings, simplefilter
-import numpy as np
+
 import dask.array as da
+import numpy as np
 import torch
+from torch.utils.data import DataLoader
+
+from data import LitThreeDCorrectionDataModule, ThreeDCorrectionDataset
 
 
 class TestData(TestCase):
@@ -39,7 +41,8 @@ class TestData(TestCase):
                 data_path=data_path,
                 batch_size=1,
                 num_workers=0,
-                splitting_ratios=(0.5, 0.25, 0.25))
+                splitting_ratios=(0.5, 0.25, 0.25),
+            )
             self.data_module.prepare_data()
 
     def tearDown(self) -> None:
@@ -63,17 +66,20 @@ class TestData(TestCase):
         # Save to shards.
         x_chunked = da.from_array(x, chunks=shard_size)
         y_chunked = da.from_array(y, chunks=shard_size)
-        da.to_npy_stack(osp.join(data_path, 'x'), x_chunked, axis=0)
-        da.to_npy_stack(osp.join(data_path, 'y'), y_chunked, axis=0)
+        da.to_npy_stack(osp.join(data_path, "x"), x_chunked, axis=0)
+        da.to_npy_stack(osp.join(data_path, "y"), y_chunked, axis=0)
 
-        torch.save({
-            'x_mean': torch.tensor(np.random.rand(4, 138)),
-            'x_std': torch.tensor(np.random.rand(4, 138)),
-            'x_nb': torch.tensor(self.n_data),
-            'y_mean': torch.tensor(np.random.rand(4, 138)),
-            'y_std': torch.tensor(np.random.rand(4, 138)),
-            'y_nb': torch.tensor(self.n_data)
-        }, osp.join(data_path, "stats.pt"))
+        torch.save(
+            {
+                "x_mean": torch.tensor(np.random.rand(4, 138)),
+                "x_std": torch.tensor(np.random.rand(4, 138)),
+                "x_nb": torch.tensor(self.n_data),
+                "y_mean": torch.tensor(np.random.rand(4, 138)),
+                "y_std": torch.tensor(np.random.rand(4, 138)),
+                "y_nb": torch.tensor(self.n_data),
+            },
+            osp.join(data_path, "stats.pt"),
+        )
 
     def test_get(self) -> None:
         x, y = self.dataset[1]
@@ -90,5 +96,5 @@ class TestData(TestCase):
         self.assertTrue(isinstance(self.data_module.test_dataloader(), DataLoader))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

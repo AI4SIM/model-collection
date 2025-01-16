@@ -10,29 +10,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import config
 from json import dump
 from os.path import join
-from lightning import Trainer
-from lightning.pytorch.accelerators import Accelerator
-from lightning.pytorch.loggers import TensorBoardLogger
-from lightning.pytorch.callbacks import Callback
-from lightning.pytorch.cli import LightningCLI
-from torch import save
 from typing import List, Union
 
+from lightning import Trainer
+from lightning.pytorch.accelerators import Accelerator
+from lightning.pytorch.callbacks import Callback
+from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.loggers import TensorBoardLogger
+from torch import save
+
+import config
 import data  # noqa: F401 'data' imported but unused
 import models  # noqa: F401 'data' imported but unused
 
 
 class CLITrainer(Trainer):
 
-    def __init__(self,
-                 accelerator: Union[str, Accelerator, None],
-                 devices: Union[List[int], str, int, None],
-                 max_epochs: int,
-                 fast_dev_run: Union[int, bool] = False,
-                 callbacks: Union[List[Callback], Callback, None] = None) -> None:
+    def __init__(
+        self,
+        accelerator: Union[str, Accelerator, None],
+        devices: Union[List[int], str, int, None],
+        max_epochs: int,
+        fast_dev_run: Union[int, bool] = False,
+        callbacks: Union[List[Callback], Callback, None] = None,
+    ) -> None:
         """
         Run a training session.
         Args:
@@ -46,7 +49,8 @@ class CLITrainer(Trainer):
             logger=logger,
             accelerator=accelerator,
             devices=self._devices,
-            max_epochs=max_epochs,)
+            max_epochs=max_epochs,
+        )
 
     def test(self, **kwargs):
         """
@@ -56,7 +60,7 @@ class CLITrainer(Trainer):
         results = super().test(**kwargs)[0]
         with open(join(config.artifacts_path, "results.json"), "w") as f:
             dump(results, f)
-        save(self.model, join(config.artifacts_path, 'model.pth'))
+        save(self.model, join(config.artifacts_path, "model.pth"))
 
 
 def main():
@@ -65,5 +69,5 @@ def main():
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

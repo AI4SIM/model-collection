@@ -12,8 +12,8 @@
 
 import os
 import subprocess
-from unittest import TestCase, main
 from os.path import exists
+from unittest import TestCase, main
 
 import config
 
@@ -24,7 +24,9 @@ class TestConfig(TestCase):
         self.assertTrue(exists(config.experiment_path))
         self.assertTrue(os.getenv("AI4SIM_EXPERIMENT_PATH"), config.experiment_path)
         # Execute again config.py to ensure experiment_path is given by AISIM_EXPERIMENT_PATH
-        subprocess.run(['python3', os.path.join(os.path.dirname(os.getcwd()), "config.py")])
+        subprocess.run(
+            ["python3", os.path.join(os.path.dirname(os.getcwd()), "config.py")]
+        )
         self.assertTrue(config.experiment_path, os.getenv("AI4SIM_EXPERIMENT_PATH"))
 
         self.assertTrue(exists(config.logs_path))
@@ -32,5 +34,5 @@ class TestConfig(TestCase):
         self.assertTrue(exists(config.plots_path))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

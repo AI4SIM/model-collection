@@ -11,9 +11,11 @@
 # limitations under the License.
 
 from unittest import TestCase, main
+
 from numpy.random import rand
 from torch import from_numpy
-from unet import UNet3D, Downsampler, Upsampler
+
+from unet import Downsampler, UNet3D, Upsampler
 
 
 class TestUnet3D(TestCase):
@@ -28,11 +30,8 @@ class TestUnet3D(TestCase):
         n_levels = 1
         bilinear = True
         net = UNet3D(
-            inp_ch=1,
-            out_ch=1,
-            n_levels=n_levels,
-            n_features_root=4,
-            bilinear=bilinear)
+            inp_ch=1, out_ch=1, n_levels=n_levels, n_features_root=4, bilinear=bilinear
+        )
 
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
@@ -42,11 +41,8 @@ class TestUnet3D(TestCase):
         n_levels = 5
         bilinear = True
         net = UNet3D(
-            inp_ch=1,
-            out_ch=1,
-            n_levels=n_levels,
-            n_features_root=4,
-            bilinear=bilinear)
+            inp_ch=1, out_ch=1, n_levels=n_levels, n_features_root=4, bilinear=bilinear
+        )
 
         summary = str(net)
         self.assertEqual(summary.count("DoubleConv"), 2 * n_levels)
@@ -71,8 +67,10 @@ class TestUnet3D(TestCase):
         inp = from_numpy(rand(1, 8, 16, 16, 16))
         res = from_numpy(rand(1, 4, 32, 32, 32))
         shp = tuple(sampler(inp, res).shape)
-        self.assertEqual(shp, (1, 4, 32, 32, 32))  # last DoubleConv enforces the out_ch.
+        self.assertEqual(
+            shp, (1, 4, 32, 32, 32)
+        )  # last DoubleConv enforces the out_ch.
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

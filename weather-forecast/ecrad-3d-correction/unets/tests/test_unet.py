@@ -11,8 +11,10 @@
 # limitations under the License.
 
 from unittest import TestCase, main
+
 from torch import rand
-from unet import UNet1D, Downsampler, Upsampler
+
+from unet import Downsampler, UNet1D, Upsampler
 
 
 class TestUnet1D(TestCase):
@@ -60,5 +62,5 @@ class TestUnet1D(TestCase):
         self.assertEqual(shp, (1, 4, 32))  # last DoubleConv enforces the out_ch.
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
