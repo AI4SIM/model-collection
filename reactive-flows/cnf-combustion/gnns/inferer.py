@@ -222,17 +222,13 @@ if __name__ == "__main__":
     python inferer.py --config ./configs/gin.yaml
     ```
     """
-    from data import (  # noqa: F401 imported but unused (mandatory for CLI)
-        CombustionDataset,
-    )
-
     cli = LightningCLI(run=False)
 
     inferer = InferencePthGnn(
-        model_path="/scratch/vincentl/ai4sim/gnn_r2_r3_exp/exp_save/gin_1000epoch_0.96r2/offline-burrito/logs/version_0/checkpoints/epoch=999-step=35999.ckpt",  # noqa: E501 line too long
-        data_path="/net/172.16.118.188/data/raise/R2_flame/combustiondatabase/R2-filtered/R3-data/smaller_new_filt_15_F_4_cropped_progvar_R3.h5",  # noqa: E501 line too long
+        model_path="./tests/test_data/test_model.ckpt",
+        data_path="./data/smaller_new_filt_15_F_4_cropped_progvar_R3.h5",
         model_class=cli.model.__class__,
-        wkd="/scratch/vincentl/ai4sim/gnn_r2_r3_exp/",
+        wkd="./",
     )
 
     logging.info("Start creating data from input data ...")

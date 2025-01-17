@@ -25,8 +25,6 @@ from lightning.pytorch.loggers import Logger
 from lightning.pytorch.trainer import Trainer
 from lightning.pytorch.utilities import rank_zero_only
 
-import data  # noqa: F401 'data' imported but unused
-
 
 class CLITrainer(Trainer):
     """

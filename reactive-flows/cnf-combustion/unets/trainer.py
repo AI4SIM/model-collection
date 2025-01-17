@@ -22,9 +22,6 @@ from lightning.pytorch.cli import LightningCLI
 from lightning.pytorch.loggers import Logger
 from torch import save
 
-import data  # noqa: F401 'data' imported but unused
-import models  # noqa: F401 'data' imported but unused
-
 
 class CLITrainer(Trainer):
 
