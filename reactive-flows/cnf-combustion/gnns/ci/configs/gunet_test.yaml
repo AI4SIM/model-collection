@@ -32,4 +32,7 @@ trainer:
     max_epochs: 1
     accelerator: "cpu"
     devices: 1
-    experiment_dir: ./experiments
+    logger:
+        class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
+        init_args:
+            save_dir: ./

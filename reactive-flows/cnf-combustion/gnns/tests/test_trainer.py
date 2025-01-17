@@ -30,13 +30,11 @@ class TestTrainer(unittest.TestCase):
             "max_epochs": 1,
             "accelerator": "cpu",
             "devices": 1,
-            "experiment_dir": "./experiments",
         }
         self.args_gpu = {
             "max_epochs": 1,
             "accelerator": "gpu",
             "devices": [0],
-            "experiment_dir": "./experiments",
         }
 
     def test_trainer(self) -> None:
@@ -61,13 +59,8 @@ class TestTrainerPaths(unittest.TestCase):
             "max_epochs": 1,
             "accelerator": "cpu",
             "devices": 1,
-            "experiment_dir": "./experiments",
         }
         self.test_trainer = CLITrainer(**args)
-
-    def test_experiment_dir(self):
-        """Test if trainer creates the correct experiment dir."""
-        self.assertTrue(os.path.exists(self.test_trainer.experiment_dir))
 
     def test_logs_path(self):
         """Test if trainer creates the correct logs path."""

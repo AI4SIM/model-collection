@@ -21,7 +21,7 @@ import torch
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.cli import LightningCLI
-from lightning.pytorch.loggers import Logger, TensorBoardLogger
+from lightning.pytorch.loggers import Logger
 from lightning.pytorch.trainer import Trainer
 from lightning.pytorch.utilities import rank_zero_only
 
@@ -39,7 +39,6 @@ class CLITrainer(Trainer):
         accelerator: Union[str, Accelerator, None],
         devices: Union[List[int], str, int, None],
         max_epochs: int,
-        experiment_dir: str,
         logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
         # TODO: delete.
         # For some reason, those two are mandatory in current version of Lightning.
@@ -57,11 +56,8 @@ class CLITrainer(Trainer):
         self._accelerator = accelerator
         self._devices = devices
         self._max_epochs = max_epochs
-        self.experiment_dir = experiment_dir
 
-        logger = TensorBoardLogger(self.experiment_dir, name=None)
         super().__init__(
-            default_root_dir=self.experiment_dir,
             logger=logger,
             accelerator=self._accelerator,
             devices=self._devices,
