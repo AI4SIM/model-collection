@@ -26,9 +26,14 @@ data:
         batch_size: 1
         num_workers: 0
         y_normalizer: 3295.4
+        data_path: ./data
 
 trainer:
     max_epochs: 1000
     accelerator: "gpu"
     devices:
         - 3
+    logger:
+        class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
+        init_args:
+            save_dir: ./

@@ -22,8 +22,6 @@ from matplotlib.colors import LogNorm
 from matplotlib.lines import Line2D
 from plotly.subplots import make_subplots
 
-import config
-
 plt.style.use("bmh")
 plt.rcParams.update({"font.size": 22})
 
@@ -32,19 +30,22 @@ class Plotter:
     """The Plotter class aims at providing some utils to appreciate the training results.."""
 
     def __init__(
-        self, model_type: torch.Tensor, grid_shape: torch.Tensor, zslice: int = 16
+        self,
+        model_type: torch.Tensor,
+        plots_path: str,
+        grid_shape: torch.Tensor,
+        zslice: int = 16,
     ) -> None:
         """Init the Plotter."""
         self.model_type = model_type
         self.grid_shape = grid_shape
         self.zslice = zslice
+        self.plots_path = plots_path
 
         self.label_target = r"$\overline{\Sigma}_{target}$"
         self.label_predicted = rf"$\overline{{\Sigma}}_{{{self.model_type}}}$"
 
-    def dispersion_plot(
-        self, y_val: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path
-    ) -> None:
+    def dispersion_plot(self, y_val: np.ndarray, y_hat: np.ndarray) -> None:
         """Plot the dispersion and save it in image."""
         bins = np.linspace(0, 1250, 10)
         error = np.zeros((bins.shape[0], 2))
@@ -68,12 +69,12 @@ class Plotter:
         )
         ax.set_xlabel(self.label_target)
         ax.set_ylabel(f"$RMSE$({self.label_predicted}, {self.label_target})")
-        plt.savefig(os.path.join(plot_path, f"dispersion-plot-{self.model_type}.png"))
+        plt.savefig(
+            os.path.join(self.plots_path, f"dispersion-plot-{self.model_type}.png")
+        )
         plt.close()
 
-    def histo(
-        self, y_val: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path
-    ) -> None:
+    def histo(self, y_val: np.ndarray, y_hat: np.ndarray) -> None:
         """Plot the histo and save it in image."""
         fig, ax = plt.subplots(figsize=(15, 7))
         ax.hist(
@@ -99,12 +100,10 @@ class Plotter:
         new_handles = [Line2D([], [], c=h.get_edgecolor()) for h in handles]
 
         plt.legend(handles=new_handles, labels=labels)
-        plt.savefig(os.path.join(plot_path, f"histogram-{self.model_type}.png"))
+        plt.savefig(os.path.join(self.plots_path, f"histogram-{self.model_type}.png"))
         plt.close()
 
-    def histo2d(
-        self, y_val: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path
-    ) -> None:
+    def histo2d(self, y_val: np.ndarray, y_hat: np.ndarray) -> None:
         """Plot the histo2d and save it in image."""
         fig, ax = plt.subplots(figsize=(12, 8))
         ax.plot(np.linspace(0, 1200, 100), np.linspace(0, 1200, 100), "black")
@@ -116,12 +115,10 @@ class Plotter:
         ax.set_ylim(-50, 1200)
         ax.set_xlabel(self.label_target)
         ax.set_ylabel(self.label_predicted)
-        plt.savefig(os.path.join(plot_path, f"histogram2d-{self.model_type}.png"))
+        plt.savefig(os.path.join(self.plots_path, f"histogram2d-{self.model_type}.png"))
         plt.close()
 
-    def boxplot(
-        self, y_val: np.ndarray, y_hat: np.ndarray, plot_path=config.plots_path
-    ) -> None:
+    def boxplot(self, y_val: np.ndarray, y_hat: np.ndarray) -> None:
         """Plot the boxplot and save it in image."""
         flat_err = []
         y_val = y_val.reshape((-1,) + self.grid_shape)
@@ -135,7 +132,7 @@ class Plotter:
         ax.boxplot(flat_err, labels=np.arange(y_val.shape[0]), showmeans=True)
         ax.set_xlabel("Snapshot")
         ax.set_ylabel(f"$RMSE$({self.label_predicted}, {self.label_target})")
-        plt.savefig(os.path.join(plot_path, f"boxplot-{self.model_type}"))
+        plt.savefig(os.path.join(self.plots_path, f"boxplot-{self.model_type}"))
         plt.close()
 
     def total_flame_surface(
@@ -149,7 +146,6 @@ class Plotter:
         pred_2_title: str = "Prediction CNN",
         pred_3_title: str = "Pred",
         save: bool = False,
-        plot_path=config.plots_path,
     ) -> None:
         """Plot the total_flame_surface and save it in image."""
         gt_total_flame_surface = np.stack(y_target, axis=0)
@@ -210,7 +206,8 @@ class Plotter:
             if save:
                 fig.write_image(
                     os.path.join(
-                        plot_path, f"total-flame-surface-{self.model_type}-{i}.png"
+                        self.plots_path,
+                        f"total-flame-surface-{self.model_type}-{i}.png",
                     )
                 )
 
@@ -223,7 +220,6 @@ class Plotter:
         y_hat_title: str = "Prediction",
         norm_val: float = 1,
         save: bool = False,
-        plot_path=config.plots_path,
     ) -> None:
         """Plot the cross_section and save it in image."""
         for i in range(y_hat.shape[0]):
@@ -310,5 +306,7 @@ class Plotter:
             # fig.show()
             if save:
                 fig.write_image(
-                    os.path.join(plot_path, f"cross-section-{self.model_type}-{i}.png")
+                    os.path.join(
+                        self.plots_path, f"cross-section-{self.model_type}-{i}.png"
+                    )
                 )

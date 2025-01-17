@@ -20,8 +20,7 @@ from h5py import File
 from yaml import dump
 
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
-
-import config  # noqa:
+data_path = "./data"
 
 
 def create_data():
@@ -36,18 +35,18 @@ def create_data():
         "test_7.h5",
     ]
 
-    if not exists(config.data_path):
-        makedirs(join(config.data_path, "raw"))
+    if not exists(data_path):
+        makedirs(join(data_path, "raw"))
         for file_h5 in filenames:
-            with File(join(config.data_path, "raw", file_h5), "w") as f:
+            with File(join(data_path, "raw", file_h5), "w") as f:
                 f["/c_filt"] = np.random.normal(0, 1, (20, 20, 20))
                 f["/c_grad_filt"] = np.random.normal(0, 1, (20, 20, 20))
 
-        temp_file_path = join(config.data_path, "filenames.yaml")
+        temp_file_path = join(data_path, "filenames.yaml")
         with open(temp_file_path, "w") as tmpfile:
             dump(filenames, tmpfile)
     else:
-        raise Exception(f"Remove manually {config.data_path}")
+        raise Exception(f"Remove manually {data_path}")
 
 
 if __name__ == "__main__":
