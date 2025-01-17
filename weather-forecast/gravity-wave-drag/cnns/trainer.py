@@ -14,17 +14,14 @@
 
 import json
 import os
-from typing import List, Union
+from typing import Iterable, List, Optional, Union
 
 import torch
 from lightning import Trainer
 from lightning.pytorch.accelerators import Accelerator
 from lightning.pytorch.callbacks import Callback
 from lightning.pytorch.cli import LightningCLI
-from lightning.pytorch.loggers import TensorBoardLogger
-
-import config
-import data  # noqa: F401 'data' imported but unused
+from lightning.pytorch.loggers import Logger
 
 
 class CLITrainer(Trainer):
@@ -37,6 +34,7 @@ class CLITrainer(Trainer):
         accelerator: Union[str, Accelerator, None],
         devices: Union[List[int], str, int, None],
         max_epochs: int,
+        logger: Optional[Union[Logger, Iterable[Logger], bool]] = None,
         # TODO: delete.
         # For some reason, those two are mandatory in current version of Lightning.
         fast_dev_run: Union[int, bool] = False,
@@ -51,9 +49,7 @@ class CLITrainer(Trainer):
             max_epochs (int): Maximum number of epochs if no early stopping logic is implemented.
         """
         self._devices = devices
-        logger = TensorBoardLogger(config.logs_path, name=None)
         super().__init__(
-            default_root_dir=config.logs_path,
             logger=logger,
             accelerator=accelerator,
             devices=devices,
@@ -61,6 +57,11 @@ class CLITrainer(Trainer):
             # TODO: for some reason, a forward pass happens in the model before datamodule creation.
             num_sanity_val_steps=0,
         )
+        self.artifacts_path = os.path.join(self.log_dir, "artifacts")
+        self.plots_path = os.path.join(self.log_dir, "plots")
+        if self.is_global_zero:
+            os.makedirs(self.artifacts_path, exist_ok=True)
+            os.makedirs(self.plots_path, exist_ok=True)
 
     def test(self, **kwargs) -> None:
         """
@@ -68,16 +69,22 @@ class CLITrainer(Trainer):
         the model weights for future use in inference mode.
         """
         results = super().test(**kwargs)[0]
+        if self.is_global_zero:
+            with open(os.path.join(self.artifacts_path, "results.json"), "w") as f:
+                json.dump(results, f)
+            torch.save(self.model, os.path.join(self.artifacts_path, "model.pth"))
 
-        with open(os.path.join(config.artifacts_path, "results.json"), "w") as file:
-            json.dump(results, file)
 
-        torch.save(self.model, os.path.join(config.artifacts_path, "model.pth"))
+class MyLightningCLI(LightningCLI):
+    def add_arguments_to_parser(self, parser):
+        parser.link_arguments(
+            "data.data_path", "model.init_args.data_path", apply_on="instantiate"
+        )
 
 
 def main():
     """Instantiate the CLI and launch the trainer."""
-    cli = LightningCLI(trainer_class=CLITrainer)
+    cli = MyLightningCLI(trainer_class=CLITrainer)
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 

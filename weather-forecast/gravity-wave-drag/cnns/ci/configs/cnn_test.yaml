@@ -28,8 +28,13 @@ fit:
             num_workers: 1
             splitting_ratios: [0.6, 0.2]
             shard_len: 100
-    
+            data_path: ./data
+
     trainer:
         max_epochs: 1
         accelerator: "cpu"
-        devices: 1
+        devices: 3
+        logger:
+            class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
+            init_args:
+                save_dir: ./

@@ -21,13 +21,11 @@ import torch.nn as nn
 import torch_optimizer as optim
 import torchmetrics.functional as tmf
 
-import config
-
 
 class NOGWDModule(pl.LightningModule):
     """Contains the mutualizable model logic for the NO-GWD UC."""
 
-    def __init__(self):
+    def __init__(self, data_path: str):
         """Load previously computed stats for model-level normalization purposes."""
         super().__init__()
         # Init attributes to fake data
@@ -35,8 +33,8 @@ class NOGWDModule(pl.LightningModule):
         self.x_std = torch.tensor(1)
         self.y_std = torch.tensor(1)
 
-        if os.path.exists(os.path.join(config.data_path, "stats.pt")):
-            stats = torch.load(os.path.join(config.data_path, "stats.pt"))
+        if os.path.exists(os.path.join(data_path, "stats.pt")):
+            stats = torch.load(os.path.join(data_path, "stats.pt"))
             self.x_mean = stats["x_mean"]
             self.x_std = stats["x_std"]
             self.y_std = stats["y_std"].max()
@@ -115,10 +113,16 @@ class LitMLP(NOGWDModule):
     """Create a good old MLP."""
 
     def __init__(
-        self, in_channels: int, hidden_channels: int, out_channels: int, lr: float
+        self,
+        in_channels: int,
+        hidden_channels: int,
+        out_channels: int,
+        lr: float,
+        *args,
+        **kwargs,
     ):
         """Define the network LitMLP architecture."""
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
         self.lr = lr
         self.net = nn.Sequential(
@@ -164,9 +168,11 @@ class LitCNN(NOGWDModule):
         pool_size: int,
         out_channels: int,
         lr: float,
+        *args,
+        **kwargs,
     ):
         """Define the network LitCNN architecture."""
-        super().__init__()
+        super().__init__(*args, **kwargs)
 
         self.lr = lr
         self.net = nn.Sequential(
