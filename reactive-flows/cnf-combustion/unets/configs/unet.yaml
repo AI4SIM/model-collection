@@ -27,9 +27,14 @@ data:
         splitting_lengths: [111, 8, 8]
         y_normalizer: 342.553
         subblock_shape: [32, 16, 16]  # keeping power 2 dimensions for the U-net.
+        data_path: ./data
 
 trainer:
     max_epochs: 10
     accelerator: "gpu"
     devices:
         - 0
+    logger:
+        class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
+        init_args:
+            save_dir: ./
