@@ -39,5 +39,5 @@ trainer:
           patience: 31
           mode: min
           min_delta: 0.0
-    devices: 
+    devices: 1
     experiment_dir: ./experiments
