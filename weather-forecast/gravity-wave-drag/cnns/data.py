@@ -30,7 +30,6 @@ class NOGWDDataset(torch.utils.data.Dataset):
     Each raw HDF5 input file contains two datasets—x and y—of 2355840 rows each.
         Input features:
         Output features: .
-    Refer to the UC get-started.ipynb notebook for more details on the inputs.
     """
 
     x_feat = 191
