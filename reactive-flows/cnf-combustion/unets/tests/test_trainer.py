@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from unittest import TestCase, main
 from warnings import catch_warnings, simplefilter
 
@@ -33,6 +34,31 @@ class TestTrainer(TestCase):
             simplefilter("ignore")
             test_trainer_cpu = CLITrainer(**self.args_cpu)
             self.assertEqual(test_trainer_cpu._devices, 1)
+
+
+class TestTrainerPaths(TestCase):
+    """Trainer test suite for paths."""
+
+    def setUp(self) -> None:
+        """Define default parameters."""
+        args = {
+            "max_epochs": 1,
+            "accelerator": "cpu",
+            "devices": 1,
+        }
+        self.test_trainer = CLITrainer(**args)
+
+    def test_logs_path(self):
+        """Test if trainer creates the correct logs path."""
+        self.assertTrue(os.path.exists(self.test_trainer.log_dir))
+
+    def test_artifacts_path(self):
+        """Test if trainer creates the correct artifacts path."""
+        self.assertTrue(os.path.exists(self.test_trainer.artifacts_path))
+
+    def test_plots_path(self):
+        """Test if trainer creates the correct plots path."""
+        self.assertTrue(os.path.exists(self.test_trainer.plots_path))
 
 
 if __name__ == "__main__":

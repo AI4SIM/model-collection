@@ -29,10 +29,11 @@ class TestData(TestCase):
 
     def setUp(self) -> None:
         self.filenames = ["DNS1_00116000.h5", "DNS1_00117000.h5", "DNS1_00118000.h5"]
-        self.data_module_params = {
+        data_module_params = {
             "batch_size": 1,
             "num_workers": 0,
             "y_normalizer": 342.553,
+            "data_path": "./data",
             "splitting_lengths": [1, 1, 1],
             "subblock_shape": (32, 16, 16),
         }
@@ -46,8 +47,9 @@ class TestData(TestCase):
             simplefilter("ignore")
             data_path = join(self.dir, "data")
             self.dataset = CnfCombustionDataset(data_path)
-            self.data_module = CnfCombustionDataModule(**self.data_module_params)
-            self.data_module.prepare_data(data_path)
+            data_module_params.update({"data_path": data_path})
+            self.data_module = CnfCombustionDataModule(**data_module_params)
+            self.data_module.prepare_data()
 
     def tearDown(self) -> None:
         rmtree(self.dir)
