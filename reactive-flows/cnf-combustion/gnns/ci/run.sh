@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-python3 trainer.py --config ./ci/configs/gat_test.yaml
-python3 trainer.py --config ./ci/configs/gcn_test.yaml
-python3 trainer.py --config ./ci/configs/gin_test.yaml
-python3 trainer.py --config ./ci/configs/gunet_test.yaml
+python3 trainer.py --config ./ci/configs/gat_test.yaml || exit 1
+python3 trainer.py --config ./ci/configs/gcn_test.yaml || exit 2
+python3 trainer.py --config ./ci/configs/gin_test.yaml || exit 3
+python3 trainer.py --config ./ci/configs/gunet_test.yaml  || exit 4
