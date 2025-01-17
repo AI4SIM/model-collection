@@ -212,7 +212,5 @@ class ThreeDCorrectionDataproc:
 
 
 if __name__ == "__main__":
-    import config  # noqa: F401 'config' imported but unused
-
     dataproc = ThreeDCorrectionDataproc("/tmp", n_shards=(53 * 2**6))
     dataproc.process()

@@ -33,3 +33,7 @@ trainer:
     accelerator: "gpu"
     devices:
         - 0
+    logger:
+        class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
+        init_args:
+            save_dir: ./
