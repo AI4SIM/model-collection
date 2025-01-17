@@ -19,7 +19,6 @@ from lightning import LightningDataModule
 from torch import load, save, tensor
 from torch.utils.data import DataLoader, Dataset, random_split
 
-import config
 from utils import RandomCropper3D
 
 
@@ -105,6 +104,7 @@ class CnfCombustionDataModule(LightningDataModule):
         batch_size: int,
         num_workers: int,
         splitting_lengths: list,
+        data_path: str,
         shuffling: bool = False,
         y_normalizer: float = None,
         subblock_shape: Union[int, tuple] = None,
@@ -112,21 +112,23 @@ class CnfCombustionDataModule(LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.splitting_lengths = splitting_lengths
+        self.data_path = data_path
         self.shuffling = shuffling
         self.y_normalizer = y_normalizer
         self.subblock_shape = subblock_shape
         super().__init__()
 
-    def prepare_data(self, data_path: str = config.data_path):
+    def prepare_data(self):
         """Initialize dataset."""
-        self.dataset = CnfCombustionDataset(
-            data_path, self.y_normalizer, self.subblock_shape
-        )
+        CnfCombustionDataset(self.data_path, self.y_normalizer, self.subblock_shape)
 
     def setup(self, stage: Optional[str] = None):
         """Preprocessing: splitting and shuffling."""
+        dataset = CnfCombustionDataset(
+            self.data_path, self.y_normalizer, self.subblock_shape
+        )
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(
-            self.dataset, self.splitting_lengths
+            dataset, self.splitting_lengths
         )
         if self.shuffling:
             self.train_dataset = self.train_dataset.shuffle()
