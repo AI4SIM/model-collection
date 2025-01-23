@@ -27,7 +27,7 @@ data:
         batch_size: 1
         num_workers: 0
         y_normalizer: 3295.4
-        data_path: ./data
+        data_path: ${oc.decode:${oc.env:DATADIR, ./data}}
 
 trainer:
     max_epochs: 1
@@ -39,8 +39,8 @@ trainer:
           patience: 31
           mode: min
           min_delta: 0.0
-    devices: 1
+    devices: ${oc.decode:${oc.env:SLURM_GPUS_ON_NODE, 1}}
     logger:
         class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
         init_args:
-            save_dir: ./
+            save_dir: ${oc.decode:${oc.env:LOGDIR, ./logs}}
