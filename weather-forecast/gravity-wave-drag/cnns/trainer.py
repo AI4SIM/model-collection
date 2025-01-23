@@ -84,7 +84,9 @@ class MyLightningCLI(LightningCLI):
 
 def main():
     """Instantiate the CLI and launch the trainer."""
-    cli = MyLightningCLI(trainer_class=CLITrainer)
+    cli = MyLightningCLI(
+        trainer_class=CLITrainer, parser_kwargs={"parser_mode": "omegaconf"}
+    )
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 

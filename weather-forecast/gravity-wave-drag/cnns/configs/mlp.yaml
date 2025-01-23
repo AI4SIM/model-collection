@@ -24,14 +24,13 @@ fit:
         init_args:
             batch_size: 256
             num_workers: 0
-            data_path: ./data
+            data_path: ${oc.decode:${oc.env:DATADIR, ./data}}
 
     trainer:
         max_epochs: 5
         accelerator: "gpu"
-        devices:
-            - 0
+        devices: ${oc.decode:${oc.env:SLURM_GPUS_ON_NODE, [0]}}
         logger:
-        class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
-        init_args:
-            save_dir: ./
+            class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
+            init_args:
+                save_dir: ${oc.decode:${oc.env:LOGDIR, ./logs}}
