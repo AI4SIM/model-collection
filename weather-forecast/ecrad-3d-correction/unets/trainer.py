@@ -72,8 +72,15 @@ class CLITrainer(Trainer):
             torch.save(self.model, os.path.join(self.artifacts_path, "model.pth"))
 
 
+class MyLightningCLI(LightningCLI):
+    def add_arguments_to_parser(self, parser):
+        parser.link_arguments(
+            "data.data_path", "model.init_args.data_path", apply_on="instantiate"
+        )
+
+
 def main():
-    cli = LightningCLI(trainer_class=CLITrainer, run=False)
+    cli = MyLightningCLI(trainer_class=CLITrainer, run=False)
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
 
