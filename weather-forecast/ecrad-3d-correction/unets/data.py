@@ -84,14 +84,16 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.splitting_ratios = splitting_ratios
+        self.dataset = None
 
     def prepare_data(self):
-        self.dataset = ThreeDCorrectionDataset(self.data_path)
+        ThreeDCorrectionDataset(self.data_path)
 
     def setup(self, stage: Optional[str] = None):
 
         # Define subsets.
         tr, va, te = self.splitting_ratios
+        self.dataset = ThreeDCorrectionDataset(self.data_path)
         length = len(self.dataset)
         idx = list(range(length))
         train_idx = idx[: int(tr * length)]

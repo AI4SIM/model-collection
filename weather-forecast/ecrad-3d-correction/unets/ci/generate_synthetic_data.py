@@ -19,7 +19,6 @@ import xarray as xr
 
 sys.path.insert(1, "/".join(osp.realpath(__file__).split("/")[0:-2]))
 
-import config  # noqa:  E402
 from dataproc import ThreeDCorrectionDataproc  # noqa:  E402
 
 
@@ -101,5 +100,5 @@ class ThreeDCorrectionDataprocSyntheticData(ThreeDCorrectionDataproc):
 
 if __name__ == "__main__":
 
-    data = ThreeDCorrectionDataprocSyntheticData(config.data_path, n_shards=1)
+    data = ThreeDCorrectionDataprocSyntheticData("./data", n_shards=1)
     data.process()
