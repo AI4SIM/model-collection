@@ -19,7 +19,6 @@ from unittest.mock import patch
 
 import torch
 
-import config
 from trainer import CLITrainer
 
 
@@ -43,10 +42,14 @@ class TestTrainerGpu(unittest.TestCase):
         mock_test.return_value = [{"a": 1, "b": 2}]
         self.test_trainer_gpu.test()
         self.assertTrue(
-            os.path.exists(os.path.join(config.artifacts_path, "model.pth"))
+            os.path.exists(
+                os.path.join(self.test_trainer_gpu.artifacts_path, "model.pth")
+            )
         )
         self.assertTrue(
-            os.path.exists(os.path.join(config.artifacts_path, "results.json"))
+            os.path.exists(
+                os.path.join(self.test_trainer_gpu.artifacts_path, "results.json")
+            )
         )
 
 
@@ -71,10 +74,14 @@ class TestTrainerCPU(unittest.TestCase):
         mock_test.return_value = [{"a": 1, "b": 2}]
         self.test_trainer_cpu.test()
         self.assertTrue(
-            os.path.exists(os.path.join(config.artifacts_path, "model.pth"))
+            os.path.exists(
+                os.path.join(self.test_trainer_cpu.artifacts_path, "model.pth")
+            )
         )
         self.assertTrue(
-            os.path.exists(os.path.join(config.artifacts_path, "results.json"))
+            os.path.exists(
+                os.path.join(self.test_trainer_cpu.artifacts_path, "results.json")
+            )
         )
 
 

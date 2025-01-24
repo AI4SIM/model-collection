@@ -16,7 +16,6 @@ import os
 import shutil
 import unittest
 from pathlib import Path
-from unittest.mock import patch
 
 import numpy as np
 import torch
@@ -188,9 +187,10 @@ class TestNOGWDDataModule(unittest.TestCase):
 
     def setUp(self) -> None:
         """Instantiate the NOGWDDataset class in val mode."""
-        self.data_module = NOGWDDataModule(batch_size=1, num_workers=0)
+        self.data_module = NOGWDDataModule(
+            batch_size=1, num_workers=0, data_path=TEST_DATA_PATH
+        )
 
-    @patch("config.data_path", TEST_DATA_PATH)
     def test_setup_fit(self):
         """Test the 'setup' method set properly the train and val attributes in 'fit' mode."""
         self.data_module.setup("fit")
@@ -198,7 +198,6 @@ class TestNOGWDDataModule(unittest.TestCase):
         self.assertIsInstance(self.data_module.val, NOGWDDataset)
         self.assertIsNone(self.data_module.test)
 
-    @patch("config.data_path", TEST_DATA_PATH)
     def test_setup_test(self):
         """Test the 'setup' method set properly the test attribute in 'test' mode."""
         self.data_module.setup("test")
@@ -206,21 +205,18 @@ class TestNOGWDDataModule(unittest.TestCase):
         self.assertIsNone(self.data_module.val)
         self.assertIsInstance(self.data_module.test, NOGWDDataset)
 
-    @patch("config.data_path", TEST_DATA_PATH)
     def test_train_dataloader(self):
         """Test the 'train_dataloader' method properly instantiate a DataLoader."""
         self.data_module.setup("fit")
         dataloader = self.data_module.train_dataloader()
         self.assertIsInstance(dataloader, torch.utils.data.DataLoader)
 
-    @patch("config.data_path", TEST_DATA_PATH)
     def test_val_dataloader(self):
         """Test the 'val_dataloader' method properly instantiate a DataLoader."""
         self.data_module.setup("fit")
         dataloader = self.data_module.val_dataloader()
         self.assertIsInstance(dataloader, torch.utils.data.DataLoader)
 
-    @patch("config.data_path", TEST_DATA_PATH)
     def test_test_dataloader(self):
         """Test the 'test_dataloader' method properly instantiate a DataLoader."""
         self.data_module.setup("fit")

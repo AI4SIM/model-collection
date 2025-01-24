@@ -21,8 +21,6 @@ import numpy as np
 import torch
 import yaml
 
-import config
-
 
 class NOGWDDataset(torch.utils.data.Dataset):
     """
@@ -140,6 +138,7 @@ class NOGWDDataModule(pl.LightningDataModule):
         self,
         batch_size: int,
         num_workers: int,
+        data_path: str,
         splitting_ratios: Tuple[float, float] = (0.8, 0.1),
         shard_len: int = 2355840,
     ) -> None:
@@ -153,6 +152,7 @@ class NOGWDDataModule(pl.LightningDataModule):
         self.num_workers = num_workers
         self.splitting_ratios = splitting_ratios
         self.shard_len = shard_len
+        self.data_path = data_path
         super().__init__()
         self.train = None
         self.val = None
@@ -169,11 +169,11 @@ class NOGWDDataModule(pl.LightningDataModule):
                 train and val DataLoaders. If 'test', it will prepare the test DataLoader.
         """
         if stage == "fit":
-            self.train = NOGWDDataset(config.data_path, "train", self.shard_len)
-            self.val = NOGWDDataset(config.data_path, "val", self.shard_len)
+            self.train = NOGWDDataset(self.data_path, "train", self.shard_len)
+            self.val = NOGWDDataset(self.data_path, "val", self.shard_len)
 
         if stage == "test":
-            self.test = NOGWDDataset(config.data_path, "test", self.shard_len)
+            self.test = NOGWDDataset(self.data_path, "test", self.shard_len)
 
     def train_dataloader(self) -> torch.utils.data.DataLoader:
         """Return the train DataLoader.
