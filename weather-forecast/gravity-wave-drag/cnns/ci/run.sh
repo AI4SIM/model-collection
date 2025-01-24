@@ -11,5 +11,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-python3 trainer.py --config ./ci/configs/cnn_test.yaml
-python3 trainer.py --config ./ci/configs/mlp_test.yaml
+python3 trainer.py --config ./ci/configs/cnn_test.yaml || exit 1
+python3 trainer.py --config ./ci/configs/mlp_test.yaml || exit 2

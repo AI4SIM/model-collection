@@ -49,7 +49,11 @@ class TestLitMLP(unittest.TestCase):
         self.data = data_test.load()
         # Instantiate a LitMLP
         self.model_test = LitMLP(
-            in_channels=191, hidden_channels=10, out_channels=126, lr=0.001
+            in_channels=191,
+            hidden_channels=10,
+            out_channels=126,
+            lr=0.001,
+            data_path=TEST_DATA_PATH,
         )
 
     def test_forward(self):
@@ -111,6 +115,7 @@ class TestLitCNN(unittest.TestCase):
             conv_size=1,
             pool_size=2,
             lr=0.001,
+            data_path=TEST_DATA_PATH,
         )
 
     def test_forward(self):
