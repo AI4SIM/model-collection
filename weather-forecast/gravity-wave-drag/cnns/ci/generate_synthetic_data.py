@@ -39,7 +39,7 @@ def create_data():
     with open(filepath, "r") as file:
         params = safe_load(file)
 
-    row_feats = params["fit"]["data"]["init_args"]["shard_len"]
+    row_feats = params["data"]["init_args"]["shard_len"]
     if not exists(data_path):
         makedirs(join(data_path, "raw"))
         for file_h5 in filenames:
@@ -51,10 +51,10 @@ def create_data():
         with open(temp_file_path, "w") as tmpfile:
             dump(filenames, tmpfile)
 
-        tr, va = params["fit"]["data"]["init_args"]["splitting_ratios"]
+        tr, va = params["data"]["init_args"]["splitting_ratios"]
         length = len(filenames)
 
-        for element in filenames:
+        for _ in filenames:
             file_split["train"] = filenames[: int(tr * length)]
             file_split["val"] = filenames[int(tr * length) : int((tr + va) * length)]
             file_split["test"] = filenames[int((tr + va) * length) :]
