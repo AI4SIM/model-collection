@@ -34,12 +34,10 @@ class Plotter:
         model_type: torch.Tensor,
         plots_path: str,
         grid_shape: torch.Tensor,
-        zslice: int = 16,
     ) -> None:
         """Init the Plotter."""
         self.model_type = model_type
         self.grid_shape = grid_shape
-        self.zslice = zslice
         self.plots_path = plots_path
 
         self.label_target = r"$\overline{\Sigma}_{target}$"
