@@ -147,6 +147,14 @@ You can find, in all model project directories, a ``README.md`` file that descri
 
 ### Launch the Training
 
+The trainings are launched using the Lightning CLI, configured using YAML files. In the configuration files, you can use the variables interpolation feature from [Omegaconf](https://omegaconf.readthedocs.io/en/latest/), to set some variables.
+
+By default, you can set 2 environment variables that will be passed to the Lightning CLI configuration files:
+- **DATADIR**: the path where your dataset is stored,
+- **LOGDIR**: the path where the lightning logs, artifacts and plots will be stored.
+
+These environment variables are optional, while the Lightning CLI configuration files set default values for these variables.
+
 #### Docker Container
 
 Using the docker image described at [Setting-up the environment](#setting-up-the-environment), you can launch the training of the model with:

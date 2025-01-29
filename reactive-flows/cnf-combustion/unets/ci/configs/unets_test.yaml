@@ -39,13 +39,13 @@ data:
         splitting_lengths: [1, 1, 1]
         y_normalizer: 342.553
         subblock_shape: [32, 16, 16]
-        data_path: ./data
+        data_path: ${oc.decode:${oc.env:DATADIR, ./data}}
 
 trainer:
     max_epochs: 1
     accelerator: "cpu"
-    devices: 3
+    devices: ${oc.decode:${oc.env:SLURM_GPUS_ON_NODE, 3}}
     logger:
         class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
         init_args:
-            save_dir: ./
+            save_dir: ${oc.decode:${oc.env:LOGDIR, ./logs}}

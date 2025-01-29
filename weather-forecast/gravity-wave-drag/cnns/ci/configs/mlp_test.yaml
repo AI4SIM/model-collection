@@ -26,13 +26,13 @@ fit:
             num_workers: 1
             splitting_ratios: [0.6, 0.2]
             shard_len: 100
-            data_path: ./data
+            data_path: ${oc.decode:${oc.env:DATADIR, ./data}}
     
     trainer:
         max_epochs: 1
         accelerator: "cpu"
-        devices: 1
+        devices: ${oc.decode:${oc.env:SLURM_GPUS_ON_NODE, 1}}
         logger:
             class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
             init_args:
-                save_dir: ./
+                save_dir: ${oc.decode:${oc.env:LOGDIR, ./logs}}

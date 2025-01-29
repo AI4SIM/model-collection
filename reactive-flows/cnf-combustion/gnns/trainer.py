@@ -93,6 +93,8 @@ class CLITrainer(Trainer):
 
 
 if __name__ == "__main__":
-    cli = LightningCLI(trainer_class=CLITrainer, run=False)
+    cli = LightningCLI(
+        trainer_class=CLITrainer, run=False, parser_kwargs={"parser_mode": "omegaconf"}
+    )
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
