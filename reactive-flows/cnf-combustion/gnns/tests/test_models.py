@@ -23,9 +23,9 @@ import torch
 import torch_geometric as pyg
 import torch_optimizer as optim
 import yaml
-
 from lightning.pytorch.trainer import Trainer
-from models import LitGCN, LitGAT, LitGIN, LitGraphUNet
+
+from models import LitGAT, LitGCN, LitGIN, LitGraphUNet
 
 
 class TestModel(unittest.TestCase):
@@ -171,9 +171,7 @@ class TestModel(unittest.TestCase):
             test_gunet.on_test_epoch_end()
 
             self.assertTrue(
-                os.path.exists(
-                    os.path.join(test_gunet.trainer.log_dir, "plots")
-                )
+                os.path.exists(os.path.join(test_gunet.trainer.log_dir, "plots"))
             )
 
     def test_configure_optimizers(self):
