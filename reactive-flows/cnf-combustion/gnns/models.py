@@ -139,7 +139,7 @@ class CombustionModule(pl.LightningModule):
             self.plotter = plotters.Plotter(
                 self.model.__class__.__name__, plots_path, self.grid_shape
             )
-            self.plotter.cross_section((self.ys.shape[1] - 1), self.ys, self.y_hats)
+            self.plotter.cross_section((self.ys.shape[1] // 2), self.ys, self.y_hats)
             self.plotter.dispersion_plot(self.ys, self.y_hats)
             self.plotter.histo(self.ys, self.y_hats)
             self.plotter.histo2d(self.ys, self.y_hats)
