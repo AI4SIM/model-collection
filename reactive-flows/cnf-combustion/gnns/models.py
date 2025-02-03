@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
+import os
 from typing import List, Tuple
 
 import lightning as pl
@@ -124,14 +126,20 @@ class CombustionModule(pl.LightningModule):
         self.y_hats = self.all_gather(y_hats)
 
         # Reshape the outputs to the original grid shape plus the batch dimension
-        self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
-        self.y_hats = self.y_hats.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
+        self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).detach().numpy()
+        self.y_hats = (
+            self.y_hats.squeeze().view((-1,) + self.grid_shape).detach().numpy()
+        )
 
+        plots_path = os.path.join(self.trainer.log_dir, "plots")
         if self.trainer.is_global_zero:
+            if not os.path.exists(plots_path):
+                os.makedirs(plots_path, exist_ok=True)
+
             self.plotter = plotters.Plotter(
-                self.model.__class__.__name__, self.trainer.plots_path, self.grid_shape
+                self.model.__class__.__name__, plots_path, self.grid_shape
             )
-            self.plotter.cross_section(self.plotter.zslice, self.ys, self.y_hats)
+            self.plotter.cross_section((self.ys.shape[1] // 2), self.ys, self.y_hats)
             self.plotter.dispersion_plot(self.ys, self.y_hats)
             self.plotter.histo(self.ys, self.y_hats)
             self.plotter.histo2d(self.ys, self.y_hats)

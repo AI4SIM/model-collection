@@ -23,8 +23,9 @@ import torch
 import torch_geometric as pyg
 import torch_optimizer as optim
 import yaml
+from lightning.pytorch.trainer import Trainer
 
-import models
+from models import LitGAT, LitGCN, LitGIN, LitGraphUNet
 
 
 class TestModel(unittest.TestCase):
@@ -34,7 +35,7 @@ class TestModel(unittest.TestCase):
         """Define default parameters."""
         self.filenames = ["DNS1_00116000.h5", "DNS1_00117000.h5", "DNS1_00118000.h5"]
 
-        self.initParam = {
+        self.init_param = {
             "in_channels": 1,
             "hidden_channels": 32,
             "out_channels": 1,
@@ -90,52 +91,88 @@ class TestModel(unittest.TestCase):
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
             data_test = self.create_graph(file_path)
 
-            test_gcn = models.LitGCN(**self.initParam)
+            test_gcn = LitGCN(**self.init_param)
             test_forward = test_gcn.forward(data_test.x, data_test.edge_index)
 
             self.assertTrue(isinstance(test_forward, torch.Tensor))
 
     def test_common_step(self):
         """Test the "_common_step" method returns a 3 length tuple."""
+        gin_init_param = {
+            "in_channels": 1,
+            "hidden_channels": 32,
+            "out_channels": 1,
+            "num_layers": 4,
+            "dropout": 0.5,
+            "lr": 0.0001,
+        }
+
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
             data_test = self.create_graph(file_path)
 
-            test_gcn = models.LitGCN(**self.initParam)
+            test_gin = LitGIN(**gin_init_param)
             batch = pyg.data.Batch.from_data_list([data_test, data_test])
 
-            loss = test_gcn._common_step(batch=batch, batch_idx=1, stage="train")
+            loss = test_gin._common_step(batch=batch, batch_idx=1, stage="train")
 
             self.assertEqual(len(loss), 3)
 
     def test_training_step(self):
         """Test the "training_step" method returns a Tensor."""
+        gat_init_param = {
+            "in_channels": 1,
+            "hidden_channels": 32,
+            "out_channels": 1,
+            "num_layers": 4,
+            "dropout": 0.5,
+            "heads": 8,
+            "jk": "last",
+            "lr": 0.0001,
+        }
+
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
             data_test = self.create_graph(file_path)
 
-            test_gcn = models.LitGCN(**self.initParam)
+            test_gat = LitGAT(**gat_init_param)
             batch = pyg.data.Batch.from_data_list([data_test, data_test])
 
-            loss = test_gcn.training_step(batch=batch, batch_idx=1)
+            loss = test_gat.training_step(batch=batch, batch_idx=1)
             self.assertTrue(isinstance(loss, torch.Tensor))
 
     def test_test_step(self):
         """Test the "test_step" method returns a tuple of same size Tensors."""
+        gunet_init_param = {
+            "in_channels": 1,
+            "hidden_channels": 32,
+            "out_channels": 1,
+            "depth": 4,
+            "pool_ratios": 0.5,
+            "lr": 0.0001,
+        }
+
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
             data_test = self.create_graph(file_path)
 
-            test_gcn = models.LitGCN(**self.initParam)
+            test_gunet = LitGraphUNet(**gunet_init_param)
             batch = pyg.data.Batch.from_data_list([data_test, data_test])
 
-            out_tuple = test_gcn.test_step(batch=batch, batch_idx=1)
+            out_tuple = test_gunet.test_step(batch=batch, batch_idx=1)
 
             self.assertEqual(len(out_tuple), 2)
             self.assertEqual(out_tuple[0].size(), out_tuple[1].size())
+
+            test_gunet._trainer = Trainer()
+            test_gunet.on_test_epoch_end()
+
+            self.assertTrue(
+                os.path.exists(os.path.join(test_gunet.trainer.log_dir, "plots"))
+            )
 
     def test_configure_optimizers(self):
         """Test the "configure_optimizers" method returns an optim.Optimizer."""
@@ -144,7 +181,7 @@ class TestModel(unittest.TestCase):
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
             _ = self.create_graph(file_path)
 
-            test_gcn = models.LitGCN(**self.initParam)
+            test_gcn = LitGCN(**self.init_param)
             op = test_gcn.configure_optimizers()
 
             self.assertIsInstance(op, optim.Optimizer)
