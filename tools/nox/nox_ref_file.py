@@ -20,9 +20,12 @@ This file is generic and aims at:
 import os
 import sys
 import re
+import glob
 import nox
 
 REPORTS_DIR = ".ci-reports/"
+COV_FT_FILE = ".coverage-ft"
+COV_UT_FILE = ".coverage-ut"
 ROOT_PATH = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 FLAKE8_CFG = os.path.join(ROOT_PATH, 'tools', 'flake8', 'flake8.cfg')
 
@@ -122,15 +125,31 @@ def tests(session):
     # Install use-case python dependencies
     dev_dependencies(session)
     session.run("python3", "-m", "pip", "install", "pytest-cov")
+    session.run('rm','-rf', COV_UT_FILE, external=True)
     session.run("python3", "-m", "pytest", "--cache-clear", "--cov=./", "-v")
-    session.notify("coverage_report")
+    session.run('mv','.coverage', COV_UT_FILE, external=True)
+    session.notify("coverage_report", ['data-file', f'{COV_UT_FILE}'])
+
+
+def coverage_install(session):
+    session.run("python3", "-m", "pip", "install", "coverage")
 
 
 @nox.session
 def coverage_report(session):
     """Target to generate coverage report from test results."""
-    session.run("python3", "-m", "pip", "install", "coverage")
-    session.run("coverage", "xml", "-o", f"{REPORTS_DIR}/pycoverage.xml")
+    coverage_install(session)
+
+    cov_file=".coverage"
+    if "combine" in session.posargs:
+        session.run("coverage", "combine", "--keep", "--append", *glob.glob(".coverage-*"))
+    elif "data-file" in session.posargs:
+        # set the coverage input coverage datafile name, if provided in the command line with the "data-file" key word
+        # ex: nox -s coverage_report -- data-file .coverage-out
+        cov_file = session.posargs[session.posargs.index("data-file") + 1]
+
+    session.run("coverage", "xml", f"--data-file={cov_file}", "-o", f"{REPORTS_DIR}/py{cov_file.lstrip('.')}.xml")
+    session.run("coverage", "report", "-m", f"--data-file={cov_file}")
 
 
 @nox.session
@@ -204,7 +223,10 @@ def train_test(session):
     # Generate the synthetic dataset required for the functional tests
     generate_synthetic_data(session)
 
-    # Run te functional tests
-    session.run('bash','./ci/run.sh')
+    # Run te functional tests with coverage
+    coverage_install(session)
+    session.run('rm','-rf', COV_FT_FILE, external=True)
+    session.run('bash', './ci/run.sh', '--runner', f'coverage run --append --data-file={COV_FT_FILE}', external=True)
     if "clean_data" in session.posargs:
         session.run('rm','-rf', './data')
+    session.notify("coverage_report", ['data-file', f'{COV_FT_FILE}'])

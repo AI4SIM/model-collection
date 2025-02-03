@@ -11,7 +11,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-python3 trainer.py --config ./ci/configs/gat_test.yaml || exit 1
-python3 trainer.py --config ./ci/configs/gcn_test.yaml || exit 2
-python3 trainer.py --config ./ci/configs/gin_test.yaml || exit 3
-python3 trainer.py --config ./ci/configs/gunet_test.yaml  || exit 4
+RUNNER="python3"
+# Parse script options
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -r|--runner)
+      RUNNER="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+  esac
+done
+
+${RUNNER} trainer.py --config ./ci/configs/gat_test.yaml || exit 1
+${RUNNER} trainer.py --config ./ci/configs/gcn_test.yaml || exit 2
+${RUNNER} trainer.py --config ./ci/configs/gin_test.yaml || exit 3
+${RUNNER} trainer.py --config ./ci/configs/gunet_test.yaml  || exit 4

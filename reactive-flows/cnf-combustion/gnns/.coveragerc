@@ -1,2 +1,3 @@
 [run]
+include = ./*.py
 omit = noxfile.py,tests/*
