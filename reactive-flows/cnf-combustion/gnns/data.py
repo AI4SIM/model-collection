@@ -203,6 +203,8 @@ class LitCombustionDataModule(pl.LightningDataModule):
             batch_size (int): Batch size.
             num_workers (int): DataLoader number of workers for loading data.
             y_normalizer (float): Normalizing value.
+            splitting_ratios (list): ratios of the full dataset for training, validation and testing
+                sets.
             data_path (str): path to the data used by the training.
             source_raw_data_path (str): path to raw data that will be symlinked in data_path.
         """

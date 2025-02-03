@@ -24,7 +24,7 @@ data:
     init_args:
         batch_size: 1
         num_workers: 0
-        splitting_lengths: [111, 8, 8]
+        splitting_ratios: [0.8, 0.1, 0.1]
         y_normalizer: 342.553
         subblock_shape: [32, 16, 16]  # keeping power 2 dimensions for the U-net.
         data_path: ${oc.decode:${oc.env:DATADIR, ./data}}
