@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-from typing import List
+from typing import List, Tuple
 
 import h5py
 import lightning as pl
@@ -22,6 +22,7 @@ import numpy as np
 import torch
 import torch_geometric as pyg
 import yaml
+from torch.utils.data import random_split
 
 
 class CombustionDataset(pyg.data.Dataset):
@@ -193,6 +194,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
         num_workers: int,
         y_normalizer: float,
         data_path: str,
+        splitting_ratios: Tuple[float, float, float] = (0.8, 0.1, 0.1),
         source_raw_data_path: str = None,
     ) -> None:
         """Init the LitCombustionDataModule class.
@@ -207,6 +209,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.y_normalizer = y_normalizer
+        self.splitting_ratios = splitting_ratios
         self.data_path = data_path
         self.source_raw_data_path = source_raw_data_path
 
@@ -238,17 +241,27 @@ class LitCombustionDataModule(pl.LightningDataModule):
         if self.source_raw_data_path:
             LinkRawData(self.source_raw_data_path, self.data_path)
 
-        dataset = R2Dataset(self.data_path, y_normalizer=self.y_normalizer).shuffle()
-        dataset_size = len(dataset)
+        dataset = R2Dataset(self.data_path, y_normalizer=self.y_normalizer)
 
-        self.val_dataset = dataset[int(dataset_size * 0.9) :]
-        self.test_dataset = dataset[int(dataset_size * 0.8) : int(dataset_size * 0.9)]
-        self.train_dataset = dataset[: int(dataset_size * 0.8)]
+        tr, va, te = self.splitting_ratios
+        if (tr + va + te) != 1:
+            raise RuntimeError(
+                f"The the splitting ratios does not cover the full dataset: {(tr + va + te)} =! 1"
+            )
+        length = len(dataset)
+        idx = list(range(length))
+        train_size = len(idx[: int(tr * length)])
+        val_size = len(idx[int(tr * length) : int((tr + va) * length)])
+        test_size = len(idx[int((tr + va) * length) :])
+
+        self.train_dataset, self.val_dataset, self.test_dataset = random_split(
+            dataset, [train_size, val_size, test_size]
+        )
 
         if not (self.val_dataset and self.test_dataset and self.train_dataset):
             raise ValueError(
                 "The dataset is too small to be split properly. "
-                f"Current length is : {dataset_size}."
+                f"Current length is : {length}."
             )
 
     def train_dataloader(self) -> pyg.loader.DataLoader:
