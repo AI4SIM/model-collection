@@ -13,13 +13,13 @@
 # limitations under the License.
 
 import os
-from typing import List, Tuple
+from typing import List, Dict, Tuple
 
 import h5py
 import lightning as pl
 import networkx as nx
 import numpy as np
-import torch
+from torch import tensor, float as tfloat, LongTensor
 import torch_geometric as pyg
 import yaml
 from torch.utils.data import random_split
@@ -42,6 +42,7 @@ class CombustionDataset(pyg.data.Dataset):
             y_normalizer (str): normalizing value
         """
         self.y_normalizer = y_normalizer
+        self.graph_topology = None
         super().__init__(root)
 
     @property
@@ -71,14 +72,45 @@ class CombustionDataset(pyg.data.Dataset):
             f"and move all files in file.tgz/DATA in {self.raw_dir}"
         )
 
+    def _get_data(self, idx: int) -> Dict[str, np.array]:
+        """Return the dict of the feat and sigma of the corresponding data file.
+
+        Returns:
+            (Dict[str, np.array]): the feat and sigma.
+        """
+        raise NotImplementedError
+
     def get(self, idx: int) -> pyg.data.Data:
         """Return the graph at the given index.
 
         Returns:
             (pyg.data.Data): Graph at the given index.
         """
-        data = torch.load(os.path.join(self.processed_dir, f"data-{idx}.pt"))
-        return data
+        data = self._get_data(idx)
+        pyg_data = pyg.data.Data(
+            x=tensor(data["feat"].reshape(-1, 1), dtype=tfloat),
+            edge_index=self.graph_topology["undirected_index"].clone().detach().type(LongTensor),
+            pos=tensor(np.stack(self.graph_topology["coordinates"])),
+            y=tensor(data["sigma"].reshape(-1, 1), dtype=tfloat),
+        )
+        return pyg_data
+
+    def create_graph_topo(self, grid_shape: Tuple[int, int, int]) -> None:
+        """Create the graph topology and store it in memory.
+
+        Args:
+            grid_shape (Tuple[int, int, int]): the shapr of the grid for the
+                z, y and x sorted dimensions.
+        """
+        g0 = nx.grid_graph(dim=grid_shape)
+        graph = pyg.utils.convert.from_networkx(g0)
+        undirected_index = graph.edge_index
+        coordinates = list(g0.nodes())
+        coordinates.reverse()
+        self.graph_topology = {
+            "undirected_index": undirected_index,
+            "coordinates": coordinates
+        }
 
     def len(self) -> int:
         """Return the total length of the dataset
@@ -106,34 +138,28 @@ class R2Dataset(CombustionDataset):
         Create a graph for each volume of data, and saves each graph in a separate file index by
         the order in the raw file names list.
         """
-        i = 0
-        for raw_path in self.raw_paths:
-            with h5py.File(raw_path, "r") as file:
-                feat = file["/c_filt"][:]
+        # Create graph from first file
+        with h5py.File(self.raw_paths[0], "r") as file:
+            feat = file["/c_filt"][:]
+        x_size, y_size, z_size = feat.shape
+        grid_shape = (z_size, y_size, x_size)
+        self.create_graph_topo(grid_shape)
 
-                sigma = file["/c_grad_filt"][:]
-                if self.y_normalizer:
-                    sigma /= self.y_normalizer
+    def _get_data(self, idx: int) -> Dict[str, np.array]:
+        """Return the dict of the feat and sigma of the corresponding data file.
 
-            x_size, y_size, z_size = feat.shape
+        Returns:
+            (Dict[str, np.array]): the feat and sigma.
+        """
+        data = {}
 
-            grid_shape = (z_size, y_size, x_size)
+        with h5py.File(self.raw_paths[idx], "r") as file:
+            data["feat"] = file["/c_filt"][:]
 
-            g0 = nx.grid_graph(dim=grid_shape)
-            graph = pyg.utils.convert.from_networkx(g0)
-            undirected_index = graph.edge_index
-            coordinates = list(g0.nodes())
-            coordinates.reverse()
-
-            data = pyg.data.Data(
-                x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
-                edge_index=undirected_index.clone().detach().type(torch.LongTensor),
-                pos=torch.tensor(np.stack(coordinates)),
-                y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float),
-            )
-
-            torch.save(data, os.path.join(self.processed_dir, f"data-{i}.pt"))
-            i += 1
+            data["sigma"] = file["/c_grad_filt"][:]
+            if self.y_normalizer:
+                data["sigma"] /= self.y_normalizer
+        return data
 
 
 class CnfDataset(CombustionDataset):
@@ -153,33 +179,28 @@ class CnfDataset(CombustionDataset):
         Create a graph for each volume of data, and saves each graph in a separate file index by
         the order in the raw file names list.
         """
-        i = 0
-        for raw_path in self.raw_paths:
-            with h5py.File(raw_path, "r") as file:
-                feat = file["/filt_8"][:]
+        # Create graph from first file
+        with h5py.File(self.raw_paths[0], "r") as file:
+            feat = file["/filt_8"][:]
+        x_size, y_size, z_size = feat.shape
+        grid_shape = (z_size, y_size, x_size)
+        self.create_graph_topo(grid_shape)
 
-                sigma = file["/filt_grad_8"][:]
-                if self.y_normalizer is not None:
-                    sigma /= self.y_normalizer
+    def _get_data(self, idx: int) -> Dict[str, np.array]:
+        """Return the dict of the feat and sigma of the corresponding data file.
 
-            x_size, y_size, z_size = feat.shape
-            grid_shape = (z_size, y_size, x_size)
+        Returns:
+            (Dict[str, np.array]): the feat and sigma.
+        """
+        data = {}
+        with h5py.File(self.raw_paths[idx], "r") as file:
+            data["feat"] = file["/filt_8"][:]
 
-            g0 = nx.grid_graph(dim=grid_shape)
-            graph = pyg.utils.convert.from_networkx(g0)
-            undirected_index = graph.edge_index
-            coordinates = list(g0.nodes())
-            coordinates.reverse()
+            data["sigma"] = file["/filt_grad_8"][:]
+            if self.y_normalizer:
+                data["sigma"] /= self.y_normalizer
+        return data
 
-            data = pyg.data.Data(
-                x=torch.tensor(feat.reshape(-1, 1), dtype=torch.float),
-                edge_index=undirected_index.type(torch.LongTensor),
-                pos=torch.tensor(np.stack(coordinates)),
-                y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float),
-            )
-
-            torch.save(data, os.path.join(self.processed_dir, f"data-{i}.pt"))
-            i += 1
 
 
 class LitCombustionDataModule(pl.LightningDataModule):
