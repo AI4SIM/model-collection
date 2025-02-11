@@ -12,17 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import copy
 import os
-from typing import List, Dict, Tuple
+from typing import Dict, List, Tuple
 
 import h5py
 import lightning as pl
 import networkx as nx
 import numpy as np
-from torch import tensor, float as tfloat, LongTensor
 import torch_geometric as pyg
 import yaml
 from torch.utils.data import random_split
+from torch import float as tfloat
+from torch import tensor
 
 
 class CombustionDataset(pyg.data.Dataset):
@@ -86,13 +88,10 @@ class CombustionDataset(pyg.data.Dataset):
         Returns:
             (pyg.data.Data): Graph at the given index.
         """
+        pyg_data = copy.copy(self.graph_topology)
         data = self._get_data(idx)
-        pyg_data = pyg.data.Data(
-            x=tensor(data["feat"].reshape(-1, 1), dtype=tfloat),
-            edge_index=self.graph_topology["undirected_index"].clone().detach().type(LongTensor),
-            pos=tensor(np.stack(self.graph_topology["coordinates"])),
-            y=tensor(data["sigma"].reshape(-1, 1), dtype=tfloat),
-        )
+        pyg_data.x = tensor(data["feat"].reshape(-1, 1), dtype=tfloat)
+        pyg_data.y = tensor(data["sigma"].reshape(-1, 1), dtype=tfloat)
         return pyg_data
 
     def create_graph_topo(self, grid_shape: Tuple[int, int, int]) -> None:
@@ -103,14 +102,10 @@ class CombustionDataset(pyg.data.Dataset):
                 z, y and x sorted dimensions.
         """
         g0 = nx.grid_graph(dim=grid_shape)
-        graph = pyg.utils.convert.from_networkx(g0)
-        undirected_index = graph.edge_index
+        self.graph_topology = pyg.utils.convert.from_networkx(g0)
         coordinates = list(g0.nodes())
         coordinates.reverse()
-        self.graph_topology = {
-            "undirected_index": undirected_index,
-            "coordinates": coordinates
-        }
+        self.graph_topology.pos = tensor(np.stack(coordinates))
 
     def len(self) -> int:
         """Return the total length of the dataset
@@ -152,7 +147,6 @@ class R2Dataset(CombustionDataset):
             (Dict[str, np.array]): the feat and sigma.
         """
         data = {}
-
         with h5py.File(self.raw_paths[idx], "r") as file:
             data["feat"] = file["/c_filt"][:]
 
@@ -200,7 +194,6 @@ class CnfDataset(CombustionDataset):
             if self.y_normalizer:
                 data["sigma"] /= self.y_normalizer
         return data
-
 
 
 class LitCombustionDataModule(pl.LightningDataModule):
