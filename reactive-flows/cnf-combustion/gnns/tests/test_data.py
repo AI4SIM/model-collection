@@ -22,8 +22,9 @@ import h5py
 import numpy as np
 import torch
 import yaml
+from torch import LongTensor, Tensor
 
-from data import CnfDataset, LinkRawData, LitCombustionDataModule
+from data import CnfDataModule, CnfDataset, LinkRawData
 
 
 class TestData(unittest.TestCase):
@@ -98,10 +99,12 @@ class TestData(unittest.TestCase):
 
             self.assertTrue(os.path.exists(os.path.join(tempdir, "data", "processed")))
 
-            # insert +2 to have transform and filter files
-            self.assertEqual(
-                len(os.listdir(os.path.join(tempdir, "data", "processed"))),
-                len(self.filenames) + 2,
+            # Check the pyg.data.Data object has edge_index and pos
+            self.assertTrue(
+                isinstance(data_test.graph_topology.edge_index, LongTensor),
+            )
+            self.assertTrue(
+                isinstance(data_test.graph_topology.pos, Tensor),
             )
 
     def test_get(self):
@@ -121,7 +124,7 @@ class TestData(unittest.TestCase):
 
             init_param = copy(self.init_param)
             init_param.update({"data_path": os.path.join(tempdir, "data")})
-            dataset_test = LitCombustionDataModule(**init_param)
+            dataset_test = CnfDataModule(**init_param)
 
             with self.assertRaises(ValueError) as context:
                 dataset_test.setup(stage=None)
@@ -150,7 +153,7 @@ class TestData(unittest.TestCase):
 
             init_param = copy(self.init_param)
             init_param.update({"data_path": os.path.join(tempdir, "data")})
-            dataset_test = LitCombustionDataModule(**init_param)
+            dataset_test = CnfDataModule(**init_param)
 
             with self.assertRaises(ValueError):
                 _ = dataset_test.setup(stage=None)
@@ -166,7 +169,7 @@ class TestData(unittest.TestCase):
 
             init_param = copy(self.init_param)
             init_param.update({"data_path": os.path.join(tempdir, "data")})
-            dataset_test = LitCombustionDataModule(**init_param)
+            dataset_test = CnfDataModule(**init_param)
 
             with self.assertRaises(ValueError):
                 _ = dataset_test.setup(stage=None)
@@ -182,7 +185,7 @@ class TestData(unittest.TestCase):
 
             init_param = copy(self.init_param)
             init_param.update({"data_path": os.path.join(tempdir, "data")})
-            dataset_test = LitCombustionDataModule(**init_param)
+            dataset_test = CnfDataModule(**init_param)
 
             with self.assertRaises(ValueError):
                 _ = dataset_test.setup(stage=None)
