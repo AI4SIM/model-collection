@@ -236,6 +236,11 @@ class LitCombustionDataModule(pl.LightningDataModule):
         self.test_dataset = None
         self.train_dataset = None
 
+    @property
+    def dataset_class(self) -> pyg.data.Dataset:
+        # Set here the Dataset class you want to use in the datamodule
+        return NotImplementedError
+
     def prepare_data(self) -> None:
         """Not used."""
         CombustionDataset(self.data_path, self.y_normalizer)
@@ -257,7 +262,9 @@ class LitCombustionDataModule(pl.LightningDataModule):
         if self.source_raw_data_path:
             LinkRawData(self.source_raw_data_path, self.data_path)
 
-        dataset = R2Dataset(self.data_path, y_normalizer=self.y_normalizer)
+        dataset = self.dataset_class(
+            self.data_path, y_normalizer=self.y_normalizer
+        ).shuffle()
 
         tr, va, te = self.splitting_ratios
         if (tr + va + te) != 1:
@@ -365,3 +372,19 @@ class LinkRawData:
                 os.rmdir(file_location)
             else:
                 pass
+
+
+class R2DataModule(LitCombustionDataModule):
+    """Data module to load use R2Dataset."""
+
+    @property
+    def dataset_class(self) -> pyg.data.Dataset:
+        return R2Dataset
+
+
+class CnfDataModule(LitCombustionDataModule):
+    """Data module to load use R2Dataset."""
+
+    @property
+    def dataset_class(self) -> pyg.data.Dataset:
+        return CnfDataset

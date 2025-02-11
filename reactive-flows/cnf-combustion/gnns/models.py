@@ -126,8 +126,10 @@ class CombustionModule(pl.LightningModule):
         self.y_hats = self.all_gather(y_hats)
 
         # Reshape the outputs to the original grid shape plus the batch dimension
-        self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
-        self.y_hats = self.y_hats.squeeze().view((-1,) + self.grid_shape).cpu().numpy()
+        self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).detach().cpu().numpy()
+        self.y_hats = (
+            self.y_hats.squeeze().view((-1,) + self.grid_shape).detach().cpu().numpy()
+        )
 
         plots_path = os.path.join(self.trainer.log_dir, "plots")
         if self.trainer.is_global_zero:
