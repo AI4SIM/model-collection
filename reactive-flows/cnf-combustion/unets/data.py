@@ -94,7 +94,8 @@ class CnfCombustionDataModule(LightningDataModule):
     Providing 3D blocks of the CNF combustion dataset.
 
     Args:
-        splitting_lengths (list): lengths of training, validation and testing sets.
+        splitting_ratios (list): ratios of the full dataset for training, validation and testing
+            sets.
         shuffling: whether to shuffle the trainset.
         subblock_shape (int or tuple): data augmentation by randomly cropping sub-blocks.
     """
@@ -103,7 +104,7 @@ class CnfCombustionDataModule(LightningDataModule):
         self,
         batch_size: int,
         num_workers: int,
-        splitting_lengths: list,
+        splitting_ratios: list,
         data_path: str,
         shuffling: bool = False,
         y_normalizer: float = None,
@@ -111,7 +112,7 @@ class CnfCombustionDataModule(LightningDataModule):
     ):
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.splitting_lengths = splitting_lengths
+        self.splitting_ratios = splitting_ratios
         self.data_path = data_path
         self.shuffling = shuffling
         self.y_normalizer = y_normalizer
@@ -127,11 +128,27 @@ class CnfCombustionDataModule(LightningDataModule):
         dataset = CnfCombustionDataset(
             self.data_path, self.y_normalizer, self.subblock_shape
         )
+
+        tr, va, te = self.splitting_ratios
+        if (tr + va + te) != 1:
+            raise RuntimeError(
+                f"The the splitting ratios does not cover the full dataset: {(tr + va + te)} =! 1"
+            )
+        length = len(dataset)
+        idx = list(range(length))
+        train_size = len(idx[: int(tr * length)])
+        val_size = len(idx[int(tr * length) : int((tr + va) * length)])
+        test_size = len(idx[int((tr + va) * length) :])
+
         self.train_dataset, self.val_dataset, self.test_dataset = random_split(
-            dataset, self.splitting_lengths
+            dataset, [train_size, val_size, test_size]
         )
-        if self.shuffling:
-            self.train_dataset = self.train_dataset.shuffle()
+
+        if not (self.val_dataset and self.test_dataset and self.train_dataset):
+            raise ValueError(
+                "The dataset is too small to be split properly. "
+                f"Current length is : {length}."
+            )
 
     def train_dataloader(self):
         return DataLoader(

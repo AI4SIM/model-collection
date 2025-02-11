@@ -36,6 +36,7 @@ class TestData(unittest.TestCase):
             "batch_size": 1,
             "num_workers": 0,
             "y_normalizer": 342.553,
+            "splitting_ratios": [0.8, 0.1, 0.1],
             "data_path": "./data",
         }
 
@@ -130,17 +131,9 @@ class TestData(unittest.TestCase):
                     in str(context.exception)
                 )
 
-            self.assertEqual(
-                len(dataset_test.train_dataset), int(len(self.filenames) * 0.8)
-            )
-            self.assertEqual(
-                len(dataset_test.val_dataset),
-                int(len(self.filenames)) - int(len(self.filenames) * 0.9),
-            )
-            self.assertEqual(
-                len(dataset_test.test_dataset),
-                int(len(self.filenames) * 0.9) - int(len(self.filenames) * 0.8),
-            )
+            self.assertEqual(len(dataset_test.train_dataset), 2)
+            self.assertEqual(len(dataset_test.val_dataset), 0)
+            self.assertEqual(len(dataset_test.test_dataset), 1)
 
     def test_train_dataloader(self):
         """Test the "train_dataloader"."""

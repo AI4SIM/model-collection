@@ -17,7 +17,7 @@ from os.path import exists, join
 
 import numpy as np
 from h5py import File
-from yaml import dump, safe_load
+from yaml import dump
 
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
 data_path = "./data"
@@ -25,44 +25,22 @@ data_path = "./data"
 
 def create_data():
     """Create data folder with fake raw data"""
-    filepath = join("ci/configs", "mlp_test.yaml")
-    filenames = [
-        "test_1.h5",
-        "test_2.h5",
-        "test_3.h5",
-        "test_4.h5",
-        "test_5.h5",
-        "test_6.h5",
-    ]
-    file_split = {}
+    file_split = {
+        "train": ["test_1.h5", "test_2.h5", "test_3.h5"],
+        "val": ["test_4.h5", "test_5.h5"],
+        "test": ["test_6.h5"],
+    }
 
-    with open(filepath, "r") as file:
-        params = safe_load(file)
-
-    row_feats = params["data"]["init_args"]["shard_len"]
     if not exists(data_path):
         makedirs(join(data_path, "raw"))
-        for file_h5 in filenames:
+        for file_h5 in [f for group_f in file_split.values() for f in group_f]:
             with File(join(data_path, "raw", file_h5), "w") as f:
-                f["/x"] = np.random.normal(0, 1, (row_feats, 191)).astype("float32")
-                f["/y"] = np.random.normal(0, 1, (row_feats, 126)).astype("float32")
-
-        temp_file_path = join(data_path, "filenames.yaml")
-        with open(temp_file_path, "w") as tmpfile:
-            dump(filenames, tmpfile)
-
-        tr, va = params["data"]["init_args"]["splitting_ratios"]
-        length = len(filenames)
-
-        for _ in filenames:
-            file_split["train"] = filenames[: int(tr * length)]
-            file_split["val"] = filenames[int(tr * length) : int((tr + va) * length)]
-            file_split["test"] = filenames[int((tr + va) * length) :]
+                f["/x"] = np.random.normal(0, 1, (10, 191)).astype("float32")
+                f["/y"] = np.random.normal(0, 1, (10, 126)).astype("float32")
 
         temp_file_path = join(data_path, "filenames-split.yaml")
         with open(temp_file_path, "w") as tmpfile:
             dump(file_split, tmpfile)
-
     else:
         raise Exception(f"Remove manually {data_path}")
 

@@ -93,6 +93,10 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
 
         # Define subsets.
         tr, va, te = self.splitting_ratios
+        if (tr + va + te) != 1:
+            raise RuntimeError(
+                f"The the splitting ratios does not cover the full dataset: {(tr + va + te)} =! 1"
+            )
         self.dataset = ThreeDCorrectionDataset(self.data_path)
         length = len(self.dataset)
         idx = list(range(length))

@@ -45,7 +45,12 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
 
     def setUp(self) -> None:
         """Instantiate the NOGWDDataset class in train mode."""
-        self.data_test = NOGWDDataset(root=TEST_DATA_PATH, mode="train", shard_len=1)
+        self.data_test = NOGWDDataset(
+            root=TEST_DATA_PATH,
+            mode="train",
+            shard_len=1,
+            splitting_file=REF_FILENAMES_FILE,
+        )
 
     def test__compute_stats(self):
         """Test the instantiated NOGWDDataset class in train mode, has created the stat file."""
@@ -118,7 +123,12 @@ class TestNOGWDDatasetTest(unittest.TestCase):
 
     def setUp(self) -> None:
         """Instantiate the NOGWDDataset class in test mode."""
-        self.data_test = NOGWDDataset(root=TEST_DATA_PATH, mode="test", shard_len=1)
+        self.data_test = NOGWDDataset(
+            root=TEST_DATA_PATH,
+            mode="test",
+            shard_len=1,
+            splitting_file=REF_FILENAMES_FILE,
+        )
 
     def test__compute_stats(self):
         """Test the instantiated NOGWDDataset class in train mode, has NOT created the stat file."""
@@ -152,7 +162,12 @@ class TestNOGWDDatasetVal(unittest.TestCase):
 
     def setUp(self) -> None:
         """Instantiate the NOGWDDataset class in val mode."""
-        self.data_test = NOGWDDataset(root=TEST_DATA_PATH, mode="val", shard_len=1)
+        self.data_test = NOGWDDataset(
+            root=TEST_DATA_PATH,
+            mode="val",
+            shard_len=1,
+            splitting_file=REF_FILENAMES_FILE,
+        )
 
     def test__compute_stats(self):
         """Test the instantiated NOGWDDataset class in train mode, has NOT created the stat file."""
@@ -188,7 +203,10 @@ class TestNOGWDDataModule(unittest.TestCase):
     def setUp(self) -> None:
         """Instantiate the NOGWDDataset class in val mode."""
         self.data_module = NOGWDDataModule(
-            batch_size=1, num_workers=0, data_path=TEST_DATA_PATH
+            batch_size=1,
+            num_workers=0,
+            data_path=TEST_DATA_PATH,
+            splitting_file=REF_FILENAMES_FILE,
         )
 
     def test_setup_fit(self):

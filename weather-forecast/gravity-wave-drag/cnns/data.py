@@ -33,18 +33,23 @@ class NOGWDDataset(torch.utils.data.Dataset):
     x_feat = 191
     y_feat = 126
 
-    def __init__(self, root: str, mode: str, shard_len: int) -> None:
+    def __init__(
+        self, root: str, mode: str, shard_len: int, splitting_file: str
+    ) -> None:
         """Create the Dataset.
 
         Args:
             root (str): Path to the root data folder.
             mode (str): Data processing mode. If 'train', it will compute the stats used by the
                 model in the normalization layer.
+            splitting_file (str): Path to the file that contains the set of filenames used for
+                each dataset (train, val, test).
         """
         super().__init__()
         self.root = root
         self.mode = mode
         self.shard_len = shard_len
+        self.splitting_file = splitting_file
 
         self.x, self.y = self.load()
 
@@ -106,7 +111,7 @@ class NOGWDDataset(torch.utils.data.Dataset):
         Returns:
             (List[str]): Raw data file names list.
         """
-        with open(os.path.join(self.root, "filenames-split.yaml"), "r") as stream:
+        with open(self.splitting_file, "r") as stream:
             filenames = yaml.safe_load(stream)
             filenames = filenames[self.mode]
         return filenames
@@ -139,7 +144,7 @@ class NOGWDDataModule(pl.LightningDataModule):
         batch_size: int,
         num_workers: int,
         data_path: str,
-        splitting_ratios: Tuple[float, float] = (0.8, 0.1),
+        splitting_file: str,
         shard_len: int = 2355840,
     ) -> None:
         """Init the NOGWDDataModule class.
@@ -150,7 +155,7 @@ class NOGWDDataModule(pl.LightningDataModule):
         """
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.splitting_ratios = splitting_ratios
+        self.splitting_file = splitting_file
         self.shard_len = shard_len
         self.data_path = data_path
         super().__init__()
@@ -169,11 +174,17 @@ class NOGWDDataModule(pl.LightningDataModule):
                 train and val DataLoaders. If 'test', it will prepare the test DataLoader.
         """
         if stage == "fit":
-            self.train = NOGWDDataset(self.data_path, "train", self.shard_len)
-            self.val = NOGWDDataset(self.data_path, "val", self.shard_len)
+            self.train = NOGWDDataset(
+                self.data_path, "train", self.shard_len, self.splitting_file
+            )
+            self.val = NOGWDDataset(
+                self.data_path, "val", self.shard_len, self.splitting_file
+            )
 
         if stage == "test":
-            self.test = NOGWDDataset(self.data_path, "test", self.shard_len)
+            self.test = NOGWDDataset(
+                self.data_path, "test", self.shard_len, self.splitting_file
+            )
 
     def train_dataloader(self) -> torch.utils.data.DataLoader:
         """Return the train DataLoader.
