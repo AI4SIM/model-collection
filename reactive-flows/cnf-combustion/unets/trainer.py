@@ -10,10 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from lightning import seed_everything
 from lightning.pytorch.cli import LightningCLI
 
 
 def main():
+    seed_everything(42, workers=True)
     cli = LightningCLI(run=False, parser_kwargs={"parser_mode": "omegaconf"})
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)
