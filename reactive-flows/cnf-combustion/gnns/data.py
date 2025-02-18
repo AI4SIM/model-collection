@@ -98,7 +98,7 @@ class CombustionDataset(pyg.data.Dataset):
         """Create the graph topology and store it in memory.
 
         Args:
-            grid_shape (Tuple[int, int, int]): the shapr of the grid for the
+            grid_shape (Tuple[int, int, int]): the shape of the grid for the
                 z, y and x sorted dimensions.
         """
         g0 = nx.grid_graph(dim=grid_shape)
