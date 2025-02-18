@@ -33,10 +33,11 @@ def create_data():
 
     if not exists(data_path):
         makedirs(join(data_path, "raw"))
-        for file_h5 in [f for group_f in file_split.values() for f in group_f]:
-            with File(join(data_path, "raw", file_h5), "w") as f:
-                f["/x"] = np.random.normal(0, 1, (10, 191)).astype("float32")
-                f["/y"] = np.random.normal(0, 1, (10, 126)).astype("float32")
+        for file_list in file_split.values():
+            for file_h5 in file_list:
+                with File(join(data_path, "raw", file_h5), "w") as f:
+                    f["/x"] = np.random.normal(0, 1, (10, 191)).astype("float32")
+                    f["/y"] = np.random.normal(0, 1, (10, 126)).astype("float32")
 
         temp_file_path = join(data_path, "filenames-split.yaml")
         with open(temp_file_path, "w") as tmpfile:
