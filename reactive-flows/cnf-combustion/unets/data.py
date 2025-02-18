@@ -12,7 +12,7 @@
 
 from os import listdir, makedirs
 from os.path import isfile, join
-from typing import Optional, Union, Tuple
+from typing import Optional, Tuple, Union
 
 from h5py import File
 from lightning import LightningDataModule

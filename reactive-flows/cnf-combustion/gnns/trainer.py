@@ -14,7 +14,6 @@
 
 from lightning.pytorch.cli import LightningCLI
 
-
 if __name__ == "__main__":
     cli = LightningCLI(run=False, parser_kwargs={"parser_mode": "omegaconf"})
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
