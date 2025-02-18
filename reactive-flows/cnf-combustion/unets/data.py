@@ -12,7 +12,7 @@
 
 from os import listdir, makedirs
 from os.path import isfile, join
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 
 from h5py import File
 from lightning import LightningDataModule
@@ -104,7 +104,7 @@ class CnfCombustionDataModule(LightningDataModule):
         self,
         batch_size: int,
         num_workers: int,
-        splitting_ratios: list,
+        splitting_ratios: Tuple[float, float, float],
         data_path: str,
         shuffling: bool = False,
         y_normalizer: float = None,
