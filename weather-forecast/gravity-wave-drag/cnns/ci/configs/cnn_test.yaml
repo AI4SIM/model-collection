@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+seed_everything: 0
+
 model:
     class_path: models.LitCNN
     init_args:
@@ -25,9 +27,9 @@ data:
     init_args:
         batch_size: 10
         num_workers: 1
-        splitting_ratios: [0.6, 0.2]
-        shard_len: 100
+        shard_len: 10
         data_path: ${oc.decode:${oc.env:DATADIR, ./data}}
+        splitting_file: ${oc.decode:${oc.env:DATADIR, ./data}}/filenames-split.yaml
 
 trainer:
     max_epochs: 1

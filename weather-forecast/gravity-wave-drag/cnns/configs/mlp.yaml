@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+seed_everything: 0
+
 model:
     class_path: models.LitMLP
     init_args:
@@ -24,6 +26,7 @@ data:
         batch_size: 256
         num_workers: 0
         data_path: ${oc.decode:${oc.env:DATADIR, ./data}}
+        splitting_file: ${oc.decode:${oc.env:DATADIR, ./data}}/filenames-split.yaml
 
 trainer:
     max_epochs: 5

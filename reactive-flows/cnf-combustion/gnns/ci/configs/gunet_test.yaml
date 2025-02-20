@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+seed_everything: 0
+
 model:
     class_path: models.LitGraphUNet
     init_args:
@@ -26,6 +28,7 @@ data:
         batch_size: 1
         num_workers: 0
         y_normalizer: 3295.4
+        splitting_ratios: [0.8, 0.1, 0.1]
         data_path: ${oc.decode:${oc.env:DATADIR, ./data}}
 
 trainer:

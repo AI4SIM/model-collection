@@ -45,7 +45,12 @@ class TestLitMLP(unittest.TestCase):
     def setUp(self) -> None:
         """Instantiate the LitMLP class and produce input dataset."""
         # Generate data fir test purpose
-        data_test = NOGWDDataset(root=TEST_DATA_PATH, mode="train", shard_len=1)
+        data_test = NOGWDDataset(
+            root=TEST_DATA_PATH,
+            mode="train",
+            shard_len=1,
+            splitting_file=REF_FILENAMES_FILE,
+        )
         self.data = data_test.load()
         # Instantiate a LitMLP
         self.model_test = LitMLP(
@@ -105,7 +110,12 @@ class TestLitCNN(unittest.TestCase):
     def setUp(self) -> None:
         """Instantiate the LitMLP class and produce input dataset."""
         # Generate data fir test purpose
-        data_test = NOGWDDataset(root=TEST_DATA_PATH, mode="train", shard_len=1)
+        data_test = NOGWDDataset(
+            root=TEST_DATA_PATH,
+            mode="train",
+            shard_len=1,
+            splitting_file=REF_FILENAMES_FILE,
+        )
         self.data = data_test.load()
         # Instantiate a LitCNN
         self.model_test = LitCNN(

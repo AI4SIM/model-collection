@@ -34,7 +34,7 @@ class TestData(TestCase):
             "num_workers": 0,
             "y_normalizer": 342.553,
             "data_path": "./data",
-            "splitting_lengths": [1, 1, 1],
+            "splitting_ratios": [0.4, 0.4, 0.2],
             "subblock_shape": (32, 16, 16),
         }
 
