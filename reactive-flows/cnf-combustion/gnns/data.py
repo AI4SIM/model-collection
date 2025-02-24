@@ -22,9 +22,9 @@ import networkx as nx
 import numpy as np
 import torch_geometric as pyg
 import yaml
-from torch.utils.data import random_split
 from torch import float as tfloat
 from torch import tensor
+from torch.utils.data import random_split
 
 
 class CombustionDataset(pyg.data.Dataset):
