@@ -12,19 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import copy
 import os
 from typing import Dict, List, Tuple
 
 import h5py
 import lightning as pl
-import networkx as nx
 import numpy as np
 import torch_geometric as pyg
 import yaml
 from torch import float as tfloat
 from torch import tensor
 from torch.utils.data import random_split
+
+from utils import create_graph_topo
 
 
 class CombustionDataset(pyg.data.Dataset):
@@ -215,9 +215,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
         CombustionDataset(self.data_path, self.y_normalizer)
 
     def build_graph_topo(self) -> None:
-        """
-        Create a graph topology from first file.
-        """
+        """Create a graph topology from first file."""
         raise NotImplementedError
 
     def setup(
@@ -347,24 +345,6 @@ class LinkRawData:
                 pass
 
 
-def create_graph_topo(grid_shape: Tuple[int, int, int]) -> pyg.data.Data:
-    """Create the graph topology to be shared with the LightningModule.
-
-    Args:
-        grid_shape (Tuple[int, int, int]): the shape of the grid for the
-            z, y and x sorted dimensions.
-
-    Return:
-        (pyg.data.Data): the graph topology.
-    """
-    g0 = nx.grid_graph(dim=grid_shape)
-    graph_topology = pyg.utils.convert.from_networkx(g0)
-    coordinates = list(g0.nodes())
-    coordinates.reverse()
-    graph_topology.pos = tensor(np.stack(coordinates))
-    return graph_topology
-
-
 class R2DataModule(LitCombustionDataModule):
     """Data module to load use R2Dataset."""
 
@@ -373,9 +353,7 @@ class R2DataModule(LitCombustionDataModule):
         return R2Dataset
 
     def build_graph_topo(self) -> None:
-        """
-        Create a graph topology from first file.
-        """
+        """Create a graph topology from first file."""
         # Create graph from first file
         with h5py.File(self.dataset.raw_paths[0], "r") as file:
             feat = file["/c_filt"][:]
@@ -392,9 +370,7 @@ class CnfDataModule(LitCombustionDataModule):
         return CnfDataset
 
     def build_graph_topo(self) -> None:
-        """
-        Create a graph topology from first file.
-        """
+        """Create a graph topology from first file."""
         with h5py.File(self.dataset.raw_paths[0], "r") as file:
             feat = file["/filt_8"][:]
         x_size, y_size, z_size = feat.shape

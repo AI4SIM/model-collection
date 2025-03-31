@@ -22,9 +22,9 @@ import h5py
 import numpy as np
 import torch
 import yaml
-from torch import LongTensor, Tensor
 
-from data import CnfDataModule, CnfDataset, LinkRawData, create_graph_topo
+from data import CnfDataModule, CnfDataset, LinkRawData
+from utils import create_graph_topo
 
 
 class TestData(unittest.TestCase):

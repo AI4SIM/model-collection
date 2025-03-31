@@ -17,12 +17,13 @@ import os
 import pickle
 
 import h5py
-import networkx as nx
 import numpy
 import torch
 import torch_geometric as pyg
 from lightning import LightningModule
 from lightning.pytorch.cli import LightningCLI
+
+from utils import create_graph_topo
 
 CWD = os.getcwd()
 
@@ -179,13 +180,12 @@ class InferencePthGnn(Inferer):
         except FileNotFoundError:
             x_size, y_size, z_size = feat.shape
             grid_shape = (z_size, y_size, x_size)
-            g_0 = nx.grid_graph(dim=grid_shape)
-            graph = pyg.utils.convert.from_networkx(g_0)
-            undirected_index = graph.edge_index
-
+            graph_topo = create_graph_topo(grid_shape)
             self.data = pyg.data.Data(
                 x=feat.reshape(-1, 1).clone().detach().type(torch.FloatTensor),
-                edge_index=undirected_index.clone().detach().type(torch.LongTensor),
+                edge_index=graph_topo.edge_index.clone()
+                .detach()
+                .type(torch.LongTensor),
             )
 
             if save:
@@ -222,7 +222,7 @@ if __name__ == "__main__":
     python inferer.py --config ./configs/gin.yaml
     ```
     """
-    cli = LightningCLI(run=False)
+    cli = LightningCLI(run=False, parser_kwargs={"parser_mode": "omegaconf"})
 
     inferer = InferencePthGnn(
         model_path="./tests/test_data/test_model.ckpt",

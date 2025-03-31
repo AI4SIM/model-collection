@@ -159,7 +159,6 @@ class LitGAT(CombustionModule):
 
     def __init__(
         self,
-        graph_topology: pyg.data.Data,
         in_channels: int,
         hidden_channels: int,
         out_channels: int,
@@ -168,6 +167,7 @@ class LitGAT(CombustionModule):
         heads: int,
         jk: str,
         lr: float,
+        graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGAT class."""
         super().__init__()
@@ -194,7 +194,6 @@ class LitGCN(CombustionModule):
 
     def __init__(
         self,
-        graph_topology: pyg.data.Data,
         in_channels: int,
         hidden_channels: int,
         out_channels: int,
@@ -202,6 +201,7 @@ class LitGCN(CombustionModule):
         dropout: float,
         jk: str,
         lr: float,
+        graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGCN."""
         super().__init__()
@@ -225,13 +225,13 @@ class LitGraphUNet(CombustionModule):
 
     def __init__(
         self,
-        graph_topology: pyg.data.Data,
         in_channels: int,
         hidden_channels: int,
         out_channels: int,
         depth: int,
         pool_ratios: float,
         lr: float,
+        graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGraphUNet class."""
         super().__init__()
@@ -254,13 +254,13 @@ class LitGIN(CombustionModule):
 
     def __init__(
         self,
-        graph_topology: pyg.data.Data,
         in_channels: int,
         hidden_channels: int,
         out_channels: int,
         num_layers: int,
         dropout: float,
         lr: float,
+        graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGIN class."""
         super().__init__()

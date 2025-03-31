@@ -18,7 +18,9 @@ from lightning.pytorch.cli import LightningCLI
 class MyLightningCLI(LightningCLI):
     def add_arguments_to_parser(self, parser):
         parser.link_arguments(
-            "data.graph_topology", "model.init_args.graph_topology", apply_on="instantiate"
+            "data.graph_topology",
+            "model.init_args.graph_topology",
+            apply_on="instantiate",
         )
 
 

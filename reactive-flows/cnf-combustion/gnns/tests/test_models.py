@@ -17,7 +17,6 @@ import tempfile
 import unittest
 
 import h5py
-import networkx as nx
 import numpy as np
 import torch
 import torch_geometric as pyg
@@ -25,8 +24,8 @@ import torch_optimizer as optim
 import yaml
 from lightning.pytorch.trainer import Trainer
 
-from data import create_graph_topo
 from models import LitGAT, LitGCN, LitGIN, LitGraphUNet
+from utils import create_graph_topo
 
 
 class TestModel(unittest.TestCase):
