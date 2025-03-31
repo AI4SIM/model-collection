@@ -25,6 +25,7 @@ import torch_optimizer as optim
 import yaml
 from lightning.pytorch.trainer import Trainer
 
+from data import create_graph_topo
 from models import LitGAT, LitGCN, LitGIN, LitGraphUNet
 
 
@@ -66,33 +67,24 @@ class TestModel(unittest.TestCase):
             col = file["/filt_8"][:]
             sigma = file["/filt_grad_8"][:]
 
-        x_size, y_size, z_size = col.shape
-        grid_shape = (z_size, y_size, x_size)
-
-        g0 = nx.grid_graph(dim=grid_shape)
-        graph = pyg.utils.convert.from_networkx(g0)
-        undirected_index = graph.edge_index
-        coordinates = list(g0.nodes())
-        coordinates.reverse()
-
         data = pyg.data.Data(
             x=torch.tensor(col.reshape(-1, 1), dtype=torch.float),
-            edge_index=undirected_index.clone().detach().type(torch.LongTensor),
-            pos=torch.tensor(np.stack(coordinates)),
             y=torch.tensor(sigma.reshape(-1, 1), dtype=torch.float),
         )
+        graph_topo = create_graph_topo(col.shape)
 
-        return data
+        return data, graph_topo
 
     def test_forward(self):
         """Test the "forward" method generates a Tensor."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
-            data_test = self.create_graph(file_path)
+            data_test, graph_topo = self.create_graph(file_path)
+            self.init_param.update({"graph_topology": graph_topo}),
 
             test_gcn = LitGCN(**self.init_param)
-            test_forward = test_gcn.forward(data_test.x, data_test.edge_index)
+            test_forward = test_gcn.forward(data_test.x, graph_topo.edge_index)
 
             self.assertTrue(isinstance(test_forward, torch.Tensor))
 
@@ -110,7 +102,8 @@ class TestModel(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
-            data_test = self.create_graph(file_path)
+            data_test, graph_topo = self.create_graph(file_path)
+            gin_init_param.update({"graph_topology": graph_topo}),
 
             test_gin = LitGIN(**gin_init_param)
             batch = pyg.data.Batch.from_data_list([data_test, data_test])
@@ -135,7 +128,8 @@ class TestModel(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
-            data_test = self.create_graph(file_path)
+            data_test, graph_topo = self.create_graph(file_path)
+            gat_init_param.update({"graph_topology": graph_topo}),
 
             test_gat = LitGAT(**gat_init_param)
             batch = pyg.data.Batch.from_data_list([data_test, data_test])
@@ -157,7 +151,8 @@ class TestModel(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
-            data_test = self.create_graph(file_path)
+            data_test, graph_topo = self.create_graph(file_path)
+            gunet_init_param.update({"graph_topology": graph_topo}),
 
             test_gunet = LitGraphUNet(**gunet_init_param)
             batch = pyg.data.Batch.from_data_list([data_test, data_test])
@@ -179,7 +174,8 @@ class TestModel(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             file_path = os.path.join(tempdir, "data", "raw", self.filenames[0])
-            _ = self.create_graph(file_path)
+            _, graph_topo = self.create_graph(file_path)
+            self.init_param.update({"graph_topology": graph_topo}),
 
             test_gcn = LitGCN(**self.init_param)
             op = test_gcn.configure_optimizers()

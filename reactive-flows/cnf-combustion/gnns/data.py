@@ -44,7 +44,6 @@ class CombustionDataset(pyg.data.Dataset):
             y_normalizer (str): normalizing value
         """
         self.y_normalizer = y_normalizer
-        self.graph_topology = None
         super().__init__(root)
 
     @property
@@ -82,30 +81,17 @@ class CombustionDataset(pyg.data.Dataset):
         """
         raise NotImplementedError
 
-    def get(self, idx: int) -> pyg.data.Data:
-        """Return the graph at the given index.
+    def get(self, idx: int) -> Dict[str, tensor]:
+        """Return the graph features at the given index.
 
         Returns:
-            (pyg.data.Data): Graph at the given index.
+            (pyg.data.Data): Graph features at the given index.
         """
-        pyg_data = copy.copy(self.graph_topology)
+        pyg_data = pyg.data.Data()
         data = self._get_data(idx)
         pyg_data.x = tensor(data["feat"].reshape(-1, 1), dtype=tfloat)
         pyg_data.y = tensor(data["sigma"].reshape(-1, 1), dtype=tfloat)
         return pyg_data
-
-    def create_graph_topo(self, grid_shape: Tuple[int, int, int]) -> None:
-        """Create the graph topology and store it in memory.
-
-        Args:
-            grid_shape (Tuple[int, int, int]): the shape of the grid for the
-                z, y and x sorted dimensions.
-        """
-        g0 = nx.grid_graph(dim=grid_shape)
-        self.graph_topology = pyg.utils.convert.from_networkx(g0)
-        coordinates = list(g0.nodes())
-        coordinates.reverse()
-        self.graph_topology.pos = tensor(np.stack(coordinates))
 
     def len(self) -> int:
         """Return the total length of the dataset
@@ -127,18 +113,6 @@ class R2Dataset(CombustionDataset):
             y_normalizer (str): normalizing value
         """
         super().__init__(root, y_normalizer)
-
-    def process(self) -> None:
-        """
-        Create a graph for each volume of data, and saves each graph in a separate file index by
-        the order in the raw file names list.
-        """
-        # Create graph from first file
-        with h5py.File(self.raw_paths[0], "r") as file:
-            feat = file["/c_filt"][:]
-        x_size, y_size, z_size = feat.shape
-        grid_shape = (z_size, y_size, x_size)
-        self.create_graph_topo(grid_shape)
 
     def _get_data(self, idx: int) -> Dict[str, np.array]:
         """Return the dict of the feat and sigma of the corresponding data file.
@@ -167,18 +141,6 @@ class CnfDataset(CombustionDataset):
             y_normalizer (str): normalizing value.
         """
         super().__init__(root, y_normalizer)
-
-    def process(self) -> None:
-        """
-        Create a graph for each volume of data, and saves each graph in a separate file index by
-        the order in the raw file names list.
-        """
-        # Create graph from first file
-        with h5py.File(self.raw_paths[0], "r") as file:
-            feat = file["/filt_8"][:]
-        x_size, y_size, z_size = feat.shape
-        grid_shape = (z_size, y_size, x_size)
-        self.create_graph_topo(grid_shape)
 
     def _get_data(self, idx: int) -> Dict[str, np.array]:
         """Return the dict of the feat and sigma of the corresponding data file.
@@ -235,6 +197,13 @@ class LitCombustionDataModule(pl.LightningDataModule):
         self.val_dataset = None
         self.test_dataset = None
         self.train_dataset = None
+        self.graph_topology = None
+
+        # Init the dataset and build the graph topology
+        self.dataset = self.dataset_class(
+            self.data_path, y_normalizer=self.y_normalizer
+        )
+        self.build_graph_topo()
 
     @property
     def dataset_class(self) -> pyg.data.Dataset:
@@ -244,6 +213,12 @@ class LitCombustionDataModule(pl.LightningDataModule):
     def prepare_data(self) -> None:
         """Not used."""
         CombustionDataset(self.data_path, self.y_normalizer)
+
+    def build_graph_topo(self) -> None:
+        """
+        Create a graph topology from first file.
+        """
+        raise NotImplementedError
 
     def setup(
         self,
@@ -262,9 +237,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
         if self.source_raw_data_path:
             LinkRawData(self.source_raw_data_path, self.data_path)
 
-        dataset = self.dataset_class(
-            self.data_path, y_normalizer=self.y_normalizer
-        ).shuffle()
+        dataset = self.dataset.shuffle()
 
         tr, va, te = self.splitting_ratios
         if (tr + va + te) != 1:
@@ -374,12 +347,41 @@ class LinkRawData:
                 pass
 
 
+def create_graph_topo(grid_shape: Tuple[int, int, int]) -> pyg.data.Data:
+    """Create the graph topology to be shared with the LightningModule.
+
+    Args:
+        grid_shape (Tuple[int, int, int]): the shape of the grid for the
+            z, y and x sorted dimensions.
+
+    Return:
+        (pyg.data.Data): the graph topology.
+    """
+    g0 = nx.grid_graph(dim=grid_shape)
+    graph_topology = pyg.utils.convert.from_networkx(g0)
+    coordinates = list(g0.nodes())
+    coordinates.reverse()
+    graph_topology.pos = tensor(np.stack(coordinates))
+    return graph_topology
+
+
 class R2DataModule(LitCombustionDataModule):
     """Data module to load use R2Dataset."""
 
     @property
     def dataset_class(self) -> pyg.data.Dataset:
         return R2Dataset
+
+    def build_graph_topo(self) -> None:
+        """
+        Create a graph topology from first file.
+        """
+        # Create graph from first file
+        with h5py.File(self.dataset.raw_paths[0], "r") as file:
+            feat = file["/c_filt"][:]
+        x_size, y_size, z_size = feat.shape
+        grid_shape = (z_size, y_size, x_size)
+        self.graph_topology = create_graph_topo(grid_shape)
 
 
 class CnfDataModule(LitCombustionDataModule):
@@ -388,3 +390,13 @@ class CnfDataModule(LitCombustionDataModule):
     @property
     def dataset_class(self) -> pyg.data.Dataset:
         return CnfDataset
+
+    def build_graph_topo(self) -> None:
+        """
+        Create a graph topology from first file.
+        """
+        with h5py.File(self.dataset.raw_paths[0], "r") as file:
+            feat = file["/filt_8"][:]
+        x_size, y_size, z_size = feat.shape
+        grid_shape = (z_size, y_size, x_size)
+        self.graph_topology = create_graph_topo(grid_shape)

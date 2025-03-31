@@ -58,7 +58,7 @@ class CombustionModule(pl.LightningModule):
     ) -> List[torch.Tensor]:
         """Define the common operations performed on data."""
         batch_size = batch.ptr[0] - 1
-        y_hat = self(batch.x, batch.edge_index)
+        y_hat = self(batch.x, self.graph_topology.edge_index)
         loss = tmf.mean_squared_error(y_hat, batch.y)
         r2 = tmf.r2_score(y_hat, batch.y)
 
@@ -103,7 +103,7 @@ class CombustionModule(pl.LightningModule):
             (Tuple[torch.Tensor]): (Ground truth, Predictions)
         """
         y_hat, _, _ = self._common_step(batch, batch_idx, "test")
-        pos = np.stack(batch.pos.cpu().numpy())
+        pos = np.stack(self.graph_topology.pos.cpu().numpy())
         x_max = np.max(pos[:, 0:1])
         y_max = np.max(pos[:, 1:2])
         z_max = np.max(pos[:, 2:3])
@@ -159,6 +159,7 @@ class LitGAT(CombustionModule):
 
     def __init__(
         self,
+        graph_topology: pyg.data.Data,
         in_channels: int,
         hidden_channels: int,
         out_channels: int,
@@ -170,6 +171,7 @@ class LitGAT(CombustionModule):
     ) -> None:
         """Init the LitGAT class."""
         super().__init__()
+        self.graph_topology = graph_topology
         self.save_hyperparameters()
 
         self.lr = lr
@@ -192,6 +194,7 @@ class LitGCN(CombustionModule):
 
     def __init__(
         self,
+        graph_topology: pyg.data.Data,
         in_channels: int,
         hidden_channels: int,
         out_channels: int,
@@ -202,6 +205,7 @@ class LitGCN(CombustionModule):
     ) -> None:
         """Init the LitGCN."""
         super().__init__()
+        self.graph_topology = graph_topology
         self.save_hyperparameters()
 
         self.lr = lr
@@ -221,6 +225,7 @@ class LitGraphUNet(CombustionModule):
 
     def __init__(
         self,
+        graph_topology: pyg.data.Data,
         in_channels: int,
         hidden_channels: int,
         out_channels: int,
@@ -230,6 +235,7 @@ class LitGraphUNet(CombustionModule):
     ) -> None:
         """Init the LitGraphUNet class."""
         super().__init__()
+        self.graph_topology = graph_topology
         self.save_hyperparameters()
 
         self.lr = lr
@@ -248,6 +254,7 @@ class LitGIN(CombustionModule):
 
     def __init__(
         self,
+        graph_topology: pyg.data.Data,
         in_channels: int,
         hidden_channels: int,
         out_channels: int,
@@ -257,6 +264,7 @@ class LitGIN(CombustionModule):
     ) -> None:
         """Init the LitGIN class."""
         super().__init__()
+        self.graph_topology = graph_topology
         self.save_hyperparameters()
 
         self.lr = lr

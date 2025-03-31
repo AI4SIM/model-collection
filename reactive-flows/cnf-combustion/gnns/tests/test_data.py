@@ -24,7 +24,7 @@ import torch
 import yaml
 from torch import LongTensor, Tensor
 
-from data import CnfDataModule, CnfDataset, LinkRawData
+from data import CnfDataModule, CnfDataset, LinkRawData, create_graph_topo
 
 
 class TestData(unittest.TestCase):
@@ -90,23 +90,6 @@ class TestData(unittest.TestCase):
             with self.assertRaises(RuntimeError) as context:
                 _ = data_test.download()
                 self.assertTrue("Data not found." in str(context.exception))
-
-    def test_process(self):
-        """Test download raise error."""
-        with tempfile.TemporaryDirectory() as tempdir:
-            self.create_env(tempdir)
-            data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
-            data_test.process()
-
-            self.assertTrue(os.path.exists(os.path.join(tempdir, "data", "processed")))
-
-            # Check the pyg.data.Data object has edge_index and pos
-            self.assertTrue(
-                isinstance(data_test.graph_topology.edge_index, LongTensor),
-            )
-            self.assertTrue(
-                isinstance(data_test.graph_topology.pos, Tensor),
-            )
 
     def test_get(self):
         """Test download raise error."""
@@ -228,6 +211,16 @@ class TestLinkRawData(unittest.TestCase):
 
             self.assertTrue(num_files_raw_path, num_files_local_path)
             self.assertTrue(self.filenames, local_filenames)
+
+
+class TestUtilsRawData(unittest.TestCase):
+    """Utils function test suite."""
+
+    def test_create_graph_topo(self):
+        """Test the "create_graph_topo" function."""
+        topo = create_graph_topo((10, 10, 10))
+        self.assertEqual(topo.num_nodes, 1000)
+        self.assertEqual(topo.pos.shape, (1000, 3))
 
 
 if __name__ == "__main__":
