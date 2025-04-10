@@ -81,7 +81,7 @@ class CombustionDataset(pyg.data.Dataset):
         """
         raise NotImplementedError
 
-    def get(self, idx: int) -> Dict[str, tensor]:
+    def get(self, idx: int) -> pyg.data.Data:
         """Return the graph features at the given index.
 
         Returns:
