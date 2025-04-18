@@ -72,7 +72,7 @@ tensorboard==2.18.0
 tensorboard-data-server==0.7.2
 termcolor==2.5.0
 tomli==2.2.1
-torch==2.5.1+cu124
+torch==2.6.0
 torch-optimizer==0.3.0
 torchmetrics==1.6.0
 tqdm==4.67.1

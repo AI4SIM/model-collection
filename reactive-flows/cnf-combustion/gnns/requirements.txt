@@ -93,7 +93,7 @@ tensorboard-data-server==0.7.2
 termcolor==2.5.0
 threadpoolctl==3.5.0
 tomli==2.2.1
-torch==2.5.1+cu124
+torch==2.6.0
 torch-geometric==2.6.1
 torch-optimizer==0.3.0
 torch_scatter==2.1.2+pt25cu124
