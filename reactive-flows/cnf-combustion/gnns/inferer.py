@@ -59,7 +59,7 @@ class Inferer:
         model in the same environment that the one that generated the model (all external and
         internal dependencies).
         """
-        self.model = torch.load(self.model_path)
+        self.model = torch.load(self.model_path, weights_only=False)
         self.model.eval()
 
     def load_data(self) -> None:

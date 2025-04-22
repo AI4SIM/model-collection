@@ -77,7 +77,9 @@ class CombustionDataset(pyg.data.Dataset):
         Returns:
             (pyg.data.Data): Graph at the given index.
         """
-        data = torch.load(os.path.join(self.processed_dir, f"data-{idx}.pt"))
+        data = torch.load(
+            os.path.join(self.processed_dir, f"data-{idx}.pt"), weights_only=False
+        )
         return data
 
     def len(self) -> int:
