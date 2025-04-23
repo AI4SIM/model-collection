@@ -91,6 +91,9 @@ class CombustionDataset(pyg.data.Dataset):
         data = self._get_data(idx)
         pyg_data.x = tensor(data["feat"].reshape(-1, 1), dtype=tfloat)
         pyg_data.y = tensor(data["sigma"].reshape(-1, 1), dtype=tfloat)
+        pyg_data.edge_index = (
+            None  # Will be populated on model side (unvariant graph topology)
+        )
         return pyg_data
 
     def len(self) -> int:
