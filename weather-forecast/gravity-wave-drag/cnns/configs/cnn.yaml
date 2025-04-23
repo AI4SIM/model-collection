@@ -10,25 +10,31 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-fit:
-    model:
-        class_path: models.LitCNN
-        init_args:
-            in_channels: 5
-            init_feat: 16
-            out_channels: 126
-            conv_size: 1
-            pool_size: 2
-            lr: .0001
+seed_everything: 0
 
-    data:
-        class_path: data.NOGWDDataModule
+model:
+    class_path: models.LitCNN
+    init_args:
+        in_channels: 5
+        init_feat: 16
+        out_channels: 126
+        conv_size: 1
+        pool_size: 2
+        lr: .0001
+
+data:
+    class_path: data.NOGWDDataModule
+    init_args:
+        batch_size: 256
+        num_workers: 0
+        data_path: ${oc.decode:${oc.env:DATADIR, ./data}}
+        splitting_file: ${oc.decode:${oc.env:DATADIR, ./data}}/filenames-split.yaml
+
+trainer:
+    max_epochs: 10
+    accelerator: "gpu"
+    devices: ${oc.decode:${oc.env:SLURM_GPUS_ON_NODE, [0]}}
+    logger:
+        class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
         init_args:
-            batch_size: 256
-            num_workers: 0
-    
-    trainer:
-        max_epochs: 10
-        accelerator: "cpu"
-        devices: 
-            - 0
+            save_dir: ${oc.decode:${oc.env:LOGDIR, ./logs}}

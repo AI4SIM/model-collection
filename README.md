@@ -49,7 +49,7 @@ All the models are placed in the repository with a path following the rule:
 
 ``<domain>/<use-case>/<NN architecture>``
 
-For example, the code in the path ``cfd/combustion/gnns`` implements some **Graph Neural Network (GNN)** architectures developed for **Computational Fluid Dynamics (CFD)** and applied to a **Combustion** use-case.
+For example, the code in the path ``reactive-flows/cnf-combustion/gnns`` implements some **Graph Neural Network (GNN)** architectures developed for **Computational Fluid Dynamics (CFD)** and applied to a **Combustion** use-case.
 
 ### Model Project Files
 
@@ -136,8 +136,8 @@ You can find, in all model project directories, a ``README.md`` file that descri
 
 - Computational Fluid Dynamics
     - Combustion
-        - [Unets](cfd/combustion/unets/README.md)
-        - [GNNs](cfd/combustion/gnns/README.md)
+        - [Unets](reactive-flows/cnf-combustion/unets/README.md)
+        - [GNNs](reactive-flows/cnf-combustion/gnns/README.md)
 
 - Weather Forecast
     - Gravity Wave Drag 
@@ -146,6 +146,14 @@ You can find, in all model project directories, a ``README.md`` file that descri
         - [Unets](weather-forecast/gravity-wave-drag/cnns/README.md)
 
 ### Launch the Training
+
+The trainings are launched using the Lightning CLI, configured using YAML files. In the configuration files, you can use the variables interpolation feature from [Omegaconf](https://omegaconf.readthedocs.io/en/latest/), to set some variables.
+
+By default, you can set 2 environment variables that will be passed to the Lightning CLI configuration files:
+- **DATADIR**: the path where your dataset is stored,
+- **LOGDIR**: the path where the lightning logs, artifacts and plots will be stored.
+
+These environment variables are optional, while the Lightning CLI configuration files set default values for these variables.
 
 #### Docker Container
 
@@ -338,7 +346,7 @@ The 4 following parameters are mandatory and must be passed to the Dockerfile, u
 - UBUNTU_IMAGE_TAG: the base Ubuntu docker image tag indicated in the ``env.yaml`` file.
 - PYTHON_VERS: the Python version indicated in the ``env.yaml`` file.
 
-To build the Docker image from the repository root directory:
+To build the Docker image from the repository root directory, for example:
 
 ```bash
 docker build \
@@ -347,7 +355,11 @@ docker build \
     --build-arg MODEL_PROJECT_PATH=<domain>/<use-case>/<NN architecture> \
     --build-arg UBUNTU_IMAGE_NAME=nvidia/cuda \
     --build-arg UBUNTU_IMAGE_TAG=11.7.1-cudnn8-runtime-ubuntu20.04 \
-    --build-arg PYTHON_VERS=3.8
+    --build-arg PYTHON_VERS=3.8 \
+    --build-arg uid=$(id -u) \
+    --build-arg gid=$(id -g) \
+    --build-arg uname=$(id -un) \
+    --build-arg gname=$(id -gn)
 ```
 
 Finally, start the container, binding your source code path to ease the development:
@@ -396,6 +408,20 @@ Nevertheless, if after all your best effort, you think a checkstyle violation ca
 
 ```python
 example = lambda: 'example'  # noqa: E731
+```
+
+In addition to the pure flake8 linting the CI/CD will check the import sorting using [isort](https://pycqa.github.io/isort/) and the code format using [black](https://github.com/psf/black).
+
+You can evaluate the compliancy of your code running:
+```bash
+nox -s import_sort -v -- check-only
+nox -s black -v -- check-only
+```
+
+In case of unconsistencies, you can let *isort* and *black* do the job, removing the `-- check-only` option to the previous nox targets:
+```bash
+nox -s import_sort -v
+nox -s black -v
 ```
 
 ##### Unit Tests
@@ -455,7 +481,7 @@ Before creating the *Pull Request* itself, you must generate the final *requirem
 In your development environment use:
 
 ```bash
-pip freeze > requirements.txt
+pip freeze --all > requirements.txt
 ```
 
 Then commit this last change.
@@ -477,8 +503,8 @@ jobs:
     strategy:
       matrix:
         model-project:
-          - cfd/combustion/gnns
-          - cfd/combustion/unets
+          - reactive-flows/cnf-combustion/gnns
+          - reactive-flows/cnf-combustion/unets
           - weather-forecast/gravity-wave-drag/cnns
           - weather-forecast/ecrad-3d-correction/unets
           - <domain>/<use-case>/<NN architecture>       <-- Your new model project path

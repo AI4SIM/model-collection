@@ -10,10 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+seed_everything: 0
+
 model:
     class_path: models.LitUnet1D
     init_args:
-        data_path: data/processed/
         in_channels: 47
         out_channels: 6
         n_levels: 3
@@ -23,13 +24,16 @@ model:
 data:
     class_path: data.LitThreeDCorrectionDataModule
     init_args:
-        data_path: data/processed/
+        data_path: ${oc.decode:${oc.env:DATADIR, ./data/processed}}
         batch_size: 256
         num_workers: 0
         splitting_ratios: [0.8, 0.1, 0.1]
 
 trainer:
     max_epochs: 50
-    accelerator: "cpu"
-    devices:
-        - 0
+    accelerator: "gpu"
+    devices: ${oc.decode:${oc.env:SLURM_GPUS_ON_NODE, [0]}}
+    logger:
+        class_path: lightning.pytorch.loggers.tensorboard.TensorBoardLogger
+        init_args:
+            save_dir: ${oc.decode:${oc.env:LOGDIR, ./logs}}

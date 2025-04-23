@@ -2,6 +2,12 @@ name: ai4sim-ci-cd
 
 on: [push, pull_request]
 
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  pull-requests: write
+
 jobs:
   run-checks:
     runs-on: ubuntu-latest
@@ -9,8 +15,8 @@ jobs:
     strategy:
       matrix:
         model-project:
-          - cfd/combustion/gnns
-          - cfd/combustion/unets
+          - reactive-flows/cnf-combustion/gnns
+          - reactive-flows/cnf-combustion/unets
           - weather-forecast/gravity-wave-drag/cnns
           - weather-forecast/ecrad-3d-correction/unets
       fail-fast: false
@@ -35,15 +41,39 @@ jobs:
 
     - name: Analysing the code with flake8
       working-directory: ${{ matrix.model-project }}
-      run: nox -s lint -v
+      run: |
+        nox -s lint -v
+        rm -rf .nox
+
+    - name: Analysing the code with isort
+      working-directory: ${{ matrix.model-project }}
+      run: |
+        nox -s import_sort -v -- check-only
+        rm -rf .nox
+
+    - name: Analysing the code with black
+      working-directory: ${{ matrix.model-project }}
+      run: |
+        nox -s black -v -- check-only
+        rm -rf .nox
 
     - name: Run unit tests with coverage report
       working-directory: ${{ matrix.model-project }}
-      run: nox -s tests -v
+      run: |
+        nox -s tests -v
+        rm -rf .nox
 
     - name: Run functional tests
       working-directory: ${{ matrix.model-project }}
-      run: nox -s train_test -v -- clean_data 
+      run: |
+        nox -s train_test -v -- clean_data
+        rm -rf .nox
+
+    - name: Combine coverage reports
+      working-directory: ${{ matrix.model-project }}
+      run: |
+        nox -s coverage_report -R -v -- combine
+        rm -rf .nox
 
     - name: Coverage Commentator
       uses: 5monkeys/cobertura-action@master
@@ -56,3 +86,25 @@ jobs:
         link_missing_lines: true
         link_missing_lines_source_dir: ${{ matrix.model-project }}
         report_name: Coverage report for ${{ matrix.model-project }} model project
+
+  dependabot-auto-merge:
+    runs-on: ubuntu-latest
+
+    needs: run-checks
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Approve a PR
+        run: gh pr review --approve "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable auto-merge for Dependabot PRs
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

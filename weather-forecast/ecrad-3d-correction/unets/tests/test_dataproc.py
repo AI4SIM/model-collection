@@ -10,11 +10,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from unittest import TestCase, main
 import os.path as osp
-from dataproc import ThreeDCorrectionDataproc
-from tempfile import mkdtemp
 from shutil import rmtree
+from tempfile import mkdtemp
+from unittest import TestCase, main
+
+from dataproc import ThreeDCorrectionDataproc
 
 
 class TestDataproc(TestCase):
@@ -23,10 +24,8 @@ class TestDataproc(TestCase):
         """Create a temporary environment."""
         self.data_path = mkdtemp()
         self.dataproc = ThreeDCorrectionDataproc(
-            self.data_path,
-            timestep=3500,
-            patchstep=16,
-            num_workers=1)
+            self.data_path, timestep=3500, patchstep=16, num_workers=1
+        )
 
     def tearDown(self) -> None:
         rmtree(self.data_path)
@@ -38,5 +37,5 @@ class TestDataproc(TestCase):
         self.assertTrue(osp.exists(osp.join(self.data_path, "processed", "y")))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

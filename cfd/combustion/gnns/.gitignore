@@ -1,5 +1,0 @@
-data/*
-experiments/
-_/
-*.ipynb_checkpoints
-**/__pycache__
