@@ -41,6 +41,11 @@ class CombustionModule(pl.LightningModule):
         self.ys_test = list()
         self.y_hats_test = list()
 
+        if self.graph_topology:
+            self.register_buffer(
+                "edge_index", self.graph_topology.edge_index, persistent=False
+            )
+
     def forward(self, x_val: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         """Compute the forward pass.
 
@@ -58,7 +63,7 @@ class CombustionModule(pl.LightningModule):
     ) -> List[torch.Tensor]:
         """Define the common operations performed on data."""
         batch_size = batch.ptr[0] - 1
-        y_hat = self(batch.x, self.graph_topology.edge_index)
+        y_hat = self(batch.x, self.edge_index)
         loss = tmf.mean_squared_error(y_hat, batch.y)
         r2 = tmf.r2_score(y_hat, batch.y)
 
@@ -170,8 +175,8 @@ class LitGAT(CombustionModule):
         graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGAT class."""
-        super().__init__()
         self.graph_topology = graph_topology
+        super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
@@ -204,8 +209,8 @@ class LitGCN(CombustionModule):
         graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGCN."""
-        super().__init__()
         self.graph_topology = graph_topology
+        super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
@@ -234,8 +239,8 @@ class LitGraphUNet(CombustionModule):
         graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGraphUNet class."""
-        super().__init__()
         self.graph_topology = graph_topology
+        super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
@@ -263,8 +268,8 @@ class LitGIN(CombustionModule):
         graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGIN class."""
-        super().__init__()
         self.graph_topology = graph_topology
+        super().__init__()
         self.save_hyperparameters()
 
         self.lr = lr
