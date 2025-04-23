@@ -41,27 +41,39 @@ jobs:
 
     - name: Analysing the code with flake8
       working-directory: ${{ matrix.model-project }}
-      run: nox -s lint -v
+      run: |
+        nox -s lint -v
+        rm -rf .nox
 
     - name: Analysing the code with isort
       working-directory: ${{ matrix.model-project }}
-      run: nox -s import_sort -v -- check-only
+      run: |
+        nox -s import_sort -v -- check-only
+        rm -rf .nox
 
     - name: Analysing the code with black
       working-directory: ${{ matrix.model-project }}
-      run: nox -s black -v -- check-only
+      run: |
+        nox -s black -v -- check-only
+        rm -rf .nox
 
     - name: Run unit tests with coverage report
       working-directory: ${{ matrix.model-project }}
-      run: nox -s tests -v
+      run: |
+        nox -s tests -v
+        rm -rf .nox
 
     - name: Run functional tests
       working-directory: ${{ matrix.model-project }}
-      run: nox -s train_test -v -- clean_data
+      run: |
+        nox -s train_test -v -- clean_data
+        rm -rf .nox
 
     - name: Combine coverage reports
       working-directory: ${{ matrix.model-project }}
-      run: nox -s coverage_report -R -v -- combine
+      run: |
+        nox -s coverage_report -R -v -- combine
+        rm -rf .nox
 
     - name: Coverage Commentator
       uses: 5monkeys/cobertura-action@master
