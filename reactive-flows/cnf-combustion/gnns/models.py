@@ -17,7 +17,6 @@ import os
 from typing import List, Tuple
 
 import lightning as pl
-import numpy as np
 import torch
 import torch.nn as nn
 import torch_geometric as pyg
@@ -108,13 +107,9 @@ class CombustionModule(pl.LightningModule):
             (Tuple[torch.Tensor]): (Ground truth, Predictions)
         """
         y_hat, _, _ = self._common_step(batch, batch_idx, "test")
-        pos = np.stack(self.graph_topology.pos.cpu().numpy())
-        x_max = np.max(pos[:, 0:1])
-        y_max = np.max(pos[:, 1:2])
-        z_max = np.max(pos[:, 2:3])
 
         if not self.grid_shape:
-            self.grid_shape = (x_max + 1, y_max + 1, z_max + 1)
+            self.grid_shape = self.graph_topology.grid_shape
 
         self.ys_test.append(batch.y)
         self.y_hats_test.append(y_hat)

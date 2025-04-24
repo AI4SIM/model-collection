@@ -15,9 +15,7 @@
 from typing import Tuple
 
 import networkx as nx
-import numpy as np
 import torch_geometric as pyg
-from torch import tensor
 
 
 def create_graph_topo(grid_shape: Tuple[int, int, int]) -> pyg.data.Data:
@@ -32,7 +30,5 @@ def create_graph_topo(grid_shape: Tuple[int, int, int]) -> pyg.data.Data:
     """
     g0 = nx.grid_graph(dim=grid_shape)
     graph_topology = pyg.utils.convert.from_networkx(g0)
-    coordinates = list(g0.nodes())
-    coordinates.reverse()
-    graph_topology.pos = tensor(np.stack(coordinates))
+    graph_topology.grid_shape = grid_shape
     return graph_topology

@@ -24,7 +24,6 @@ import torch
 import yaml
 
 from data import CnfDataModule, CnfDataset, LinkRawData
-from utils import create_graph_topo
 
 
 class TestData(unittest.TestCase):
@@ -211,16 +210,6 @@ class TestLinkRawData(unittest.TestCase):
 
             self.assertTrue(num_files_raw_path, num_files_local_path)
             self.assertTrue(self.filenames, local_filenames)
-
-
-class TestUtilsRawData(unittest.TestCase):
-    """Utils function test suite."""
-
-    def test_create_graph_topo(self):
-        """Test the "create_graph_topo" function."""
-        topo = create_graph_topo((10, 10, 10))
-        self.assertEqual(topo.num_nodes, 1000)
-        self.assertEqual(topo.pos.shape, (1000, 3))
 
 
 if __name__ == "__main__":

@@ -24,7 +24,7 @@ class TestUtils(unittest.TestCase):
         """Test the "create_graph_topo" function."""
         topo = create_graph_topo((10, 10, 10))
         self.assertEqual(topo.num_nodes, 1000)
-        self.assertEqual(topo.pos.shape, (1000, 3))
+        self.assertEqual(topo.grid_shape, (10, 10, 10))
 
 
 if __name__ == "__main__":
