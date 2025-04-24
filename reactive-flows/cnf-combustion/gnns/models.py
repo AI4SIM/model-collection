@@ -17,7 +17,6 @@ import os
 from typing import List, Tuple
 
 import lightning as pl
-import numpy as np
 import torch
 import torch.nn as nn
 import torch_geometric as pyg
@@ -41,6 +40,11 @@ class CombustionModule(pl.LightningModule):
         self.ys_test = list()
         self.y_hats_test = list()
 
+        if self.graph_topology:
+            self.register_buffer(
+                "edge_index", self.graph_topology.edge_index, persistent=False
+            )
+
     def forward(self, x_val: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
         """Compute the forward pass.
 
@@ -58,7 +62,7 @@ class CombustionModule(pl.LightningModule):
     ) -> List[torch.Tensor]:
         """Define the common operations performed on data."""
         batch_size = batch.ptr[0] - 1
-        y_hat = self(batch.x, batch.edge_index)
+        y_hat = self(batch.x, self.edge_index)
         loss = tmf.mean_squared_error(y_hat, batch.y)
         r2 = tmf.r2_score(y_hat, batch.y)
 
@@ -103,13 +107,9 @@ class CombustionModule(pl.LightningModule):
             (Tuple[torch.Tensor]): (Ground truth, Predictions)
         """
         y_hat, _, _ = self._common_step(batch, batch_idx, "test")
-        pos = np.stack(batch.pos.cpu().numpy())
-        x_max = np.max(pos[:, 0:1])
-        y_max = np.max(pos[:, 1:2])
-        z_max = np.max(pos[:, 2:3])
 
         if not self.grid_shape:
-            self.grid_shape = (x_max + 1, y_max + 1, z_max + 1)
+            self.grid_shape = self.graph_topology.grid_shape
 
         self.ys_test.append(batch.y)
         self.y_hats_test.append(y_hat)
@@ -126,9 +126,9 @@ class CombustionModule(pl.LightningModule):
         self.y_hats = self.all_gather(y_hats)
 
         # Reshape the outputs to the original grid shape plus the batch dimension
-        self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).detach().numpy()
+        self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).detach().cpu().numpy()
         self.y_hats = (
-            self.y_hats.squeeze().view((-1,) + self.grid_shape).detach().numpy()
+            self.y_hats.squeeze().view((-1,) + self.grid_shape).detach().cpu().numpy()
         )
 
         plots_path = os.path.join(self.trainer.log_dir, "plots")
@@ -167,8 +167,10 @@ class LitGAT(CombustionModule):
         heads: int,
         jk: str,
         lr: float,
+        graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGAT class."""
+        self.graph_topology = graph_topology
         super().__init__()
         self.save_hyperparameters()
 
@@ -199,8 +201,10 @@ class LitGCN(CombustionModule):
         dropout: float,
         jk: str,
         lr: float,
+        graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGCN."""
+        self.graph_topology = graph_topology
         super().__init__()
         self.save_hyperparameters()
 
@@ -227,8 +231,10 @@ class LitGraphUNet(CombustionModule):
         depth: int,
         pool_ratios: float,
         lr: float,
+        graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGraphUNet class."""
+        self.graph_topology = graph_topology
         super().__init__()
         self.save_hyperparameters()
 
@@ -254,8 +260,10 @@ class LitGIN(CombustionModule):
         num_layers: int,
         dropout: float,
         lr: float,
+        graph_topology: pyg.data.Data = None,
     ) -> None:
         """Init the LitGIN class."""
+        self.graph_topology = graph_topology
         super().__init__()
         self.save_hyperparameters()
 
