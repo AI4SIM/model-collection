@@ -1,0 +1,112 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+fit:
+    seed_everything: 1978
+
+    model:
+        class_path: transformer_module.PanguModule
+        init_args:
+            plevel_patch_size: [2, 8, 8]
+            checkpoint_activation: False
+            mean_file: ${oc.decode:${oc.env:STAT_DIR}}/era5_mean_from_graphcast_to_pangu.nc
+            stddev_file: ${oc.decode:${oc.env:STAT_DIR}}/era5_stddev_from_graphcast_to_pangu.nc
+            lr: 0.001
+            # plevel_variable_weights: [0.2, 0.2, 0.2, 0.2, 0.2]
+            # surface_variable_weights: [0.25, 0.25, 0.25, 0.25]
+            lam: False
+            norm_cst_mask: True
+            use_scheduler: True
+            add_const2: True
+
+
+    data:
+        class_path: data.ERA5DataModule
+        init_args:
+            zarr_store: ${oc.decode:${oc.env:ZARR_STORE}}
+            train_time: slice('2007-01-01', '2007-01-03')
+            val_time: slice('2019-01-01', '2019-01-02')
+            test_time: ['2018', '2020', '2021']
+            train_time_step: 24
+            test_time_step: 72
+            constant_mask_list: ['land_sea_mask', 'soil_type', 'geopotential_at_surface']
+            # constant_mask_list: null
+            batch_size: 1
+            num_workers: 8            
+    
+    trainer:
+        max_epochs: 1
+        accelerator: "gpu"
+        devices: 4
+        # To match paper training settings
+        # accumulate_grad_batches: 12
+        strategy: "ddp"
+        # profiler: "pytorch"
+        log_every_n_steps: 50
+        callbacks:
+            - class_path: lightning.pytorch.callbacks.LearningRateMonitor
+              init_args: 
+                logging_interval: epoch
+                log_weight_decay: True
+        logger:             
+            - class_path: lightning.pytorch.loggers.MLFlowLogger
+              init_args:
+                    save_dir: ${oc.decode:${oc.env:LOGDIR}}/mlflow_logs
+                    experiment_name: ai4sim-pangu
+                    log_model: True
+            # - class_path: lightning.pytorch.loggers.TensorBoardLogger
+            #   init_args:
+            #         save_dir: ${oc.decode:${oc.env:LOGDIR}}
+            #         name: pangu_lite_bs8_const2_lrscheduler_lr1e-3        
+
+
+test:
+    model:
+        class_path: transformer_module.PanguModule
+        init_args:
+            plevel_patch_size: [2, 8, 8]
+            checkpoint_activation: False
+            mean_file: ${oc.decode:${oc.env:STAT_DIR}}/era5_mean_from_graphcast_to_pangu.nc
+            stddev_file: ${oc.decode:${oc.env:STAT_DIR}}/era5_stddev_from_graphcast_to_pangu.nc
+            # plevel_variable_weights: [0.2, 0.2, 0.2, 0.2, 0.2]
+            # surface_variable_weights: [0.25, 0.25, 0.25, 0.25]
+            lam: False
+            norm_cst_mask: False
+            use_scheduler: True
+            add_const2: True
+
+    data:
+        class_path: data.ERA5DataModule
+        init_args:
+            zarr_store: ${oc.decode:${oc.env:ZARR_STORE}}
+            train_time: slice('2007-01-01', '2017-12-31')
+            val_time: slice('2019-01-01', '2019-12-31')
+            test_time: ['2018', '2020', '2021']
+            train_time_step: 24
+            test_time_step: 72
+            constant_mask_list: ['land_sea_mask', 'soil_type', 'geopotential_at_surface']
+            # constant_mask_list: null
+            batch_size: 4
+            num_workers: 16            
+    
+    trainer:
+        max_epochs: 1
+        accelerator: "gpu"
+        devices: 1
+        logger:
+            - class_path: lightning.pytorch.loggers.MLFlowLogger
+              init_args:
+                    save_dir: ${oc.decode:${oc.env:LOGDIR}}/mlflow_logs
+                    experiment_name: ai4sim-pangu
+                    log_model: True
+        

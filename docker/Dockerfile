@@ -25,6 +25,7 @@ RUN apt-get update \
   libssl-dev \
   libffi-dev \
   vim \
+  git \
  && apt-get clean
 RUN ln -sf /usr/bin/python${PYTHON_VERS} /usr/bin/python3
 
