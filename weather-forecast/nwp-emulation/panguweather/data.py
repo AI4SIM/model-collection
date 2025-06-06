@@ -11,7 +11,7 @@
 # limitations under the License.
 
 import os
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import torch
@@ -87,12 +87,9 @@ class ERA5DataModule(LightningDataModule):
         self.chunks = chunks
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.train_dataset = None
-        self.val_dataset = None
-        self.test_dataset = None
-        self.data_latitude = None
-        self.data_longitude = None
-        self.constant_masks = None
+        self.train_dataset: Dataset
+        self.val_dataset: Dataset
+        self.test_dataset: Dataset
 
         data = xarray.open_dataset(self.zarr_store, engine="zarr", chunks=chunks)
         self.data_latitude = data.latitude.size
@@ -132,7 +129,7 @@ class ERA5DataModule(LightningDataModule):
                 chunks=self.chunks,
             )
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
@@ -142,7 +139,7 @@ class ERA5DataModule(LightningDataModule):
             persistent_workers=True,
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
@@ -152,7 +149,7 @@ class ERA5DataModule(LightningDataModule):
             persistent_workers=True,
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
@@ -194,7 +191,7 @@ class ERA5CartesianZarr(Dataset):
     def __init__(
         self,
         zarr_store: str,
-        time: slice = slice("1979", "2017"),
+        time: str | slice = slice("1979", "2017"),
         time_step: int = 6,
         surface_variables: List[str] = SURFACE_VARIABLES,
         plevel_variables: List[str] = PLEVEL_VARIABLES,
@@ -217,35 +214,37 @@ class ERA5CartesianZarr(Dataset):
         self.plevel_variables = sorted(plevel_variables)
         self.plevels = sorted(plevels)
 
-    def __len__(self):
+    def __len__(self) -> int:
         offset = self.time_step // self.data_time_span
         return len(self.dataset.time) - offset
 
-    def __getitem__(self, idx: int) -> dict[Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, Tensor]:
         data_time = self.times[idx]
         label_time = data_time + self.time_step
         data_point = self.dataset.sel(time=data_time)
         label_point = self.dataset.sel(time=label_time)
-        plevel_data = []
-        plevel_labels = []
-        surface_data = []
-        surface_labels = []
+        plevel_data_list = []
+        plevel_labels_list = []
+        surface_data_list = []
+        surface_labels_list = []
         for plevel_variable in self.plevel_variables:
-            plevel_data.append(torch.from_numpy(data_point[plevel_variable].to_numpy()))
-            plevel_labels.append(
+            plevel_data_list.append(
+                torch.from_numpy(data_point[plevel_variable].to_numpy())
+            )
+            plevel_labels_list.append(
                 torch.from_numpy(label_point[plevel_variable].to_numpy())
             )
         for surface_variable in self.surface_variables:
-            surface_data.append(
+            surface_data_list.append(
                 torch.from_numpy(data_point[surface_variable].to_numpy())
             )
-            surface_labels.append(
+            surface_labels_list.append(
                 torch.from_numpy(label_point[surface_variable].to_numpy())
             )
-        plevel_data = torch.stack(plevel_data)
-        plevel_labels = torch.stack(plevel_labels)
-        surface_data = torch.stack(surface_data)
-        surface_labels = torch.stack(surface_labels)
+        plevel_data = torch.stack(plevel_data_list)
+        plevel_labels = torch.stack(plevel_labels_list)
+        surface_data = torch.stack(surface_data_list)
+        surface_labels = torch.stack(surface_labels_list)
 
         return {
             "plevel_data": plevel_data,
@@ -269,15 +268,15 @@ class MockERA5DataModule(LightningDataModule):
         n_samples: int = 100,
         batch_size: int = 16,
         num_workers: int = 16,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
         super().__init__()
         self.n_samples = n_samples
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.train_dataset = None
-        self.val_dataset = None
-        self.test_dataset = None
+        self.train_dataset: Dataset
+        self.val_dataset: Dataset
+        self.test_dataset: Dataset
 
         self.prepare_data()
 
@@ -286,7 +285,7 @@ class MockERA5DataModule(LightningDataModule):
         self.val_dataset = MockERA5Cartesian(n_samples=self.n_samples)
         self.test_dataset = MockERA5Cartesian(n_samples=self.n_samples)
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
@@ -294,7 +293,7 @@ class MockERA5DataModule(LightningDataModule):
             num_workers=self.num_workers,
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
         return DataLoader(
             self.val_dataset,
             batch_size=self.batch_size,
@@ -302,7 +301,7 @@ class MockERA5DataModule(LightningDataModule):
             num_workers=self.num_workers,
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
@@ -326,10 +325,10 @@ class MockERA5Cartesian(Dataset):
         super().__init__()
         self.n_samples = n_samples
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.n_samples
 
-    def __getitem__(self, idx: int) -> dict[Tensor]:
+    def __getitem__(self, idx: int) -> dict[str, Tensor]:
         return {
             "plevel_data": torch.rand(5, 13, 721, 1440),
             "surface_data": torch.rand(4, 721, 1440),
@@ -343,8 +342,8 @@ class MockERA5Cartesian(Dataset):
 
 
 def load_era5_constant_mask_from_necdf(
-    data_path: str, mask_list: list[str] = None
-) -> dict[dict[xarray.Dataset]]:
+    data_path: str, mask_list: list[str] | None = None
+) -> dict[str, dict] | None:
     """Load constant masks: e. g., topography, land-sea and soil type. Each
     mask is in a dedicated netcdf file.
 
@@ -379,8 +378,8 @@ def load_era5_constant_mask_from_necdf(
 
 
 def load_era5_constant_mask_from_zarr(
-    zarr_store: str, mask_list: list[str] = None
-) -> dict[dict[xarray.Dataset]]:
+    zarr_store: str, mask_list: list[str] | None = None
+) -> dict[str, dict] | None:
     """Load constant masks: e. g., topography, land-sea and soil type
 
     Args:
@@ -389,7 +388,7 @@ def load_era5_constant_mask_from_zarr(
         Defaults to None.
 
     Returns:
-        dict[dict[xarray.Dataset]]: list of constant data
+        dict[str, dict]: list of constant data
     """
     # open zarr storage
     data = xarray.open_zarr(zarr_store)
@@ -401,8 +400,8 @@ def load_era5_constant_mask_from_zarr(
         for mask in mask_list:
             mask_data = data[mask]
             constant_masks[mask] = {
-                "longitude": data.longitude,
-                "latitude": data.latitude,
+                "longitude": data.longitude.to_numpy(),
+                "latitude": data.latitude.to_numpy(),
                 "mask": mask_data.to_numpy(),
             }
 
@@ -433,8 +432,14 @@ def check_era5_constant_masks(mask_list: list) -> list:
 
 
 def prepare_zarr_dataset(
-    zarr_store, time, time_step, surface_variables, plevel_variables, plevels, chunks
-):
+    zarr_store: str,
+    time: Union[slice, str, List[str]],
+    time_step: int,
+    surface_variables: List[str],
+    plevel_variables: List[str],
+    plevels: List[int],
+    chunks: Union[dict, str],
+) -> Dataset[Dict[str, Tensor]]:
     assert isinstance(
         time, (slice, str, list)
     ), f"time argument type must be in [slice, str, list], but is {type(time)}"

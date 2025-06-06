@@ -22,7 +22,7 @@ import torch_geometric as pyg
 import yaml
 from torch import float as tfloat
 from torch import tensor
-from torch.utils.data import random_split
+from torch.utils.data import Subset, random_split
 
 from utils import create_graph_topo
 
@@ -73,7 +73,7 @@ class CombustionDataset(pyg.data.Dataset):
             f"and move all files in file.tgz/DATA in {self.raw_dir}"
         )
 
-    def _get_data(self, idx: int) -> Dict[str, np.array]:
+    def _get_data(self, idx: int) -> Dict[str, np.ndarray]:
         """Return the dict of the feat and sigma of the corresponding data file.
 
         Returns:
@@ -117,7 +117,7 @@ class R2Dataset(CombustionDataset):
         """
         super().__init__(root, y_normalizer)
 
-    def _get_data(self, idx: int) -> Dict[str, np.array]:
+    def _get_data(self, idx: int) -> Dict[str, np.ndarray]:
         """Return the dict of the feat and sigma of the corresponding data file.
 
         Returns:
@@ -145,7 +145,7 @@ class CnfDataset(CombustionDataset):
         """
         super().__init__(root, y_normalizer)
 
-    def _get_data(self, idx: int) -> Dict[str, np.array]:
+    def _get_data(self, idx: int) -> Dict[str, np.ndarray]:
         """Return the dict of the feat and sigma of the corresponding data file.
 
         Returns:
@@ -197,10 +197,10 @@ class LitCombustionDataModule(pl.LightningDataModule):
         super().__init__()
 
         # init the attribute
-        self.val_dataset = None
-        self.test_dataset = None
-        self.train_dataset = None
-        self.graph_topology = None
+        self.val_dataset: Subset[pyg.data.Dataset]
+        self.test_dataset: Subset[pyg.data.Dataset]
+        self.train_dataset: Subset[pyg.data.Dataset]
+        self.graph_topology: pyg.data.Data
 
         # Init the dataset and build the graph topology
         self.dataset = self.dataset_class(
@@ -298,7 +298,7 @@ class LitCombustionDataModule(pl.LightningDataModule):
 class LinkRawData:
     """Link dataset to the use case."""
 
-    def __init__(self, source_raw_data_path, data_path):
+    def __init__(self, source_raw_data_path: str, data_path: str) -> None:
         """Link the source_raw_data_path in the data_path, if it does not already exists."""
         self.source_raw_data_path = source_raw_data_path
         self.local_data_path = data_path
@@ -320,7 +320,7 @@ class LinkRawData:
             else:
                 self.symlink_dataset()
 
-    def symlink_dataset(self):
+    def symlink_dataset(self) -> None:
         """Create the filenames.yaml file from the content of the source_raw_data_path."""
         filenames = os.listdir(self.source_raw_data_path)
         temp_file_path = os.path.join(self.local_data_path, "filenames.yaml")
@@ -336,7 +336,7 @@ class LinkRawData:
                 os.path.join(self.local_raw_data, filename),
             )
 
-    def rm_old_dataset(self):
+    def rm_old_dataset(self) -> None:
         """Clean the local_data_path."""
         for item in ["raw", "filenames.yaml", "processed"]:
             file_location = os.path.join(self.local_data_path, item)

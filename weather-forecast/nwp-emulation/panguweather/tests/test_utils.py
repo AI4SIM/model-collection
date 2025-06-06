@@ -45,8 +45,8 @@ class TestUtils(TestCase):
     def test_2d_attention_masks(self) -> None:
         pad_h = 360
         pad_w = 180
-        window_size = [12, 6]
-        shift_size = [6, 3]
+        window_size = (12, 6)
+        shift_size = (6, 3)
         num_windows = (pad_h // window_size[0]) * (pad_w // window_size[1])
         self.assertTrue(
             torch.all(

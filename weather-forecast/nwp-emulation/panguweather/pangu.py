@@ -12,10 +12,10 @@
 
 import os
 import pathlib
+from typing import Any
 
 import numpy as np
 import torch
-from numpy import ndarray
 from timm.layers import DropPath
 from torch import Tensor, nn
 from torch.nn import (
@@ -63,18 +63,18 @@ class PanguModel(nn.Module):
 
     def __init__(
         self,
-        latitude,
-        longitude,
-        surface_variables,
-        plevel_variables,
-        plevels,
+        latitude: int,
+        longitude: int,
+        surface_variables: int,
+        plevel_variables: int,
+        plevels: int,
         plevel_patch_size: tuple[int, int, int] = (2, 4, 4),
-        constant_masks: dict[ndarray] = None,
+        constant_masks: dict[str, dict] | None = None,
         token_size: int = 192,
         layer_depth: tuple[int, int] = (2, 6),
         num_heads: tuple[int, int] = (6, 12),
         add_const2: bool = False,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
 
         super().__init__()
@@ -173,7 +173,9 @@ class PanguModel(nn.Module):
         # Patch Recovery
         self._output_layer = PatchRecovery(token_size * 2, self.plevel_patch_size)
 
-    def forward(self, input_plevel: Tensor, input_surface: Tensor) -> tuple[Tensor]:
+    def forward(
+        self, input_plevel: Tensor, input_surface: Tensor
+    ) -> tuple[Tensor, Tensor]:
         # Add constant masks to surface data if any
         if self.constant_masks is not None:
             surface_data = cat_constant_masks(input_surface, self.constant_masks)
@@ -182,6 +184,7 @@ class PanguModel(nn.Module):
 
         # Concat the magical const2
         if hasattr(self, "const2"):
+            assert isinstance(self.const2, Tensor), "const2 is not a tensor"
             input_plevel = torch.cat(
                 [
                     input_plevel,
@@ -261,7 +264,10 @@ class CustomPad3d(ConstantPad3d):
     """
 
     def __init__(
-        self, data_size: torch.Size, patch_size: tuple[int], value: float = 0.0
+        self,
+        data_size: torch.Size,
+        patch_size: tuple[int, int, int],
+        value: float = 0.0,
     ) -> None:
         # Compute paddings, starts from the last dim and goes backward
         assert (
@@ -302,7 +308,7 @@ class CustomPad3d(ConstantPad3d):
             ),
             value=value,
         )
-        self.padded_size = torch.Size(
+        self.padded_size: torch.Size = torch.Size(
             [
                 data_size[0] + padding_level,
                 data_size[1] + padding_lat,
@@ -321,7 +327,7 @@ class CustomPad2d(ConstantPad2d):
     """
 
     def __init__(
-        self, data_size: torch.Size, patch_size: tuple[int], value: float = 0.0
+        self, data_size: torch.Size, patch_size: tuple[int, int], value: float = 0.0
     ) -> None:
         # Compute paddings, starts from the last dim and goes backward
         assert (
@@ -359,8 +365,8 @@ class PatchEmbedding(nn.Module):
     patch_size = (2, 4, 4) in the original paper
 
     Args:
-        c_dim (_type_): embeeding channel size
-        patch_size (_type_): patch size for pressure level data
+        c_dim (int): embeeding channel size
+        patch_size (tuple[int, int, int]): patch size for pressure level data
         plevel_size (torch.Size): pressure level data size
         surface_size (torch.Size): surface data size
     """
@@ -368,7 +374,7 @@ class PatchEmbedding(nn.Module):
     def __init__(
         self,
         c_dim: int,
-        patch_size: tuple[int],
+        patch_size: tuple[int, int, int],
         plevel_size: torch.Size,
         surface_size: torch.Size,
     ) -> None:
@@ -401,7 +407,9 @@ class PatchEmbedding(nn.Module):
         embedding_size[0] += 1
         self.embedding_size = torch.Size(embedding_size)
 
-    def forward(self, input_plevel: Tensor, input_surface: Tensor):
+    def forward(
+        self, input_plevel: Tensor, input_surface: Tensor
+    ) -> tuple[Tensor, torch.Size]:
         # Zero-pad the input
         plevel_data = self.pad_plevel_data(input_plevel)
         surface_data = self.pad_surface_data(input_surface)
@@ -427,7 +435,7 @@ class PatchRecovery(nn.Module):
 
     Args:
         dim (int): number of channels
-        patch_size (tuple[int]): pressure level patch size, e. g., (2, 4, 4)
+        patch_size (tuple[int, int, int]): pressure level patch size, e. g., (2, 4, 4)
         as in the original paper
         plevel_channels (int, optional): pressure level data channel size
         surface_channels (int, optional): surface data channel size
@@ -436,7 +444,7 @@ class PatchRecovery(nn.Module):
     def __init__(
         self,
         dim: int,
-        patch_size: tuple[int],
+        patch_size: tuple[int, int, int],
         plevel_channels: int = 5,
         surface_channels: int = 4,
     ) -> None:
@@ -455,7 +463,7 @@ class PatchRecovery(nn.Module):
             stride=patch_size,
         )
 
-    def forward(self, x: Tensor, embedding_shape: torch.Size) -> tuple[Tensor]:
+    def forward(self, x: Tensor, embedding_shape: torch.Size) -> tuple[Tensor, Tensor]:
         # Reshape x back to three dimensions
         x = x.reshape(
             x.shape[0], embedding_shape[1], embedding_shape[2], embedding_shape[3], -1
@@ -463,8 +471,8 @@ class PatchRecovery(nn.Module):
         x = x.permute(0, 4, 1, 2, 3)
 
         # Call the transposed convolution
-        output_plevel = self.conv(x[:, :, :-1, :, :].contiguous())
-        output_surface = self.conv_surface(x[:, :, -1, :, :].contiguous())
+        output_plevel: Tensor = self.conv(x[:, :, :-1, :, :].contiguous())
+        output_surface: Tensor = self.conv_surface(x[:, :, -1, :, :].contiguous())
 
         return output_plevel, output_surface
 
@@ -490,7 +498,9 @@ class DownSample(nn.Module):
             [padded_size[0], padded_size[1] // 2, padded_size[2] // 2]
         )
 
-    def forward(self, x: Tensor, embedding_shape: torch.Size) -> Tensor:
+    def forward(
+        self, x: Tensor, embedding_shape: torch.Size
+    ) -> tuple[Tensor, torch.Size]:
         # Reshape x to three dimensions for downsampling
         x = x.reshape(shape=embedding_shape)
 
@@ -536,7 +546,7 @@ class UpSample(nn.Module):
         # Normalization
         self.norm = LayerNorm(output_dim)
 
-    def forward(self, x: Tensor, embedding_shape) -> Tensor:
+    def forward(self, x: Tensor, embedding_shape: torch.Size) -> Tensor:
         assert (
             x.shape[-1] % 4 == 0
         ), f"The token size must be divisible by 4, but is {x.shape[-1]}"
@@ -577,7 +587,7 @@ class EarthSpecificLayer(nn.Module):
         depth (int): number of blocks
         data_size (torch.Size): see EarthSpecificBlock
         dim (int): see EarthSpecificBlock
-        drop_path_ratio_list (list[float]): see EarthSpecificBlock
+        drop_path_ratio_list (Tensor): see EarthSpecificBlock
         num_heads (int): see EarthSpecificBlock
     """
 
@@ -586,9 +596,9 @@ class EarthSpecificLayer(nn.Module):
         depth: int,
         data_size: torch.Size,
         dim: int,
-        drop_path_ratio_list: list[float],
+        drop_path_ratio_list: Tensor,
         num_heads: int,
-        **kwargs,
+        **kwargs: Any,
     ) -> None:
 
         super().__init__()
@@ -598,12 +608,12 @@ class EarthSpecificLayer(nn.Module):
         for i in range(depth):
             self.blocks.append(
                 EarthSpecificBlock(
-                    data_size, dim, drop_path_ratio_list[i], num_heads, **kwargs
+                    data_size, dim, drop_path_ratio_list[i].item(), num_heads, **kwargs
                 )
             )
 
     def forward(
-        self, x: Tensor, embedding_shape: torch.Size, *args, **kwargs
+        self, x: Tensor, embedding_shape: torch.Size, *args: Any, **kwargs: Any
     ) -> Tensor:
         for i, block in enumerate(self.blocks):
             # Roll the input every two blocks
@@ -629,6 +639,9 @@ class EarthSpecificBlock(nn.Module):
         window_size (tuple[int], optional): window size for the sliding window
         attention. Defaults to (2, 6, 12).
         dropout_rate (float, optional): dropout rate in the MLP. Defaults to 0..
+        checkpoint_activation (bool): whether to use checkpointing for the
+        activation function. Defaults to False.
+        lam (bool): activates the limited-area model masks. Defaults to False.
     """
 
     def __init__(
@@ -639,7 +652,7 @@ class EarthSpecificBlock(nn.Module):
         num_heads: int,
         window_size: tuple[int, int, int] = (2, 6, 12),
         dropout_rate: float = 0.0,
-        checkpoint_activation=False,
+        checkpoint_activation: bool = False,
         lam: bool = False,
     ) -> None:
         super().__init__()
@@ -651,7 +664,7 @@ class EarthSpecificBlock(nn.Module):
         assert all(
             [w_s % 2 == 0 for w_s in window_size]
         ), "Window size must be divisible by 2"
-        self.shift_size = [w_size // 2 for w_size in window_size]
+        self.shift_size = tuple([w_size // 2 for w_size in window_size])
 
         # Initialize serveral operations
         self.drop_path = DropPath(drop_prob=drop_path_ratio)
@@ -663,7 +676,7 @@ class EarthSpecificBlock(nn.Module):
         self.norm2 = LayerNorm(dim)
         self.mlp = MLP(dim, dropout_rate=dropout_rate)
 
-    def forward(self, x: Tensor, embedding_shape: torch.Size, roll: bool):
+    def forward(self, x: Tensor, embedding_shape: torch.Size, roll: bool) -> Tensor:
         # Save the shortcut for skip-connection
         shortcut = x
 
@@ -691,6 +704,7 @@ class EarthSpecificBlock(nn.Module):
             # If two pixels are not adjacent, then mask the attention between them
             # Your can set the matrix element to -1000 when it is not adjacent,
             # then add it to the attention
+            assert len(self.shift_size) == 3, "Shift size should be 3D"
             mask = generate_3d_attention_mask(
                 x, self.window_size, self.shift_size, self.lam
             )
@@ -807,7 +821,7 @@ class EarthAttention3D(nn.Module):
         dim: int,
         num_heads: int,
         dropout_rate: float,
-        window_size: tuple[int],
+        window_size: tuple[int, int, int],
     ) -> None:
         super().__init__()
 
@@ -867,9 +881,8 @@ class EarthAttention3D(nn.Module):
                 self.dim // self.head_number,
             )
         )
-        query, key, value = qkv.permute(
-            (2, 0, 3, 1, 4)
-        )  # 3, b*num_windows, head_number, window_size, dim_head
+        query, key, value = qkv.permute((2, 0, 3, 1, 4))
+        # 3, b*num_windows, head_number, window_size, dim_head
 
         # Scale the attention
         query = query * self.scale
@@ -880,11 +893,11 @@ class EarthAttention3D(nn.Module):
         # head_number, window_size, window_size
 
         # self.earth_specific_bias is a set of neural network parameters to optimize.
-        earthspecificbias = self.earth_specific_bias[self.position_index]
-        # earthspecificbias = self.earth_specific_bias
+        assert isinstance(self.position_index, Tensor)
+        earth_specific_bias = self.earth_specific_bias[self.position_index]
 
         # Reshape the learnable bias to the same shape as the attention matrix
-        earthspecificbias = earthspecificbias.reshape(
+        earth_specific_bias = earth_specific_bias.reshape(
             shape=(
                 self.window_size[0] * self.window_size[1] * self.window_size[2],
                 self.window_size[0] * self.window_size[1] * self.window_size[2],
@@ -892,14 +905,13 @@ class EarthAttention3D(nn.Module):
                 self.head_number,
             )
         )
-        earthspecificbias = earthspecificbias.permute((2, 3, 0, 1))
-        earthspecificbias = earthspecificbias.unsqueeze(
-            0
-        )  # 1, num_windows, head_number, window_size, window_size
+        earth_specific_bias = earth_specific_bias.permute((2, 3, 0, 1))
+        earth_specific_bias = earth_specific_bias.unsqueeze(0)
+        # 1, num_windows, head_number, window_size, window_size
 
         # Add the Earth-Specific bias to the attention matrix
         attention_shape = self.attention.shape
-        # Reshape and permute the lon dim to match the shape of earthspecificbias
+        # Reshape and permute the lon dim to match the shape of earth_specific_bias
         attention = self.attention.reshape(
             b,
             self.num_windows,
@@ -917,7 +929,7 @@ class EarthAttention3D(nn.Module):
             attention_shape[-1],
         )
         # add bias
-        attention = attention + earthspecificbias
+        attention = attention + earth_specific_bias
         # Reshape the attention matrix back
         attention = attention.reshape(
             b,
@@ -928,25 +940,24 @@ class EarthAttention3D(nn.Module):
             attention_shape[-1],
         )
         attention = attention.permute(0, 2, 1, 3, 4, 5)
-        self.attention2 = attention.reshape(attention_shape)
+        attention = attention.reshape(attention_shape)
 
         # Mask the attention between non-adjacent pixels, e.g., simply add
         # -100 to the masked element.
         if mask is not None:
-            attention = self.attention2.view(
+            attention = attention.view(
                 b, -1, self.head_number, original_shape[1], original_shape[1]
             )
             attention = attention + mask.unsqueeze(1).unsqueeze(0)
-            self.attention2 = attention.view(
+            attention = attention.view(
                 -1, self.head_number, original_shape[1], original_shape[1]
             )
-        attention = self.softmax(self.attention2)
+        attention = self.softmax(attention)
         attention = self.dropout(attention)
 
         # Calculated the tensor after spatial mixing.
-        x = (
-            attention @ value
-        )  # @ denote matrix multiplication ; B*num_windows, head_number, window_size, dim_head
+        x = attention @ value
+        # @ denote matrix multiplication ; B*num_windows, head_number, window_size, dim_head
 
         # Reshape tensor to the original shape
         x = x.permute((0, 2, 1, 3))  # B*num_windows, window_size, head_number, dim_head

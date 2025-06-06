@@ -19,7 +19,7 @@ from pathlib import Path
 
 import torch
 import torch_optimizer as optim
-from test_utils import get_filenames, populate_test_data
+from test_utils import get_filenames, populate_test_data  # type: ignore
 
 from data import NOGWDDataset
 from models import LitCNN, LitMLP
@@ -61,7 +61,7 @@ class TestLitMLP(unittest.TestCase):
             data_path=TEST_DATA_PATH,
         )
 
-    def test_forward(self):
+    def test_forward(self) -> None:
         """Test the 'forward' method returns a properly formatted tensor."""
         test_forward = self.model_test.forward(self.data[0])
         self.assertIsInstance(test_forward, torch.Tensor)
@@ -70,19 +70,19 @@ class TestLitMLP(unittest.TestCase):
         # 126 : nb of feature for y
         self.assertEqual(test_forward.size(), torch.Size([3 * 36 * 10, 126]))
 
-    def test_compute_stats(self):
+    def test_compute_stats(self) -> None:
         """Test the '_compute_stats' method returns a scalar tensor as the loss."""
         loss = self.model_test._common_step(self.data, 10, "stage")
         self.assertIsInstance(loss, torch.Tensor)
         self.assertEqual(loss.numel(), 1)
 
-    def test_training_step(self):
+    def test_training_step(self) -> None:
         """Test the 'training_step' method returns a scalar tensor as the loss."""
         loss = self.model_test.training_step(self.data, 10)
         self.assertIsInstance(loss, torch.Tensor)
         self.assertEqual(loss.numel(), 1)
 
-    def test_configure_optimizers(self):
+    def test_configure_optimizers(self) -> None:
         """Test the 'configure_optimizers' method returns an 'optim.AdamP' object."""
         optimizer = self.model_test.configure_optimizers()
         self.assertIsInstance(optimizer, optim.AdamP)
@@ -128,26 +128,26 @@ class TestLitCNN(unittest.TestCase):
             data_path=TEST_DATA_PATH,
         )
 
-    def test_forward(self):
+    def test_forward(self) -> None:
         """Test the 'forward' method returns a properly formatted tensor."""
         print(self.model_test)
         test_forward = self.model_test.forward(self.data[0])
         self.assertIsInstance(test_forward, torch.Tensor)
         self.assertEqual(test_forward.size(), torch.Size([1080, 126]))
 
-    def test_compute_stats(self):
+    def test_compute_stats(self) -> None:
         """Test the '_compute_stats' method returns a scalar tensor as the loss."""
         loss = self.model_test._common_step(self.data, 10, "stage")
         self.assertIsInstance(loss, torch.Tensor)
         self.assertEqual(loss.numel(), 1)
 
-    def test_training_step(self):
+    def test_training_step(self) -> None:
         """Test the 'training_step' method returns a scalar tensor as the loss."""
         loss = self.model_test.training_step(self.data, 10)
         self.assertIsInstance(loss, torch.Tensor)
         self.assertEqual(loss.numel(), 1)
 
-    def test_configure_optimizers(self):
+    def test_configure_optimizers(self) -> None:
         """Test the 'configure_optimizers' method returns an 'optim.AdamP' object."""
         optimizer = self.model_test.configure_optimizers()
         self.assertIsInstance(optimizer, optim.AdamP)

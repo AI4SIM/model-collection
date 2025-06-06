@@ -38,7 +38,7 @@ class TestPlotters(unittest.TestCase):
             [1 + np.random.randn(grid, grid, grid) for _ in range(self.f_num)], axis=0
         )
 
-    def test_dispersion_plot(self):
+    def test_dispersion_plot(self) -> None:
         """Test the "dispersion_plot" produces the result file."""
         with tempfile.TemporaryDirectory() as tempdir:
             tt = plotters.Plotter(self.model_type, tempdir, self.grid)
@@ -51,7 +51,7 @@ class TestPlotters(unittest.TestCase):
                 )
             )
 
-    def test_histo(self):
+    def test_histo(self) -> None:
         """Test the "histo" produces the result file."""
         with tempfile.TemporaryDirectory() as tempdir:
             tt = plotters.Plotter(self.model_type, tempdir, self.grid)
@@ -64,7 +64,7 @@ class TestPlotters(unittest.TestCase):
                 )
             )
 
-    def test_histo2d(self):
+    def test_histo2d(self) -> None:
         """Test the "histo2d" produces the result file."""
         with tempfile.TemporaryDirectory() as tempdir:
 
@@ -78,7 +78,7 @@ class TestPlotters(unittest.TestCase):
                 )
             )
 
-    def test_boxplot(self):
+    def test_boxplot(self) -> None:
         """Test the "boxplot" produces the result file."""
         with tempfile.TemporaryDirectory() as tempdir:
             tt = plotters.Plotter(self.model_type, tempdir, self.grid)
@@ -89,7 +89,7 @@ class TestPlotters(unittest.TestCase):
                 os.path.exists(os.path.join(tempdir, f"boxplot-{self.model_type}.png"))
             )
 
-    def test_total_flame_surface(self):
+    def test_total_flame_surface(self) -> None:
         """Test the "total_flame_surface" produces the result files."""
         with tempfile.TemporaryDirectory() as tempdir:
             tt = plotters.Plotter(self.model_type, tempdir, self.grid)
@@ -118,7 +118,7 @@ class TestPlotters(unittest.TestCase):
                 )
             )
 
-    def test_cross_section(self):
+    def test_cross_section(self) -> None:
         """Test the "cross_section" produces the result files."""
         with tempfile.TemporaryDirectory() as tempdir:
             tt = plotters.Plotter(self.model_type, tempdir, self.grid)

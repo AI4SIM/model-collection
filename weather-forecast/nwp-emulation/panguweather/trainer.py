@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.cli import LightningArgumentParser, LightningCLI
 
 
 class MyLightningCLI(LightningCLI):
-    def add_arguments_to_parser(self, parser):
+    def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         parser.link_arguments(
             "data.data_path", "model.init_args.data_path", apply_on="instantiate"
         )
 
 
-def main():
+def main() -> None:
     """Instantiate the CLI and launch the trainer."""
     cli = MyLightningCLI(run=False, parser_kwargs={"parser_mode": "omegaconf"})
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)

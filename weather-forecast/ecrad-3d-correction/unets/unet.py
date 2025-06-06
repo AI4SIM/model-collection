@@ -10,6 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import List
+
 import torch.nn as nn
 from torch import Tensor, cat
 
@@ -32,12 +34,12 @@ class UNet1D(nn.Module):
         n_levels: int,
         n_features_root: int,
         bilinear: bool = False,
-    ):
+    ) -> None:
         super().__init__()
         self.n_levels = n_levels
 
         # First level hardcoded.
-        layers = [DoubleConv(inp_ch, n_features_root)]
+        layers: List[nn.Module] = [DoubleConv(inp_ch, n_features_root)]
 
         # Downward path.
         f = n_features_root
@@ -117,7 +119,7 @@ class Upsampler(nn.Module):
 
     def __init__(self, inp_ch: int, out_ch: int, bilinear: bool = False):
         super().__init__()
-        self.upsample = None
+        self.upsample: nn.Module
         if inp_ch < 2:
             raise ValueError(f"Input channel ({inp_ch}) too low.")
 

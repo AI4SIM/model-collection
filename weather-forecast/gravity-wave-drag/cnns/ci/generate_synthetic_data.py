@@ -23,7 +23,7 @@ sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2]))
 data_path = "./data"
 
 
-def create_data():
+def create_data() -> None:
     """Create data folder with fake raw data"""
     file_split = {
         "train": ["test_1.h5", "test_2.h5", "test_3.h5"],

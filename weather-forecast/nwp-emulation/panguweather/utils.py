@@ -28,8 +28,8 @@ def check_same_coordinates(
     Returns:
         bool
     """
-    longitude_match = torch.all(longitude_1 == longitude_2)
-    latitude_match = torch.all(latitude_1, latitude_2)
+    longitude_match: bool = bool(torch.all(longitude_1 == longitude_2).item())
+    latitude_match: bool = bool(torch.all(latitude_1 == latitude_2).item())
     return longitude_match and latitude_match
 
 
@@ -50,7 +50,10 @@ def cat_constant_masks(surface_data: Tensor, constant_masks: Tensor) -> Tensor:
 
 
 def generate_3d_attention_mask(
-    x: Tensor, window_size: tuple[int], shift_size: tuple[int], lam: bool = False
+    x: Tensor,
+    window_size: tuple[int, int, int],
+    shift_size: tuple[int, int, int],
+    lam: bool = False,
 ) -> Tensor:
     """Generate attention mask for sliding window attention in the context of 3D data.
     Based on:
@@ -58,8 +61,8 @@ def generate_3d_attention_mask(
 
     Args:
         x (Tensor): input data, used to generate the mask on the same device
-        window_size (tuple[int]): size of the sliding window
-        shift_size (tuple[int]): size of the shift for the sliding window
+        window_size (tuple[int, int, int]): size of the sliding window
+        shift_size (tuple[int, int, int]): size of the shift for the sliding window
 
     Returns:
         Tensor: attention mask
@@ -82,6 +85,7 @@ def generate_3d_attention_mask(
     z_slices = ((0, -shift_size[0]), (-shift_size[0], None))
     h_slices = ((0, -shift_size[1]), (-shift_size[1], None))
 
+    w_slices: tuple[tuple[int, None]] | tuple[tuple[int, int], tuple[int, None]]
     if lam:
         w_slices = ((0, -shift_size[2]), (-shift_size[2], None))
     else:
@@ -118,8 +122,8 @@ def generate_3d_attention_mask(
 def generate_2d_swin_masks(
     pad_h: int,
     pad_w: int,
-    window_size: tuple[int],
-    shift_size: tuple[int],
+    window_size: tuple[int, int],
+    shift_size: tuple[int, int],
     num_windows: int,
 ) -> Tensor:
     """Original method to generate attention mask for sliding window attention of Swin transformer.
@@ -128,8 +132,8 @@ def generate_2d_swin_masks(
     Args:
         pad_h (int): height size of the data after padding
         pad_w (int): width size of the data after padding
-        window_size (tuple[int]): size of the sliding window
-        shift_size (tuple[int]): size of the shift for the sliding window
+        window_size (tuple[int, int]): size of the sliding window
+        shift_size (tuple[int, int]): size of the shift for the sliding window
         num_windows (int): number of windows
 
     Returns:
@@ -168,8 +172,8 @@ def generate_2d_swin_masks(
 def generate_modified_2d_swin_masks(
     pad_h: int,
     pad_w: int,
-    window_size: tuple[int],
-    shift_size: tuple[int],
+    window_size: tuple[int, int],
+    shift_size: tuple[int, int],
     num_windows: int,
 ) -> Tensor:
     """Generate attention mask for sliding window attention of Swin transformer.
@@ -180,8 +184,8 @@ def generate_modified_2d_swin_masks(
     Args:
         pad_h (int): height size of the data after padding
         pad_w (int): width size of the data after padding
-        window_size (tuple[int]): size of the sliding window
-        shift_size (tuple[int]): size of the shift for the sliding window
+        window_size (tuple[int, int]): size of the sliding window
+        shift_size (tuple[int, int]): size of the shift for the sliding window
         num_windows (int): number of windows
 
     Returns:
@@ -209,12 +213,12 @@ def generate_modified_2d_swin_masks(
     return attn_mask
 
 
-def define_3d_relative_position_index(window_size: tuple[int]) -> Tensor:
+def define_3d_relative_position_index(window_size: tuple[int, int, int]) -> Tensor:
     """Build the index for the relative positional bias of sliding attention
     windows in the context of 3D data.
 
     Args:
-        window_size (tuple[int]): size of the sliding window
+        window_size (tuple[int, int, int]): size of the sliding window
 
     Returns:
         Tensor: index
@@ -246,13 +250,13 @@ def define_3d_relative_position_index(window_size: tuple[int]) -> Tensor:
     return relative_position_index
 
 
-def define_3d_earth_position_index(window_size: tuple[int]) -> Tensor:
+def define_3d_earth_position_index(window_size: tuple[int, int, int]) -> Tensor:
     """Build the index for the Earth specific positional bias of sliding
     attention windows from PanguWeather.
     See http://arxiv.org/abs/2211.02556
 
     Args:
-        window_size (tuple[int]): size of the sliding window
+        window_size (tuple[int, int, int]): size of the sliding window
 
     Returns:
         Tensor: index
@@ -311,5 +315,5 @@ def slice_deserializer(value: str) -> slice:
     arg_list = value[value.find("(") + 1 : value.find(")")].split(", ")
     assert len(arg_list) <= 3, "Slice takes 3 arguments at maximum."
     assert len(arg_list) > 0, "You must at least define the end of the slice."
-    arg_list = [None if arg == "None" else arg.replace("'", "") for arg in arg_list]
-    return slice(*arg_list)
+    new_arg_list = [None if arg == "None" else arg.replace("'", "") for arg in arg_list]
+    return slice(*new_arg_list)

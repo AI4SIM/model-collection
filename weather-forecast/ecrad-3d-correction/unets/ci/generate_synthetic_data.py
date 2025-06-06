@@ -28,7 +28,7 @@ class ThreeDCorrectionDataprocSyntheticData(ThreeDCorrectionDataproc):
     To be called once before experiments to build the dataset on the filesystem.
     """
 
-    def download(self) -> xr.DataArray:
+    def download(self) -> xr.Dataset:
         """Create data folder with fake raw data"""
         mu = 0.0
         sigma = 1.0

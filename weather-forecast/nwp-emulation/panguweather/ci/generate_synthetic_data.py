@@ -32,13 +32,13 @@ from data import (  # noqa: E402
 
 def create_mock_era5_zarr(
     output_path: str = "./data",
-    n_lat=120,
-    n_lon=240,
+    n_lat: int = 120,
+    n_lon: int = 240,
     n_samples: int = 10,
     start_date: str = "2020-01-01",
     time_step_hours: int = 6,
     include_constant_masks: bool = True,
-):
+) -> str:
     """
     Create a mock ERA5 dataset and store it in a Zarr file format.
 

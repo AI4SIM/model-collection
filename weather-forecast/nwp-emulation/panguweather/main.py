@@ -11,11 +11,12 @@
 # limitations under the License.
 
 import os
+from typing import Any
 
 import torch
 from jsonargparse.typing import register_type
 from lightning import Trainer
-from lightning.pytorch.cli import LightningCLI
+from lightning.pytorch.cli import LightningArgumentParser, LightningCLI
 from lightning.pytorch.loggers import CSVLogger, TensorBoardLogger
 
 from callback import GlobalSaveConfigCallback
@@ -25,7 +26,7 @@ torch.set_float32_matmul_precision("high")
 
 
 class CustomTrainer(Trainer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
 
     @property
@@ -48,11 +49,14 @@ class CustomTrainer(Trainer):
             dirpath = self.default_root_dir
 
         dirpath = self.strategy.broadcast(dirpath)
+        assert dirpath is not None
+        # needed as mypy considers os.getenv() to return a Optional[str],
+        # and log_dir needs to return a str
         return dirpath
 
 
 class MyLightningCLI(LightningCLI):
-    def add_arguments_to_parser(self, parser):
+    def add_arguments_to_parser(self, parser: LightningArgumentParser) -> None:
         parser.link_arguments(
             "data.data_latitude", "model.init_args.latitude", apply_on="instantiate"
         )
@@ -82,7 +86,7 @@ class MyLightningCLI(LightningCLI):
         )
 
 
-def cli_main():
+def cli_main() -> None:
     MyLightningCLI(
         save_config_kwargs={"overwrite": True},
         save_config_callback=GlobalSaveConfigCallback,

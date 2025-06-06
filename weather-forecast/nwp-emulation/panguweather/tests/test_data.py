@@ -27,7 +27,7 @@ class TestData(TestCase):
         self.wrong_era5_mask_list = ["topography", "soil_type", "high_vegetation_cover"]
         self.curated_era5_mask_list = ["soil_type", "high_vegetation_cover"]
 
-    def test_check_era5_constant_masks(self):
+    def test_check_era5_constant_masks(self) -> None:
         self.assertEqual(
             check_era5_constant_masks(self.correct_era5_mask_list),
             self.correct_era5_mask_list,

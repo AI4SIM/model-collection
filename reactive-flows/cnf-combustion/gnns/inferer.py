@@ -17,7 +17,7 @@ import os
 import pickle
 
 import h5py
-import numpy
+import numpy as np
 import torch
 import torch_geometric as pyg
 from lightning import LightningModule
@@ -47,8 +47,8 @@ class Inferer:
         self.wkd = wkd
 
         # init the additional attributes to None
-        self.model = None
-        self.data = None
+        self.model: torch.nn.Module
+        self.data: pyg.data.Data
 
         # Load the NN from self.model_path file
         logging.info(f"Start loading NN model from {self.model_path} ...")
@@ -63,14 +63,13 @@ class Inferer:
         self.model = torch.load(self.model_path, weights_only=False)
         self.model.eval()
 
-    def load_data(self) -> None:
+    def load_data(self) -> np.ndarray:
         """Load the input data that will be injected in the model to process the inference.
         Provide the self.data.
 
         Raises:
             NotImplementedError
         """
-        self.data = ...
         raise NotImplementedError
 
     @property
@@ -87,7 +86,6 @@ class Inferer:
         Args:
             save (bool): If the preprocessed data will be saved in a file or not. Default, False.
         """
-        self.data = ...
         raise NotImplementedError
 
     def predict(self) -> torch.Tensor:
@@ -108,7 +106,7 @@ class InferencePthGnn(Inferer):
         self,
         model_path: str,
         data_path: str,
-        model_class: LightningModule,
+        model_class: type[LightningModule],
         wkd: str = CWD,
     ) -> None:
         """Init the InferencePthGnn class with additional args required (model_class).
@@ -130,35 +128,35 @@ class InferencePthGnn(Inferer):
         self.model = self.model_class.load_from_checkpoint(self.model_path)
         self.model.eval()
 
-    def load_data(self) -> numpy.ndarray:
+    def load_data(self) -> np.ndarray:
         """Load the input data that will be injected in the model to process the inference.
 
         Returns:
-            (numpy.ndarray): the array of the data to be inferred.
+            (np.ndarray): the array of the data to be inferred.
         """
         with h5py.File(self.data_path, "r") as file:
             feat = file["/c_filt"][:]
             logging.info("Data input R3 loaded")
             return feat
 
-    def load_y_dns(self) -> numpy.ndarray:
+    def load_y_dns(self) -> np.ndarray:
         """Load the ground truth data provided in the input file, to be used in a post inference
         validation step. These data corresponds to the DNS ones.
 
         Returns:
-            (numpy.ndarray): the array of the DNS data.
+            (np.ndarray): the array of the DNS data.
         """
         with h5py.File(self.data_path, "r") as file:
             y_gt = file["/c_grad_filt"][:]
             logging.info("Data ground truth R3 loaded")
             return y_gt
 
-    def load_y_les(self) -> numpy.ndarray:
+    def load_y_les(self) -> np.ndarray:
         """Load additional data provided in the input file, to be used in a post inference
         validation step. These data corresponds to the LES ones.
 
         Returns:
-            (numpy.ndarray): the array of the LES data.
+            (np.ndarray): the array of the LES data.
         """
         with h5py.File(self.data_path, "r") as file:
             y_les = file["/c_filt_grad"][:]
@@ -182,7 +180,7 @@ class InferencePthGnn(Inferer):
             grid_shape = (z_size, y_size, x_size)
             graph_topo = create_graph_topo(grid_shape)
             self.data = pyg.data.Data(
-                x=feat.reshape(-1, 1).clone().detach().type(torch.FloatTensor),
+                x=feat.reshape(-1, 1).clone().detach().type(torch.float32),
                 edge_index=graph_topo.edge_index.clone()
                 .detach()
                 .type(torch.LongTensor),
@@ -192,7 +190,7 @@ class InferencePthGnn(Inferer):
                 with open(self.data_processed_path, "wb") as file:
                     pickle.dump(self.data, file)
 
-    def preprocess(self, save: bool = False):
+    def preprocess(self, save: bool = False) -> None:
         """Preprocess the input data to provide the self.data.
 
         Args:

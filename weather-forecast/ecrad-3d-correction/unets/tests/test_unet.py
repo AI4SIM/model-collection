@@ -20,11 +20,11 @@ from unet import Downsampler, UNet1D, Upsampler
 class TestUnet1D(TestCase):
     """Testing 1D U-nets."""
 
-    def n_conv(self, n_levels: int, bilinear: bool = False):
+    def n_conv(self, n_levels: int, bilinear: bool = False) -> int:
         # 2 per DoubleConv + 1 per upsampler.
         return 4 * n_levels + (n_levels - 1 if bilinear else 0)
 
-    def test_1d(self):
+    def test_1d(self) -> None:
 
         n_levels = 1
         net = UNet1D(inp_ch=1, out_ch=1, n_levels=n_levels, n_features_root=4)
@@ -42,19 +42,19 @@ class TestUnet1D(TestCase):
         self.assertEqual(summary.count("Upsampler"), n_levels - 1)
         self.assertEqual(summary.count("Conv1d"), self.n_conv(n_levels))
 
-    def test_inference_1d(self):
+    def test_inference_1d(self) -> None:
         net = UNet1D(inp_ch=1, out_ch=1, n_levels=3, n_features_root=4)
         inp = rand(1, 1, 16)
         shp = tuple(net(inp).shape)
         self.assertEqual(shp, (1, 1, 16))
 
-    def test_downsampler(self):
+    def test_downsampler(self) -> None:
         sampler = Downsampler(inp_ch=4, out_ch=8)
         inp = rand(1, 4, 16)
         shp = tuple(sampler(inp).shape)
         self.assertEqual(shp, (1, 8, 8))
 
-    def test_upsampler(self):
+    def test_upsampler(self) -> None:
         sampler = Upsampler(inp_ch=8, out_ch=4)
         inp = rand(1, 8, 16)
         res = rand(1, 4, 32)

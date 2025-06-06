@@ -12,18 +12,17 @@
 
 from unittest import TestCase, main
 
-from numpy import copy
-from numpy.random import rand
+import torch
 
 from utils import RandomCropper3D
 
 
 class TestData(TestCase):
 
-    def test_random_cropper(self):
+    def test_random_cropper(self) -> None:
         n, n_ = 64, 32
-        x = rand(n, n, n)
-        y = copy(x)
+        x = torch.rand(n, n, n)
+        y = torch.clone(x)
         random_cropper = RandomCropper3D(n_)
         x_, y_ = random_cropper(x, y)
         self.assertEqual(x_.shape, (n_, n_, n_))

@@ -32,15 +32,19 @@ class CombustionModule(pl.LightningModule):
     Loss is MSE and the metric of interest is R2 determination score.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Init the CombustionModule class."""
         super().__init__()
-        self.grid_shape = None
+        self.model: nn.Module
+        self.graph_topology: pyg.data.Data
+        self.grid_shape: Tuple[int, int, int]
+        self.lr: float
 
-        self.ys_test = list()
-        self.y_hats_test = list()
+        self.ys_test: List[torch.Tensor] = []
+        self.y_hats_test: List[torch.Tensor] = []
 
         if self.graph_topology:
+            self.edge_index: torch.Tensor
             self.register_buffer(
                 "edge_index", self.graph_topology.edge_index, persistent=False
             )
@@ -58,8 +62,8 @@ class CombustionModule(pl.LightningModule):
         return self.model(x_val, edge_index)
 
     def _common_step(
-        self, batch: torch.Tensor, batch_idx: int, stage: str
-    ) -> List[torch.Tensor]:
+        self, batch: pyg.data.Data, batch_idx: int, stage: str
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Define the common operations performed on data."""
         batch_size = batch.ptr[0] - 1
         y_hat = self(batch.x, self.edge_index)
@@ -73,11 +77,11 @@ class CombustionModule(pl.LightningModule):
 
         return y_hat, loss, r2
 
-    def training_step(self, batch: torch.Tensor, batch_idx: int) -> torch.Tensor:
+    def training_step(self, batch: pyg.data.Data, batch_idx: int) -> torch.Tensor:
         """Compute one training step.
 
         Args:
-            batch (torch.Tensor): Batch containing nodes features and connectivity matrix.
+            batch (pyg.data.Data): Batch containing nodes features and connectivity matrix.
             batch_idx (int): Batch index.
 
         Returns:
@@ -86,21 +90,21 @@ class CombustionModule(pl.LightningModule):
         _, loss, _ = self._common_step(batch, batch_idx, "train")
         return loss
 
-    def validation_step(self, batch: torch.Tensor, batch_idx: int) -> None:
+    def validation_step(self, batch: pyg.data.Data, batch_idx: int) -> None:
         """Compute one validation step.
 
         Args:
-            batch (torch.Tensor): Batch containing nodes features and connectivity matrix.
+            batch (pyg.data.Data): Batch containing nodes features and connectivity matrix.
             batch_idx (int): Batch index.
         """
         y_hat, _, _ = self._common_step(batch, batch_idx, "val")
 
-    def test_step(self, batch: torch.Tensor, batch_idx: int) -> Tuple[torch.Tensor]:
+    def test_step(self, batch: pyg.data.Data, batch_idx: int) -> None:
         """Compute one testing step. Additionally, also generates outputs to plots for the test
         Dataset.
 
         Args:
-            batch (torch.Tensor): Batch containing nodes features and connectivity matrix.
+            batch (pyg.data.Data): Batch containing nodes features and connectivity matrix.
             batch_idx (int): Batch index.
 
         Returns:
@@ -108,13 +112,11 @@ class CombustionModule(pl.LightningModule):
         """
         y_hat, _, _ = self._common_step(batch, batch_idx, "test")
 
-        if not self.grid_shape:
+        if not hasattr(self, "grid_shape"):
             self.grid_shape = self.graph_topology.grid_shape
 
         self.ys_test.append(batch.y)
         self.y_hats_test.append(y_hat)
-
-        return batch.y, y_hat
 
     def on_test_epoch_end(self) -> None:
         """Gather all the outputs from the test_step to plot the test Dataset."""
@@ -126,11 +128,11 @@ class CombustionModule(pl.LightningModule):
         self.y_hats = self.all_gather(y_hats)
 
         # Reshape the outputs to the original grid shape plus the batch dimension
-        self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).detach().cpu().numpy()
-        self.y_hats = (
-            self.y_hats.squeeze().view((-1,) + self.grid_shape).detach().cpu().numpy()
-        )
-
+        assert isinstance(self.ys, torch.Tensor)
+        assert isinstance(self.y_hats, torch.Tensor)
+        self.ys = self.ys.squeeze().view((-1,) + self.grid_shape).detach().cpu()
+        self.y_hats = self.y_hats.squeeze().view((-1,) + self.grid_shape).detach().cpu()
+        assert self.trainer.log_dir is not None, "Trainer log directory is not set."
         plots_path = os.path.join(self.trainer.log_dir, "plots")
         if self.trainer.is_global_zero:
             if not os.path.exists(plots_path):
@@ -139,11 +141,13 @@ class CombustionModule(pl.LightningModule):
             self.plotter = plotters.Plotter(
                 self.model.__class__.__name__, plots_path, self.grid_shape
             )
-            self.plotter.cross_section((self.ys.shape[1] // 2), self.ys, self.y_hats)
-            self.plotter.dispersion_plot(self.ys, self.y_hats)
-            self.plotter.histo(self.ys, self.y_hats)
-            self.plotter.histo2d(self.ys, self.y_hats)
-            self.plotter.boxplot(self.ys, self.y_hats)
+            self.plotter.cross_section(
+                (self.ys.shape[1] // 2), self.ys.numpy(), self.y_hats.numpy()
+            )
+            self.plotter.dispersion_plot(self.ys.numpy(), self.y_hats.numpy())
+            self.plotter.histo(self.ys.numpy(), self.y_hats.numpy())
+            self.plotter.histo2d(self.ys.numpy(), self.y_hats.numpy())
+            self.plotter.boxplot(self.ys.numpy(), self.y_hats.numpy())
 
     def configure_optimizers(self) -> optim.Optimizer:
         """Set the model optimizer.

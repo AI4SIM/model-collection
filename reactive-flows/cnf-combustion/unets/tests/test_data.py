@@ -14,6 +14,7 @@ from os import listdir, mkdir
 from os.path import exists, join
 from shutil import rmtree
 from tempfile import mkdtemp
+from typing import TypedDict
 from unittest import TestCase, main
 from warnings import catch_warnings, simplefilter
 
@@ -24,17 +25,29 @@ from yaml import dump
 
 from data import CnfCombustionDataModule, CnfCombustionDataset
 
+DataModuleParam = TypedDict(
+    "DataModuleParam",
+    {
+        "batch_size": int,
+        "num_workers": int,
+        "y_normalizer": float,
+        "data_path": str,
+        "splitting_ratios": tuple[float, float, float],
+        "subblock_shape": tuple[int, int, int],
+    },
+)
+
 
 class TestData(TestCase):
 
     def setUp(self) -> None:
         self.filenames = ["DNS1_00116000.h5", "DNS1_00117000.h5", "DNS1_00118000.h5"]
-        data_module_params = {
+        data_module_params: DataModuleParam = {
             "batch_size": 1,
             "num_workers": 0,
             "y_normalizer": 342.553,
             "data_path": "./data",
-            "splitting_ratios": [0.4, 0.4, 0.2],
+            "splitting_ratios": (0.4, 0.4, 0.2),
             "subblock_shape": (32, 16, 16),
         }
 
@@ -54,7 +67,7 @@ class TestData(TestCase):
     def tearDown(self) -> None:
         rmtree(self.dir)
 
-    def create_env(self, tempdir):
+    def create_env(self, tempdir: str) -> None:
         mkdir(join(tempdir, "data"))
         mkdir(join(tempdir, "data", "raw"))
 
@@ -68,33 +81,33 @@ class TestData(TestCase):
         with open(temp_file_path, "w") as tmpfile:
             dump(self.filenames, tmpfile)
 
-    def test_process(self):
+    def test_process(self) -> None:
         self.dataset.process(0, join(self.dir, "data", "raw", "DNS1_00116000.h5"))
         self.assertTrue(exists(join(self.dir, "data", "processed")))
         self.assertEqual(
             len(listdir(join(self.dir, "data", "processed"))), len(self.filenames)
         )
 
-    def test_len(self):
+    def test_len(self) -> None:
         self.assertEqual(len(self.dataset), 3)
 
-    def test_setup(self):
+    def test_setup(self) -> None:
         self.data_module.setup()
         self.assertEqual(len(self.data_module.train_dataset), 1)
         self.assertEqual(len(self.data_module.val_dataset), 1)
         self.assertEqual(len(self.data_module.test_dataset), 1)
 
-    def test_train_dataloader(self):
+    def test_train_dataloader(self) -> None:
         self.data_module.setup()
         test_train_dl = self.data_module.train_dataloader()
         self.assertTrue(isinstance(test_train_dl, DataLoader))
 
-    def test_val_dataloader(self):
+    def test_val_dataloader(self) -> None:
         self.data_module.setup()
         test_val_dl = self.data_module.train_dataloader()
         self.assertTrue(isinstance(test_val_dl, DataLoader))
 
-    def test_test_dataloader(self):
+    def test_test_dataloader(self) -> None:
         self.data_module.setup()
         test_test_dl = self.data_module.train_dataloader()
         self.assertTrue(isinstance(test_test_dl, DataLoader))

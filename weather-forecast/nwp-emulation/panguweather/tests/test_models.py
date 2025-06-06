@@ -16,7 +16,7 @@ from unittest import TestCase
 import numpy as np
 import torch
 
-from panguweather.pangu import (
+from panguweather.pangu import (  # type: ignore[import]
     CustomPad2d,
     CustomPad3d,
     DownSample,
@@ -69,8 +69,8 @@ class TestPangu(TestCase):
         embed = PatchEmbedding(
             c_dim=32,
             patch_size=(2, 8, 8),
-            plevel_size=(5, 13, 120, 240),
-            surface_size=(7, 120, 240),
+            plevel_size=torch.Size([5, 13, 120, 240]),
+            surface_size=torch.Size([7, 120, 240]),
         )
         self.assertEqual(
             embed(self.mock_3d_data, self.mock_2d_data)[0].shape,
@@ -78,7 +78,7 @@ class TestPangu(TestCase):
         )
 
     def test_down_sample(self) -> None:
-        down_sample = DownSample((8, 181, 360), 192)
+        down_sample = DownSample(torch.Size([8, 181, 360]), 192)
         self.assertEqual(
             down_sample(self.mock_token, (2, 8, 181, 360, 192))[0].shape,
             torch.Size([2, 8 * 91 * 180, 384]),

@@ -58,6 +58,12 @@ jobs:
         nox -s black -v -- check-only
         rm -rf .nox
 
+    - name: Analysing the code with mypy
+      working-directory: ${{ matrix.model-project }}
+      run: |
+        nox -s mypy
+        rm -rf .nox
+
     - name: Run unit tests with coverage report
       working-directory: ${{ matrix.model-project }}
       run: |

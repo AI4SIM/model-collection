@@ -22,6 +22,7 @@ import sys
 import re
 import glob
 import nox
+from configparser import ConfigParser
 
 REPORTS_DIR = ".ci-reports/"
 COV_FT_FILE = ".coverage-ft"
@@ -81,6 +82,17 @@ def _torch_version(req_file: str = 'requirements.txt') -> str:
     if "+" in version:
         version, cuda = version.split('+')
     return version, cuda
+
+
+def _build_mypy_config():
+    """Build the mypy configuration file by combining common and model specific configs."""
+    mypy_common_cfg = os.path.join(ROOT_PATH, 'tools', 'mypy', 'mypy.ini')
+    mypy_config = ConfigParser()
+    mypy_config.read([mypy_common_cfg, "mypy.ini"])
+    with open("mypy_full.ini", "w") as mypy_file:
+        # Write the full mypy configuration
+        mypy_config.write(mypy_file)
+
 
 @nox.session
 def base_dependencies(session):
@@ -188,6 +200,19 @@ def black(session):
         session.run("black", "--check", ".")
     else:
         session.run("black", ".")
+
+
+@nox.session
+def mypy(session):
+    """Target to check type hint with mypy."""
+    # Install base python dependencies
+    _build_mypy_config()
+    dev_dependencies(session)
+    session.run("python3", "-m", "pip", "install", "mypy")
+    try:
+        session.run("mypy", "--config-file", "mypy_full.ini", "--explicit-package-bases", ".")
+    finally:
+        session.run("rm", "mypy_full.ini", external=True)
 
 
 @nox.session

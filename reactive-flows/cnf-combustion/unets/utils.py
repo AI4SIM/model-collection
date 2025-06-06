@@ -13,6 +13,7 @@
 from typing import Union
 
 from numpy.random import randint
+from torch import Tensor
 
 
 class RandomCropper3D:
@@ -22,7 +23,7 @@ class RandomCropper3D:
         out_shape (tuple or int): desired output shape.
     """
 
-    def __init__(self, out_shape: Union[int, tuple]):
+    def __init__(self, out_shape: Union[int, tuple]) -> None:
         """
         Args:
             out_shape (int | tuple): desired shape (after cropping), expanded to 3D if int.
@@ -34,7 +35,7 @@ class RandomCropper3D:
             assert len(out_shape) == 3
             self.out_shape = out_shape
 
-    def __call__(self, x, y):
+    def __call__(self, x: Tensor, y: Tensor) -> tuple[Tensor, Tensor]:
         """Apply the random cropping to a (x,y) pair."""
         h, w, d = x.shape[0], x.shape[1], x.shape[2]
         bh, bw, bd = self.out_shape

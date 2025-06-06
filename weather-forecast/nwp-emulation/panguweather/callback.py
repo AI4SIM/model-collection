@@ -15,10 +15,10 @@
 import tempfile
 from pathlib import Path
 
-from lightning import Trainer
-from lightning.pytorch.cli import SaveConfigCallback
-
-from transformer_module import PanguModel
+from jsonargparse._namespace import Namespace
+from lightning import LightningModule, Trainer
+from lightning.pytorch.cli import LightningArgumentParser, SaveConfigCallback
+from lightning.pytorch.loggers import MLFlowLogger
 
 
 class GlobalSaveConfigCallback(SaveConfigCallback):
@@ -28,18 +28,21 @@ class GlobalSaveConfigCallback(SaveConfigCallback):
 
     def __init__(
         self,
-        parser,
-        config,
-        config_filename="config.yaml",
-        overwrite=False,
-        multifile=False,
+        parser: LightningArgumentParser,
+        config: Namespace,
+        config_filename: str = "config.yaml",
+        overwrite: bool = False,
+        multifile: bool = False,
     ):
         super().__init__(
             parser, config, config_filename, overwrite, multifile, save_to_log_dir=True
         )
 
-    def save_config(self, trainer: Trainer, pl_module: PanguModel, stage: str) -> None:
+    def save_config(
+        self, trainer: Trainer, pl_module: LightningModule, stage: str
+    ) -> None:
         if pl_module.mlflow_logger is not None:
+            assert isinstance(pl_module.mlflow_logger, MLFlowLogger)
             with tempfile.TemporaryDirectory() as tmp_dir:
                 config_path = Path(tmp_dir) / self.config_filename
                 self.parser.save(
