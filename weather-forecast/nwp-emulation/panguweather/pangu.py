@@ -94,7 +94,7 @@ class PanguModel(nn.Module):
             surface_channels = surface_variables
             self.constant_masks = None
 
-        # Magical plevel const, level 0 == close to the ground,
+        # Special plevel const from onnx version of pangu, level 0 == close to the ground,
         # shape = 1, 1, 1, 13, 721, 1440
         if add_const2:
             self.register_buffer(
@@ -136,7 +136,7 @@ class PanguModel(nn.Module):
         downsampled_size = self.downsample.downsampled_size
         self.upsample = UpSample(token_size * 2, token_size)
 
-        # Four basic layers
+        # Four Earth specific layers
         self.layer1 = EarthSpecificLayer(
             layer_depth[0],
             embedding_size,
@@ -182,7 +182,7 @@ class PanguModel(nn.Module):
         else:
             surface_data = input_surface
 
-        # Concat the magical const2
+        # Concat the special const2
         if hasattr(self, "const2"):
             assert isinstance(self.const2, Tensor), "const2 is not a tensor"
             input_plevel = torch.cat(
@@ -449,7 +449,7 @@ class PatchRecovery(nn.Module):
         surface_channels: int = 4,
     ) -> None:
         super().__init__()
-        # Hear we use two transposed convolutions to recover data
+        # Here, we use two transposed convolutions to recover data
         self.conv_surface = ConvTranspose2d(
             in_channels=dim,
             out_channels=surface_channels,
@@ -889,8 +889,7 @@ class EarthAttention3D(nn.Module):
 
         # Calculated the attention, a learnable bias is added to fix the nonuniformity of the grid.
         self.attention = query @ key.mT
-        # @ denotes matrix multiplication ; B*num_windows_lon*num_windows,
-        # head_number, window_size, window_size
+        # B*num_windows_lon*num_windows, head_number, window_size, window_size
 
         # self.earth_specific_bias is a set of neural network parameters to optimize.
         assert isinstance(self.position_index, Tensor)
@@ -957,7 +956,7 @@ class EarthAttention3D(nn.Module):
 
         # Calculated the tensor after spatial mixing.
         x = attention @ value
-        # @ denote matrix multiplication ; B*num_windows, head_number, window_size, dim_head
+        # B*num_windows, head_number, window_size, dim_head
 
         # Reshape tensor to the original shape
         x = x.permute((0, 2, 1, 3))  # B*num_windows, window_size, head_number, dim_head

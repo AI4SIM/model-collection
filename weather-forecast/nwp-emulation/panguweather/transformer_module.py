@@ -332,9 +332,9 @@ class PanguModule(LightningModule):
             time_horizon % np.timedelta64(self.time_step, "h") == 0
         except ValueError:
             print(
-                "The time horizon is not divisible by the model time step, it will be reset to:",
-                time_horizon,
-            )  # TODO fix reset time horizon
+                "The time horizon is not divisible by the model time step, it will amount to: ",
+                num_iterations * self.time_step,
+            )
         last_plevel_predictions = plevel_data
         last_surface_predictions = surface_data
         for _ in range(num_iterations):
