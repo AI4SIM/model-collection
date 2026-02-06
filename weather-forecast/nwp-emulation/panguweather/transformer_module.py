@@ -412,10 +412,8 @@ class PanguModule(LightningModule):
             max_epochs = self.trainer.max_epochs
 
             if max_epochs is None:
-                raise ValueError(
-                    "self.trainer.max_epochs is not set, \
-                    but it's required for CosineAnnealingLR scheduler."
-                )
+                raise ValueError("self.trainer.max_epochs is not set, \
+                    but it's required for CosineAnnealingLR scheduler.")
             optim_dict = dict(
                 optimizer=optimizer,
                 lr_scheduler=optim.lr_scheduler.CosineAnnealingLR(
