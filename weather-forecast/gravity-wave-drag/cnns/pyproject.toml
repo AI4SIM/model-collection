@@ -8,7 +8,7 @@ dependencies = [
     "lightning==2.4.0",
     "omegaconf==2.3.0",
     "tensorboard==2.18.0",
-    "torch==2.6.0",
+    "torch==2.8.0",
     "torch-optimizer==0.3.0"
 ]
 

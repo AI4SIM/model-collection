@@ -248,9 +248,9 @@ class PanguModule(LightningModule):
         )
 
         if self.global_rank == 0:
-            nn_norm = 0
+            nn_norm = 0.0
             for p in self.parameters():
-                nn_norm += (p.clone().to("cpu") ** 2).sum()
+                nn_norm += (p.clone().to("cpu") ** 2).sum().item()
             self.log("Model norm", nn_norm, prog_bar=True, on_step=True)
 
         if stage == "val":
