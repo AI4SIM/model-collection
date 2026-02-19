@@ -26,19 +26,14 @@ jobs:
     - name: Checkout sources
       uses: actions/checkout@v2
 
-    - name: Read model-project env.yaml file
-      uses: pietrobolcato/action-read-yaml@1.1.0
-      id: uc_env
-      with:
-        config: ${{ matrix.model-project }}/env.yaml
-
-    - name: Set up Python ${{ steps.uc_env.outputs['python_version'] }}
+    - name: Set up Python
       uses: actions/setup-python@v2
-      with:
-        python-version: ${{ steps.uc_env.outputs['python_version'] }}
 
     - name: Install nox build tool
-      run: pip3 install $(grep nox== ${{ matrix.model-project }}/requirements.txt)
+      run: pip3 install nox$(grep nox.needs_version ${{ matrix.model-project }}/noxfile.py | sed -rn "s/.*\"([><=]=.*)\"/\1/p")
+
+    - name: Install uv tool
+      run: pip3 install uv
 
     - name: Analysing the code with flake8
       working-directory: ${{ matrix.model-project }}

@@ -20,6 +20,8 @@ import inspect
 import os
 import sys
 
+import nox
+
 # Insert the tools/nox folder to the python path to fetch the nox_ref_file.py content
 current_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 common_dir = os.path.dirname(os.path.dirname(os.path.dirname(current_dir)))
@@ -30,3 +32,4 @@ sys.path.insert(0, build_ref_dir)
 from nox_ref_file import *
 
 # Insert below the model project specific targets
+nox.needs_version = "==2026.2.9"

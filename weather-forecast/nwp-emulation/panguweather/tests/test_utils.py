@@ -35,9 +35,6 @@ class TestUtils(TestCase):
         self.slice1_str2 = "slice('2019-01-01', '2020-03-25', None)"
         self.slice2 = slice("2019-01", "2020-03", "12h")
 
-    # def test_perlin_noise(self):
-    #     perlin_noise()
-
     def test_cat_constant_masks(self) -> None:
         cat_data = cat_constant_masks(self.mock_surface_data, self.mock_constant_masks)
         self.assertEqual(cat_data.shape, torch.Size([2, 6, 721, 1440]))

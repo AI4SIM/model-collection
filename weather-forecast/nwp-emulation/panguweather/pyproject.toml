@@ -1,0 +1,44 @@
+[project]
+name = "nwp-emulation-panguweather"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "dask==2024.10.0",
+    "jsonargparse[signatures]==4.39.0",
+    "lightning==2.5.1",
+    "omegaconf==2.3.0",
+    "timm==1.0.15",
+    "torch==2.6.0",
+    "xarray==2024.10.0",
+    "zarr==2.18.3"
+]
+
+# Nox will find here the python version that will be used
+classifiers = [
+  "Programming Language :: Python :: 3.10",
+]
+
+[dependency-groups]
+tests = [
+    "pytest-cov==7.0.0"
+]
+coverage = [
+    "coverage==7.13.4"
+]
+black = [
+    "black==26.1.0"
+]
+isort = [
+    "isort==7.0.0"
+]
+mypy = [
+    "mypy==1.19.1"
+]
+lint = [
+    "flake8==7.3.0",
+    "flake8-docstrings==1.7.0",
+    "flake8-use-fstring==1.4",
+    "flake8-variables-names==0.0.6",
+    "pep8-naming==0.15.1"
+]
+data = []

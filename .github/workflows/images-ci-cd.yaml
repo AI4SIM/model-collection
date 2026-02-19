@@ -11,7 +11,7 @@ on:
 jobs:
   push_to_registries:
     name: Push Docker image to multiple registries
-    runs-on: ubuntu-latest
+    runs-on: linux-large
     permissions:
       packages: write
       contents: read
@@ -80,7 +80,6 @@ jobs:
           build-args: |
             UBUNTU_IMAGE_NAME=${{ steps.uc_env.outputs['ubuntu_base_image.name'] }}
             UBUNTU_IMAGE_TAG=${{ steps.uc_env.outputs['ubuntu_base_image.tag'] }}
-            PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
             MODEL_PROJECT_PATH=${{ matrix.model-project }}
           load: true
           tags: "${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}"

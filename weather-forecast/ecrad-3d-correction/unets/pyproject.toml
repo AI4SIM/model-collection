@@ -1,0 +1,46 @@
+[project]
+name = "ecrad-3d-correction-unets"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "climetlab==0.24.0",
+    "climetlab-maelstrom-radiation==0.7.5",
+    "dask==2024.12.0",
+    "jsonargparse[signatures]==4.35.0",
+    "lightning==2.4.0",
+    "omegaconf==2.3.0",
+    "tensorboard==2.18.0",
+    "torch==2.6.0",
+    "torch-optimizer==0.3.0",
+    "xarray==2024.11.0"
+]
+
+# Nox will find here the python version that will be used
+classifiers = [
+  "Programming Language :: Python :: 3.10",
+]
+
+[dependency-groups]
+tests = [
+    "pytest-cov==7.0.0"
+]
+coverage = [
+    "coverage==7.13.4"
+]
+black = [
+    "black==26.1.0"
+]
+isort = [
+    "isort==7.0.0"
+]
+mypy = [
+    "mypy==1.19.1"
+]
+lint = [
+    "flake8==7.3.0",
+    "flake8-docstrings==1.7.0",
+    "flake8-use-fstring==1.4",
+    "flake8-variables-names==0.0.6",
+    "pep8-naming==0.15.1"
+]
+data = []
