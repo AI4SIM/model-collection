@@ -10,7 +10,7 @@ dependencies = [
     "lightning==2.4.0",
     "omegaconf==2.3.0",
     "tensorboard==2.18.0",
-    "torch==2.8.0",
+    "torch==2.8.0+cu128",
     "torch-optimizer==0.3.0",
     "xarray==2024.11.0"
 ]
@@ -44,3 +44,13 @@ lint = [
     "pep8-naming==0.15.1"
 ]
 data = []
+
+[tool.uv.sources]
+torch = [
+  { index = "pytorch" },
+]
+
+[[tool.uv.index]]
+name = "pytorch"
+url = "https://download.pytorch.org/whl"
+explicit = true
