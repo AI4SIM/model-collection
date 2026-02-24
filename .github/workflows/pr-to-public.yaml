@@ -10,6 +10,7 @@ permissions:
   checks: write
   contents: write
   pull-requests: write
+  repository-projects: write
 
 jobs:
   create-pr:
@@ -18,10 +19,33 @@ jobs:
     if: github.event.repository.name == 'model-collection-private'
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
+      - name: Checkout private sources
+        uses: actions/checkout@v6
+        with:
+          path: private
+          fetch-depth: 0
+
+      - name: Checkout public sources
+        uses: actions/checkout@v6
+        with:
+          repository: AI4SIM/model-collection
+          path: public
+          fetch-depth: 0
+          token: ${{ secrets.TOKEN }}
+
+      - name: Create merge branch and push
+        run: |
+          cd private
+          git checkout -b merge-private-into-public
+          git push ../public merge-private-into-public
+          cd ../public
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'username@users.noreply.github.com'
+          git push origin merge-private-into-public
 
       - name: Create a PR
-        run: gh pr create -B main -R AI4SIM/model-collection --title 'Merge private into public' --body 'Created by Github action'
+        run: |
+          cd public
+          gh pr create -B main -H merge-private-into-public -R AI4SIM/model-collection --title 'Merge private into public' --body 'Created by Github action'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.TOKEN }}
