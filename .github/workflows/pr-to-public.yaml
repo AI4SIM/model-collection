@@ -12,7 +12,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  crete-pr:
+  create-pr:
     runs-on: ubuntu-latest
 
     if: github.event.repository.name == 'model-collection-private'
