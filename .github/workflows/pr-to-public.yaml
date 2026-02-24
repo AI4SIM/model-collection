@@ -1,0 +1,27 @@
+name: merge-to-public
+
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  actions: write
+  checks: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  crete-pr:
+    runs-on: ubuntu-latest
+
+    if: github.event.repository.name == 'model-collection-private'
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Create a PR
+        run: gh pr create -B main -R AI4SIM/model-collection --title 'Merge private into public' --body 'Created by Github action'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
