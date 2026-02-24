@@ -1,6 +1,6 @@
 name: ai4sim-ci-cd
 
-on: [push, pull_request]
+on: [pull_request]
 
 permissions:
   actions: write
