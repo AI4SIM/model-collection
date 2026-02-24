@@ -38,7 +38,7 @@ Currently, the models that have been developed are based on the following use-ca
 - Weather Forecast
     - Gravity Wave Drag (with CNNs), from ECMWF
     - 3D cloud radiative effect correction (with UNets), from ECMWF
-
+    - Numerical Weather Prediction (NWP) emulation (with PanguWeather)
 ## Project Organization
 
 > In all of the following, an experiment designates a specific training run (hyperparameters) with a specific model (neural architecture) and a specific dataset and splitting strategy.
@@ -141,9 +141,11 @@ You can find, in all model project directories, a ``README.md`` file that descri
 
 - Weather Forecast
     - Gravity Wave Drag 
-        - [CNNs](weather-forecast/ecrad-3d-correction/unets/README.md)
+        - [CNNs](weather-forecast/gravity-wave-drag/cnns/README.md)
     - 3D Bias Correction
-        - [Unets](weather-forecast/gravity-wave-drag/cnns/README.md)
+        - [Unets](weather-forecast/ecrad-3d-correction/unets/README.md)
+    - Numerical Weather Prediction (NWP) emulation
+        - [Pangu-Weather](weather-forecast/nwp-emulation/panguweather/README.md)
 
 ### Launch the Training
 
@@ -535,6 +537,7 @@ jobs:
           - reactive-flows/cnf-combustion/unets
           - weather-forecast/gravity-wave-drag/cnns
           - weather-forecast/ecrad-3d-correction/unets
+          - weather-forecast/nwp-emulation/panguweather
           - <domain>/<use-case>/<NN architecture>       <-- Your new model project path
 ...
 ```
