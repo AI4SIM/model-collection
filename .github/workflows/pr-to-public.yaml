@@ -3,7 +3,7 @@ name: merge-to-public
 on:
   push:
     branches:
-      - master
+      - main
 
 permissions:
   actions: write
