@@ -2,6 +2,12 @@ version: 2
 
 updates:
   - package-ecosystem: "uv"
-    directory: "/"
+    directories:
+      - "/reactive-flows/cnf-combustion/gnns"
+      - "/reactive-flows/cnf-combustion/unets"
+      - "/weather-forecast/gravity-wave-drag/cnns"
+      - "/weather-forecast/ecrad-3d-correction/unets"
+      - "/weather-forecast/nwp-emulation/panguweather"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 0
