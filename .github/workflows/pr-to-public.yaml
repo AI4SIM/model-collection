@@ -1,4 +1,4 @@
-name: merge-to-public
+name: auto-pr-to-public
 
 on:
   push:
@@ -7,21 +7,39 @@ on:
 
 permissions:
   actions: write
-  checks: write
   contents: write
   pull-requests: write
 
 jobs:
-  crete-pr:
+  auto-pr-to-public:
     runs-on: ubuntu-latest
 
     if: github.event.repository.name == 'model-collection-private'
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
 
-      - name: Create a PR
-        run: gh pr create -B main -R AI4SIM/model-collection --title 'Merge private into public' --body 'Created by Github action'
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.AI4SIM_APP_ID }}
+          private-key: ${{ secrets.AI4SIM_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - name: Checkout public sources
+        uses: actions/checkout@v6
+        with:
+          repository: AI4SIM/model-collection
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Create branch to be commited
+        run: |
+          git remote set-url origin https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/AI4SIM/model-collection.git
+          git remote add private https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/AI4SIM/model-collection-private.git
+          git fetch private main:private/main
+          git push origin private/main
+
+      - name: Create the PR on public side
+        run: gh pr create -H 'private/main' --title 'Merge private into public' --body 'Created by Github action'
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
