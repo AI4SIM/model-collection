@@ -11,7 +11,7 @@ on:
 jobs:
   push_to_registries:
     name: Push Docker image to multiple registries
-    runs-on: linux-large
+    runs-on: ${{ vars.IMAGE_RUNNER }}
     permissions:
       packages: write
       contents: read
