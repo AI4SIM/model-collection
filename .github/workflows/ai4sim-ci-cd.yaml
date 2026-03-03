@@ -1,6 +1,6 @@
 name: ai4sim-ci-cd
 
-on: [push, pull_request]
+on: [pull_request]
 
 permissions:
   actions: write
@@ -15,11 +15,11 @@ jobs:
     strategy:
       matrix:
         model-project:
-          - reactive-flows/cnf-combustion/gnns
+          # - reactive-flows/cnf-combustion/gnns
           - reactive-flows/cnf-combustion/unets
-          - weather-forecast/gravity-wave-drag/cnns
-          - weather-forecast/ecrad-3d-correction/unets
-          - weather-forecast/nwp-emulation/panguweather
+          # - weather-forecast/gravity-wave-drag/cnns
+          # - weather-forecast/ecrad-3d-correction/unets
+          # - weather-forecast/nwp-emulation/panguweather
       fail-fast: false
 
     steps:
@@ -89,24 +89,24 @@ jobs:
         link_missing_lines_source_dir: ${{ matrix.model-project }}
         report_name: Coverage report for ${{ matrix.model-project }} model project
 
-  dependabot-auto-merge:
-    runs-on: ubuntu-latest
+  # dependabot-auto-merge:
+  #   runs-on: ubuntu-latest
 
-    needs: run-checks
-    if: ${{ (github.event.pull_request.user.login == 'dependabot[bot]') || (github.event.repository.name == 'model-collection') }}
+  #   needs: run-checks
+  #   if: ${{ (github.event.pull_request.user.login == 'dependabot[bot]') || (github.event.repository.name == 'model-collection') }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v2
 
-      - name: Approve a PR
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Approve a PR
+  #       run: gh pr review --approve "$PR_URL"
+  #       env:
+  #         PR_URL: ${{ github.event.pull_request.html_url }}
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge for Dependabot PRs
-        run: gh pr merge --auto ${{ vars.MERGE_FLAG }} "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Enable auto-merge for Dependabot PRs
+  #       run: gh pr merge --auto ${{ vars.MERGE_FLAG }} "$PR_URL"
+  #       env:
+  #         PR_URL: ${{ github.event.pull_request.html_url }}
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
