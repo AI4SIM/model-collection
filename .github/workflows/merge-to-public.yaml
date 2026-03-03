@@ -1,0 +1,20 @@
+name: auto-merge-to-public
+
+on:
+  check_suite:
+    types: [completed]
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-pr-to-public:
+    runs-on: ubuntu-latest
+
+    if: github.event.state == 'success'
+
+    steps:
+        - name: echo
+          run: echo "success"
