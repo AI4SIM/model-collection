@@ -30,8 +30,8 @@ class NOGWDDataset(torch.utils.data.Dataset):
         Output features: .
     """
 
-    x_feat = 191
-    y_feat = 126
+    x_feat: int = 191
+    y_feat: int = 126
 
     def __init__(
         self, root: str, mode: str, shard_len: int, splitting_file: str
@@ -124,7 +124,7 @@ class NOGWDDataset(torch.utils.data.Dataset):
         """
         return len(self.raw_filenames) * self.shard_len
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """Return the Tensor at the given index.
 
         Returns:
@@ -159,9 +159,9 @@ class NOGWDDataModule(pl.LightningDataModule):
         self.shard_len = shard_len
         self.data_path = data_path
         super().__init__()
-        self.train = None
-        self.val = None
-        self.test = None
+        self.train: NOGWDDataset
+        self.val: NOGWDDataset
+        self.test: NOGWDDataset
 
     def prepare_data(self) -> None:
         """Not used. The download logic is the responsibility for the Dataset."""

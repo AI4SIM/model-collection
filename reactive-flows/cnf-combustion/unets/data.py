@@ -12,11 +12,11 @@
 
 from os import listdir, makedirs
 from os.path import isfile, join
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from h5py import File
 from lightning import LightningDataModule
-from torch import load, save, tensor
+from torch import Tensor, load, save, tensor
 from torch.utils.data import DataLoader, Dataset, random_split
 
 from utils import RandomCropper3D
@@ -29,7 +29,7 @@ class CnfCombustionDataset(Dataset):
         root: str,
         y_normalizer: float = None,
         subblock_shape: Union[int, tuple] = None,
-    ):
+    ) -> None:
         super().__init__()
         self.root = root
         self.y_normalizer = y_normalizer
@@ -43,28 +43,28 @@ class CnfCombustionDataset(Dataset):
                 self.process(i, raw_path)
 
     @property
-    def raw_dir(self):
+    def raw_dir(self) -> str:
         return join(self.root, "raw")
 
     @property
-    def processed_dir(self):
+    def processed_dir(self) -> str:
         return join(self.root, "processed")
 
     @property
-    def raw_filenames(self):
+    def raw_filenames(self) -> List[str]:
         return listdir(self.raw_dir)
 
     @property
-    def processed_filenames(self):
+    def processed_filenames(self) -> List[str]:
         return [f"{filename.split('.')[0]}.pt" for filename in self.raw_filenames]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.raw_filenames)
 
-    def __getitem__(self, i):
+    def __getitem__(self, i: int) -> Tuple[Tensor, Tensor]:
         return load(join(self.processed_dir, self.processed_filenames[i]))
 
-    def process(self, i, path) -> None:
+    def process(self, i: int, path: str) -> None:
         makedirs(self.processed_dir, exist_ok=True)
         with File(path, "r") as file:
             c = tensor(file["/filt_8"][:])
@@ -109,7 +109,7 @@ class CnfCombustionDataModule(LightningDataModule):
         shuffling: bool = False,
         y_normalizer: float = None,
         subblock_shape: Union[int, tuple] = None,
-    ):
+    ) -> None:
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.splitting_ratios = splitting_ratios
@@ -119,11 +119,11 @@ class CnfCombustionDataModule(LightningDataModule):
         self.subblock_shape = subblock_shape
         super().__init__()
 
-    def prepare_data(self):
+    def prepare_data(self) -> None:
         """Initialize dataset."""
         CnfCombustionDataset(self.data_path, self.y_normalizer, self.subblock_shape)
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: Optional[str] = None) -> None:
         """Preprocessing: splitting and shuffling."""
         dataset = CnfCombustionDataset(
             self.data_path, self.y_normalizer, self.subblock_shape
@@ -150,7 +150,7 @@ class CnfCombustionDataModule(LightningDataModule):
                 f"Current length is : {length}."
             )
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
@@ -158,12 +158,12 @@ class CnfCombustionDataModule(LightningDataModule):
             num_workers=self.num_workers,
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
         return DataLoader(
             self.val_dataset, batch_size=self.batch_size, num_workers=self.num_workers
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
         return DataLoader(
             self.test_dataset, batch_size=self.batch_size, num_workers=self.num_workers
         )

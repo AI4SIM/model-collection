@@ -17,6 +17,7 @@ import tempfile
 import unittest
 import warnings
 from copy import copy
+from typing import TypedDict
 
 import h5py
 import numpy as np
@@ -26,21 +27,31 @@ import yaml
 from data import CnfDataModule, CnfDataset, LinkRawData
 
 
+class InitParam(TypedDict):
+    """Type definition for the data module initialization parameters."""
+
+    batch_size: int
+    num_workers: int
+    y_normalizer: float
+    splitting_ratios: tuple[float, float, float]
+    data_path: str
+
+
 class TestData(unittest.TestCase):
     """Data test suite."""
 
     def setUp(self) -> None:
         """Define default parameters."""
         self.filenames = ["DNS1_00116000.h5", "DNS1_00117000.h5", "DNS1_00118000.h5"]
-        self.init_param = {
+        self.init_param: InitParam = {
             "batch_size": 1,
             "num_workers": 0,
             "y_normalizer": 342.553,
-            "splitting_ratios": [0.8, 0.1, 0.1],
+            "splitting_ratios": (0.8, 0.1, 0.1),
             "data_path": "./data",
         }
 
-    def create_env(self, tempdir):
+    def create_env(self, tempdir: str) -> None:
         """Create a test environment and data test."""
         os.mkdir(os.path.join(tempdir, "data"))
         os.mkdir(os.path.join(tempdir, "data", "raw"))
@@ -55,13 +66,13 @@ class TestData(unittest.TestCase):
         with open(temp_file_path, "w") as tmpfile:
             _ = yaml.dump(self.filenames, tmpfile)
 
-    def create_obj_rm_warning(self, path):
+    def create_obj_rm_warning(self, path: str) -> CnfDataset:
         """Instantiante the CombustionDataset object with a warning filtering."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             return CnfDataset(path)
 
-    def test_raw_file_names(self):
+    def test_raw_file_names(self) -> None:
         """Test raw file name."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
@@ -70,7 +81,7 @@ class TestData(unittest.TestCase):
             raw_test = data_test.raw_file_names
             self.assertEqual(len(self.filenames), len(raw_test))
 
-    def test_processed_file_names(self):
+    def test_processed_file_names(self) -> None:
         """Test processed file name."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
@@ -80,17 +91,17 @@ class TestData(unittest.TestCase):
 
             self.assertEqual(len(self.filenames), len(processed_test))
 
-    def test_download(self):
+    def test_download(self) -> None:
         """Test download raise error."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
             data_test = self.create_obj_rm_warning(os.path.join(tempdir, "data"))
 
             with self.assertRaises(RuntimeError) as context:
-                _ = data_test.download()
+                data_test.download()
                 self.assertTrue("Data not found." in str(context.exception))
 
-    def test_get(self):
+    def test_get(self) -> None:
         """Test download raise error."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
@@ -99,7 +110,7 @@ class TestData(unittest.TestCase):
 
             self.assertEqual(len(data_get.x), 10 * 10 * 10)
 
-    def test_setup(self):
+    def test_setup(self) -> None:
         """Test the "setup" method."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
@@ -110,7 +121,7 @@ class TestData(unittest.TestCase):
             dataset_test = CnfDataModule(**init_param)
 
             with self.assertRaises(ValueError) as context:
-                dataset_test.setup(stage=None)
+                dataset_test.setup(stage="test")
                 self.assertTrue(
                     "The dataset is too small to be split properly."
                     in str(context.exception)
@@ -120,7 +131,7 @@ class TestData(unittest.TestCase):
             self.assertEqual(len(dataset_test.val_dataset), 0)
             self.assertEqual(len(dataset_test.test_dataset), 1)
 
-    def test_train_dataloader(self):
+    def test_train_dataloader(self) -> None:
         """Test the "train_dataloader"."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
@@ -131,12 +142,12 @@ class TestData(unittest.TestCase):
             dataset_test = CnfDataModule(**init_param)
 
             with self.assertRaises(ValueError):
-                _ = dataset_test.setup(stage=None)
+                dataset_test.setup(stage="fit")
 
             test_train_dl = dataset_test.train_dataloader()
             self.assertTrue(isinstance(test_train_dl, torch.utils.data.DataLoader))
 
-    def test_val_dataloader(self):
+    def test_val_dataloader(self) -> None:
         """Test the "val_dataloader"."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
@@ -147,12 +158,12 @@ class TestData(unittest.TestCase):
             dataset_test = CnfDataModule(**init_param)
 
             with self.assertRaises(ValueError):
-                _ = dataset_test.setup(stage=None)
+                dataset_test.setup(stage="fit")
 
             test_val_dl = dataset_test.val_dataloader()
             self.assertTrue(isinstance(test_val_dl, torch.utils.data.DataLoader))
 
-    def test_test_dataloader(self):
+    def test_test_dataloader(self) -> None:
         """Test the "test_dataloader"."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
@@ -163,7 +174,7 @@ class TestData(unittest.TestCase):
             dataset_test = CnfDataModule(**init_param)
 
             with self.assertRaises(ValueError):
-                _ = dataset_test.setup(stage=None)
+                dataset_test.setup(stage="test")
 
             test_test_dl = dataset_test.test_dataloader()
             self.assertTrue(isinstance(test_test_dl, torch.utils.data.DataLoader))
@@ -172,7 +183,7 @@ class TestData(unittest.TestCase):
 class TestLinkRawData(unittest.TestCase):
     """LinkRawData test suite."""
 
-    def create_env(self, tempdir):
+    def create_env(self, tempdir: str) -> None:
         """Create a test environment and data test."""
         os.makedirs(os.path.join(tempdir, "raw_data"), exist_ok=True)
         os.makedirs(os.path.join(tempdir, "local_data"), exist_ok=True)
@@ -190,13 +201,13 @@ class TestLinkRawData(unittest.TestCase):
         with open(temp_file_path, "w") as tmpfile:
             _ = yaml.dump(self.filenames, tmpfile)
 
-    def create_obj_rm_warning(self, raw_path, local_path):
+    def create_obj_rm_warning(self, raw_path: str, local_path: str) -> LinkRawData:
         """Instantiante the CombustionDataset object with a warning filtering."""
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             return LinkRawData(raw_path, local_path)
 
-    def test_linkrawdata(self):
+    def test_linkrawdata(self) -> None:
         """Test the LinkRawData class."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)

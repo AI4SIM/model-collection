@@ -1,6 +1,6 @@
 name: ai4sim-ci-cd
 
-on: [push, pull_request]
+on: [pull_request]
 
 permissions:
   actions: write
@@ -15,29 +15,25 @@ jobs:
     strategy:
       matrix:
         model-project:
-          - reactive-flows/cnf-combustion/gnns
+          # - reactive-flows/cnf-combustion/gnns
           - reactive-flows/cnf-combustion/unets
-          - weather-forecast/gravity-wave-drag/cnns
-          - weather-forecast/ecrad-3d-correction/unets
+          # - weather-forecast/gravity-wave-drag/cnns
+          # - weather-forecast/ecrad-3d-correction/unets
+          # - weather-forecast/nwp-emulation/panguweather
       fail-fast: false
 
     steps:
     - name: Checkout sources
       uses: actions/checkout@v2
 
-    - name: Read model-project env.yaml file
-      uses: pietrobolcato/action-read-yaml@1.1.0
-      id: uc_env
-      with:
-        config: ${{ matrix.model-project }}/env.yaml
-
-    - name: Set up Python ${{ steps.uc_env.outputs['python_version'] }}
+    - name: Set up Python
       uses: actions/setup-python@v2
-      with:
-        python-version: ${{ steps.uc_env.outputs['python_version'] }}
 
     - name: Install nox build tool
-      run: pip3 install $(grep nox== ${{ matrix.model-project }}/requirements.txt)
+      run: pip3 install nox$(grep nox.needs_version ${{ matrix.model-project }}/noxfile.py | sed -rn "s/.*\"([><=]=.*)\"/\1/p")
+
+    - name: Install uv tool
+      run: pip3 install uv
 
     - name: Analysing the code with flake8
       working-directory: ${{ matrix.model-project }}
@@ -55,6 +51,12 @@ jobs:
       working-directory: ${{ matrix.model-project }}
       run: |
         nox -s black -v -- check-only
+        rm -rf .nox
+
+    - name: Analysing the code with mypy
+      working-directory: ${{ matrix.model-project }}
+      run: |
+        nox -s mypy
         rm -rf .nox
 
     - name: Run unit tests with coverage report
@@ -87,24 +89,24 @@ jobs:
         link_missing_lines_source_dir: ${{ matrix.model-project }}
         report_name: Coverage report for ${{ matrix.model-project }} model project
 
-  dependabot-auto-merge:
-    runs-on: ubuntu-latest
+  # dependabot-auto-merge:
+  #   runs-on: ubuntu-latest
 
-    needs: run-checks
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+  #   needs: run-checks
+  #   if: ${{ (github.event.pull_request.user.login == 'dependabot[bot]') || (github.event.repository.name == 'model-collection') }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v2
 
-      - name: Approve a PR
-        run: gh pr review --approve "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Approve a PR
+  #       run: gh pr review --approve "$PR_URL"
+  #       env:
+  #         PR_URL: ${{ github.event.pull_request.html_url }}
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge for Dependabot PRs
-        run: gh pr merge --auto --squash "$PR_URL"
-        env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Enable auto-merge for Dependabot PRs
+  #       run: gh pr merge --auto ${{ vars.MERGE_FLAG }} "$PR_URL"
+  #       env:
+  #         PR_URL: ${{ github.event.pull_request.html_url }}
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -23,9 +23,61 @@ import torch_geometric as pyg
 import torch_optimizer as optim
 import yaml
 from lightning.pytorch.trainer import Trainer
+from typing_extensions import NotRequired, TypedDict
 
 from models import LitGAT, LitGCN, LitGIN, LitGraphUNet
 from utils import create_graph_topo
+
+
+class InitParam(TypedDict):
+    """Type definition for the model initialization parameters."""
+
+    in_channels: int
+    hidden_channels: int
+    out_channels: int
+    num_layers: int
+    dropout: float
+    jk: str
+    lr: float
+    graph_topology: NotRequired[pyg.data.Data | None]
+
+
+class GinInitParam(TypedDict):
+    """Type definition for the GIN model initialization parameters."""
+
+    in_channels: int
+    hidden_channels: int
+    out_channels: int
+    num_layers: int
+    dropout: float
+    lr: float
+    graph_topology: NotRequired[pyg.data.Data | None]
+
+
+class GatInitParam(TypedDict):
+    """Type definition for the GAT model initialization parameters."""
+
+    in_channels: int
+    hidden_channels: int
+    out_channels: int
+    num_layers: int
+    dropout: float
+    heads: int
+    jk: str
+    lr: float
+    graph_topology: NotRequired[pyg.data.Data | None]
+
+
+class GunetInitParam(TypedDict):
+    """Type definition for the GraphUNet model initialization parameters."""
+
+    in_channels: int
+    hidden_channels: int
+    out_channels: int
+    depth: int
+    pool_ratios: float
+    lr: float
+    graph_topology: NotRequired[pyg.data.Data | None]
 
 
 class TestModel(unittest.TestCase):
@@ -35,7 +87,7 @@ class TestModel(unittest.TestCase):
         """Define default parameters."""
         self.filenames = ["DNS1_00116000.h5", "DNS1_00117000.h5", "DNS1_00118000.h5"]
 
-        self.init_param = {
+        self.init_param: InitParam = {
             "in_channels": 1,
             "hidden_channels": 32,
             "out_channels": 1,
@@ -45,7 +97,7 @@ class TestModel(unittest.TestCase):
             "lr": 0.0001,
         }
 
-    def create_env(self, tempdir):
+    def create_env(self, tempdir: str) -> None:
         """Create a test environment and data files test."""
         os.mkdir(os.path.join(tempdir, "data"))
         os.mkdir(os.path.join(tempdir, "data", "raw"))
@@ -60,7 +112,7 @@ class TestModel(unittest.TestCase):
         with open(temp_file_path, "w") as tmpfile:
             _ = yaml.dump(self.filenames, tmpfile)
 
-    def create_graph(self, file_path):
+    def create_graph(self, file_path: str) -> tuple[pyg.data.Data, pyg.data.Data]:
         """Create a test graph."""
         with h5py.File(file_path, "r") as file:
             col = file["/filt_8"][:]
@@ -74,7 +126,7 @@ class TestModel(unittest.TestCase):
 
         return data, graph_topo
 
-    def test_forward(self):
+    def test_forward(self) -> None:
         """Test the "forward" method generates a Tensor."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)
@@ -87,9 +139,9 @@ class TestModel(unittest.TestCase):
 
             self.assertTrue(isinstance(test_forward, torch.Tensor))
 
-    def test_common_step(self):
+    def test_common_step(self) -> None:
         """Test the "_common_step" method returns a 3 length tuple."""
-        gin_init_param = {
+        gin_init_param: GinInitParam = {
             "in_channels": 1,
             "hidden_channels": 32,
             "out_channels": 1,
@@ -111,9 +163,9 @@ class TestModel(unittest.TestCase):
 
             self.assertEqual(len(loss), 3)
 
-    def test_training_step(self):
+    def test_training_step(self) -> None:
         """Test the "training_step" method returns a Tensor."""
-        gat_init_param = {
+        gat_init_param: GatInitParam = {
             "in_channels": 1,
             "hidden_channels": 32,
             "out_channels": 1,
@@ -136,9 +188,9 @@ class TestModel(unittest.TestCase):
             loss = test_gat.training_step(batch=batch, batch_idx=1)
             self.assertTrue(isinstance(loss, torch.Tensor))
 
-    def test_test_step(self):
+    def test_test_step(self) -> None:
         """Test the "test_step" method returns a tuple of same size Tensors."""
-        gunet_init_param = {
+        gunet_init_param: GunetInitParam = {
             "in_channels": 1,
             "hidden_channels": 32,
             "out_channels": 1,
@@ -156,19 +208,22 @@ class TestModel(unittest.TestCase):
             test_gunet = LitGraphUNet(**gunet_init_param)
             batch = pyg.data.Batch.from_data_list([data_test, data_test])
 
-            out_tuple = test_gunet.test_step(batch=batch, batch_idx=1)
+            test_gunet.test_step(batch=batch, batch_idx=1)
 
-            self.assertEqual(len(out_tuple), 2)
-            self.assertEqual(out_tuple[0].size(), out_tuple[1].size())
+            self.assertEqual(
+                test_gunet.ys_test[0].size(), test_gunet.y_hats_test[0].size()
+            )
 
             test_gunet._trainer = Trainer()
             test_gunet.on_test_epoch_end()
-
+            assert (
+                test_gunet.trainer.log_dir is not None
+            ), "Trainer log directory is not set."
             self.assertTrue(
                 os.path.exists(os.path.join(test_gunet.trainer.log_dir, "plots"))
             )
 
-    def test_configure_optimizers(self):
+    def test_configure_optimizers(self) -> None:
         """Test the "configure_optimizers" method returns an optim.Optimizer."""
         with tempfile.TemporaryDirectory() as tempdir:
             self.create_env(tempdir)

@@ -13,7 +13,7 @@
 from lightning.pytorch.cli import LightningCLI
 
 
-def main():
+def main() -> None:
     cli = LightningCLI(run=False, parser_kwargs={"parser_mode": "omegaconf"})
     cli.trainer.fit(model=cli.model, datamodule=cli.datamodule)
     cli.trainer.test(model=cli.model, datamodule=cli.datamodule)

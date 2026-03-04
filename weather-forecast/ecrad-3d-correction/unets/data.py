@@ -15,7 +15,6 @@ from typing import Optional, Tuple
 
 import dask.array as da
 import lightning as pl
-import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset, SubsetRandomSampler
 
@@ -44,7 +43,7 @@ class ThreeDCorrectionDataset(Dataset):
         stats = torch.load(osp.join(data_path, "stats.pt"))
         self.n_data = stats["x_nb"].item()
 
-    def __getitem__(self, i: int) -> Tuple[np.ndarray]:
+    def __getitem__(self, i: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Load data from chunks on disk.
         Return (x, y) as tensors.
@@ -54,9 +53,9 @@ class ThreeDCorrectionDataset(Dataset):
         """
         x = self.x[i].compute()
         y = self.y[i].compute()
-        x = torch.from_numpy(x)
-        y = torch.from_numpy(y)
-        return x, y
+        x_tensor = torch.from_numpy(x)
+        y_tensor = torch.from_numpy(y)
+        return x_tensor, y_tensor
 
     def __len__(self) -> int:
         return self.n_data
@@ -84,12 +83,12 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.num_workers = num_workers
         self.splitting_ratios = splitting_ratios
-        self.dataset = None
+        self.dataset: ThreeDCorrectionDataset
 
-    def prepare_data(self):
+    def prepare_data(self) -> None:
         ThreeDCorrectionDataset(self.data_path)
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: Optional[str] = None) -> None:
 
         # Define subsets.
         tr, va, te = self.splitting_ratios
@@ -109,7 +108,7 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
         self.val_sampler = SubsetRandomSampler(val_idx)
         self.test_sampler = SubsetRandomSampler(test_idx)
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         return DataLoader(
             self.dataset,
             batch_size=self.batch_size,
@@ -117,7 +116,7 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
         return DataLoader(
             self.dataset,
             batch_size=self.batch_size,
@@ -125,7 +124,7 @@ class LitThreeDCorrectionDataModule(pl.LightningDataModule):
             num_workers=self.num_workers,
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> DataLoader:
         return DataLoader(
             self.dataset,
             batch_size=self.batch_size,

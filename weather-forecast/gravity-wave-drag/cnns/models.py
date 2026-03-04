@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import os
-from typing import Tuple
+from typing import Any, Tuple
 
 import lightning as pl
 import torch
@@ -28,6 +28,8 @@ class NOGWDModule(pl.LightningModule):
     def __init__(self, data_path: str):
         """Load previously computed stats for model-level normalization purposes."""
         super().__init__()
+        self.net: nn.Module
+        self.lr: float
         # Init attributes to fake data
         self.x_mean = torch.tensor(0)
         self.x_std = torch.tensor(1)
@@ -39,7 +41,7 @@ class NOGWDModule(pl.LightningModule):
             self.x_std = stats["x_std"]
             self.y_std = stats["y_std"].max()
 
-    def forward(self, features: torch.Tensor):
+    def forward(self, features: torch.Tensor) -> torch.Tensor:
         """Compute the forward pass.
 
         Args:
@@ -52,7 +54,7 @@ class NOGWDModule(pl.LightningModule):
 
     def _common_step(
         self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int, stage: str
-    ):
+    ) -> torch.Tensor:
         """Define the common operations performed on data."""
         x_val, y_val = batch
         x_val = (x_val - self.x_mean.to(self.device)) / self.x_std.to(self.device)
@@ -69,7 +71,9 @@ class NOGWDModule(pl.LightningModule):
 
         return loss
 
-    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
+    def training_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> torch.Tensor:
         """Compute one training step.
 
         Args:
@@ -82,7 +86,9 @@ class NOGWDModule(pl.LightningModule):
         loss = self._common_step(batch, batch_idx, "train")
         return loss
 
-    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
+    def validation_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> None:
         """Compute one validation step.
 
         Args:
@@ -91,7 +97,9 @@ class NOGWDModule(pl.LightningModule):
         """
         self._common_step(batch, batch_idx, "val")
 
-    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int):
+    def test_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> None:
         """Compute one testing step.
 
         Args:
@@ -100,7 +108,7 @@ class NOGWDModule(pl.LightningModule):
         """
         self._common_step(batch, batch_idx, "test")
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> optim.Optimizer:
         """Set the model optimizer.
 
         Returns:
@@ -118,9 +126,9 @@ class LitMLP(NOGWDModule):
         hidden_channels: int,
         out_channels: int,
         lr: float,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """Define the network LitMLP architecture."""
         super().__init__(*args, **kwargs)
 
@@ -144,7 +152,7 @@ class LitCNN(NOGWDModule):
     class Reshape(nn.Module):
         """Create a custom Reshape layer."""
 
-        def forward(self, tensor: torch.Tensor):
+        def forward(self, tensor: torch.Tensor) -> torch.Tensor:
             """Reshape the input tensor to expose the 5 features of each columnar cell.
             The 3 first ones features are Atmospheric level dependant quantities, while the last 2
             ones are constants.
@@ -168,9 +176,9 @@ class LitCNN(NOGWDModule):
         pool_size: int,
         out_channels: int,
         lr: float,
-        *args,
-        **kwargs,
-    ):
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
         """Define the network LitCNN architecture."""
         super().__init__(*args, **kwargs)
 

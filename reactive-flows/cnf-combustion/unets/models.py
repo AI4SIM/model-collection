@@ -11,7 +11,9 @@
 # limitations under the License.
 
 from lightning import LightningModule
-from torch import flatten
+from torch import Tensor, flatten
+from torch.nn import Module
+from torch.optim import Optimizer
 from torch_optimizer import AdamP
 from torchmetrics.functional import mean_squared_error, r2_score
 
@@ -21,10 +23,16 @@ from unet import UNet3D
 class CombustionModule(LightningModule):
     """LightningModule for combustion use-cases (R2-scored)."""
 
-    def forward(self, x):
+    def __init__(self) -> None:
+        super().__init__()
+        self.model: Module
+
+    def forward(self, x: Tensor) -> Tensor:
         return self.model(x)
 
-    def _common_step(self, batch, stage):
+    def _common_step(
+        self, batch: tuple[Tensor, Tensor], stage: str
+    ) -> tuple[Tensor, Tensor, Tensor]:
         """Compute the loss, additional metrics, and log them."""
         x, y = batch
         y_hat = self(x)
@@ -36,21 +44,28 @@ class CombustionModule(LightningModule):
 
         return y_hat, loss, r2
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> Tensor:
         _, loss, _ = self._common_step(batch, "train")
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> None:
         self._common_step(batch, "val")
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch: tuple[Tensor, Tensor], batch_idx: int) -> None:
         self._common_step(batch, "test")
 
 
 class LitUnet3D(CombustionModule):
     """Lit wrapper to compile a 3D U-net, generic volume shapes."""
 
-    def __init__(self, in_channels, out_channels, n_levels, n_features_root, lr):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        n_levels: int,
+        n_features_root: int,
+        lr: float,
+    ) -> None:
         super().__init__()
         self.save_hyperparameters()
 
@@ -62,5 +77,5 @@ class LitUnet3D(CombustionModule):
             n_features_root=n_features_root,
         )
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Optimizer:
         return AdamP(self.parameters(), lr=self.lr)

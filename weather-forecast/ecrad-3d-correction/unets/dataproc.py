@@ -12,7 +12,7 @@
 
 import os
 import os.path as osp
-from typing import Dict, Tuple, Union
+from typing import List, Tuple, Union
 
 import climetlab as cml
 import dask.array as da
@@ -78,7 +78,7 @@ class ThreeDCorrectionDataproc:
         x_path, y_path = self.reshard(x, y)
         self.compute_stats(x_path, y_path)
 
-    def download(self) -> xr.DataArray:
+    def download(self) -> xr.Dataset:
         """Download the data for 3D Correction UC and return an xr.Array."""
         cml.settings.set("cache-directory", self.cached_data_path)
         cml_ds = cml.load_dataset(
@@ -94,7 +94,7 @@ class ThreeDCorrectionDataproc:
 
         return cml_ds.to_xarray()
 
-    def build_features(self, xr_array) -> Tuple[da.Array]:
+    def build_features(self, xr_array: xr.Dataset) -> Tuple[da.Array, da.Array]:
         """
         Build feature vectors (of spatial dimension 138)
             * Select features from the array provided in input;
@@ -134,7 +134,7 @@ class ThreeDCorrectionDataproc:
             arr = da.rechunk(arr, chunks=(self.shard_size, *arr.shape[1:]))
             data.update({f: arr})
 
-        x = da.concatenate(
+        x: da.Array = da.concatenate(
             [
                 data["hl_inputs"],
                 pad_tensor(data["inter_inputs"], (1, 1)),
@@ -144,7 +144,7 @@ class ThreeDCorrectionDataproc:
             axis=-1,
         )
 
-        y = da.concatenate(
+        y: da.Array = da.concatenate(
             [
                 data["flux_dn_sw"][..., np.newaxis],
                 data["flux_up_sw"][..., np.newaxis],
@@ -158,7 +158,7 @@ class ThreeDCorrectionDataproc:
 
         return x, y
 
-    def purgedirs(self, paths: Union[str, list]) -> Union[str, list]:
+    def purgedirs(self, paths: Union[str, list]) -> Union[str, List[str]]:
         """Remove all content of directories in paths."""
         if isinstance(paths, str):
             paths = [paths]
@@ -172,7 +172,7 @@ class ThreeDCorrectionDataproc:
 
         return paths[0] if len(paths) == 1 else paths
 
-    def reshard(self, x: da.Array, y: da.Array) -> Tuple[str]:
+    def reshard(self, x: da.Array, y: da.Array) -> Tuple[str, str]:
         """
         Reshard the arrays by rechunking on memory,
         store the chunks on disk in Numpy file format (.npy)
@@ -181,18 +181,22 @@ class ThreeDCorrectionDataproc:
         x_chunked = da.rechunk(x, chunks=(self.shard_size, *x.shape[1:]))
         y_chunked = da.rechunk(y, chunks=(self.shard_size, *y.shape[1:]))
 
-        x_path, y_path = self.purgedirs(
+        purged_paths = self.purgedirs(
             [
                 osp.join(self.processed_data_path, "x"),
                 osp.join(self.processed_data_path, "y"),
             ]
         )
+        assert (
+            isinstance(purged_paths, list) and len(purged_paths) == 2
+        ), "Two directories should be purged."
+        x_path, y_path = purged_paths
         da.to_npy_stack(x_path, x_chunked, axis=0)
         da.to_npy_stack(y_path, y_chunked, axis=0)
 
         return x_path, y_path
 
-    def compute_stats(self, x_path: str, y_path: str) -> Dict[str, np.array]:
+    def compute_stats(self, x_path: str, y_path: str) -> None:
         """Compute stats: mean and standard deviation for features of x and y."""
         stats = {}
         for a in [da.from_npy_stack(x_path), da.from_npy_stack(y_path)]:

@@ -48,7 +48,7 @@ class TestData(TestCase):
     def tearDown(self) -> None:
         rmtree(self.root)
 
-    def create_env(self, root) -> None:
+    def create_env(self, root: str) -> None:
         """Build a data/processed environment with a single input."""
         data_path = osp.join(root, "processed")
         os.makedirs(osp.join(data_path, "x"), exist_ok=True)

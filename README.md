@@ -38,7 +38,7 @@ Currently, the models that have been developed are based on the following use-ca
 - Weather Forecast
     - Gravity Wave Drag (with CNNs), from ECMWF
     - 3D cloud radiative effect correction (with UNets), from ECMWF
-
+    - Numerical Weather Prediction (NWP) emulation (with PanguWeather)
 ## Project Organization
 
 > In all of the following, an experiment designates a specific training run (hyperparameters) with a specific model (neural architecture) and a specific dataset and splitting strategy.
@@ -64,8 +64,8 @@ All model implementations should include the following folders and files:
 * ``models.py`` contains the model ("module"), including training logic. The architecture can be imported from specific libraries or a local module (e.g. unet.py).
 * ``trainer.py`` is the main entry point responsible for creating a Trainer object, a CLI, and saving artifacts in the experiment directory.
 * ``noxfile.py`` is the Nox build tool configuration file that defines all targets available for the model project.
-* ``env.yaml`` lists the environment requirements, like the Ubuntu docker base image or the Python version.
-* ``requirements.txt`` contains all the Python dependencies of the project, generated using the ``pip freeze`` command.
+* ``env.yaml`` lists the environment requirements, like the Ubuntu docker base image.
+* ``pyproject.toml`` contains all the project definition, like the Python dependencies of the project.
 * ``ci/`` contains all the additional files required to run the functional tests.
 
 Optionally, it can also include the following folders and files:
@@ -109,25 +109,25 @@ If you want to experiment with the model in a different environment you can buil
 
 #### Virtual Environment
 
-To experiment with a model on bare metal, we suggest building a python virtual environment that will embed all the python requirements of the targeted model.
+To experiment with a model on bare metal, we suggest building a python virtual environment using the [uv](https://docs.astral.sh/uv/getting-started/installation/) tool, that will embed all the python requirements of the targeted model.
 
 You can use a manual installation:
 
 ```bash
 cd <domain>/<use-case>/<NN architecture>
-python3 -m venv your-venv
-source your-venv/bin/activate
-pip install -U $(grep pip== ./requirements.txt)
-pip install -r ./requirements.txt
+python3 -m pip install uv
+uv sync
+source .venv/bin/activate
 ```
 
 or, alternatively, you can use the *Nox* target ``dev_dependencies`` (cf [Nox targets]()):
 
 ```bash
 cd <domain>/<use-case>/<NN architecture>
-python3 -m pip install $(grep nox== ./requirements.txt)
+python3 -m pip install nox$(grep nox.needs_version ./noxfile.py | sed -rn "s/.*\"([><=]=.*)\"/\1/p")
+python3 -m pip install uv
 nox -s dev_dependencies
-source dev_dependencies/bin/activate
+source .nox/dev_dependencies/bin/activate
 ```
 
 ### Prepare the Dataset
@@ -141,9 +141,11 @@ You can find, in all model project directories, a ``README.md`` file that descri
 
 - Weather Forecast
     - Gravity Wave Drag 
-        - [CNNs](weather-forecast/ecrad-3d-correction/unets/README.md)
+        - [CNNs](weather-forecast/gravity-wave-drag/cnns/README.md)
     - 3D Bias Correction
-        - [Unets](weather-forecast/gravity-wave-drag/cnns/README.md)
+        - [Unets](weather-forecast/ecrad-3d-correction/unets/README.md)
+    - Numerical Weather Prediction (NWP) emulation
+        - [Pangu-Weather](weather-forecast/nwp-emulation/panguweather/README.md)
 
 ### Launch the Training
 
@@ -165,7 +167,7 @@ podman run \
     -v ./data:/home/ai4sim/<domain>/<use-case>/<NN architecture>/data \
     -w /home/ai4sim/<domain>/<use-case>/<NN architecture> \
     ghcr.io/ai4sim/model-collection:<domain>-<use-case>-<NN architecture> \
-    python3 trainer.py --config configs/<training-config>.yaml
+    uv run trainer.py --config configs/<training-config>.yaml
 ```
 
 #### Virtual Environment
@@ -174,7 +176,7 @@ Using the python virtual environment built as described in [Setting-up the envir
 
 ```bash
 cd <domain>/<use-case>/<NN architecture>
-python3 trainer.py --config configs/<training-config>.yaml
+uv run trainer.py --config configs/<training-config>.yaml
 ```
 
 ## Contribute
@@ -198,7 +200,8 @@ pip install nox
 To install the version of *Nox* used in an existing model project please refer to the ``requirements.txt`` file of the project.
 
 ```bash
-pip install $(grep nox== requirements.txt)
+pip install nox$(grep nox.needs_version ./noxfile.py | sed -rn "s/.*\"([><=]=.*)\"/\1/p")
+
 ```
 
 #### Usage
@@ -249,15 +252,14 @@ The first step is to initiate the required files that will permit to set up the 
 
 As a reminder of the [Model project files](#model-project-files) section, the required files to define the environment are:
 
-* ``env.yaml`` lists the environment requirements, like the Ubuntu docker base image or the Python version.
+* ``env.yaml`` lists the environment requirements, like the Ubuntu docker base image.
 * ``noxfile.py`` is the Nox build tool configuration file that defines all targets available for the model project.
-* ``requirements.txt`` contains all the python dependencies of the project, generated using the ``pip freeze`` command.
+* ``pyproject.toml`` contains all the project definition, like the Python dependencies of the project.
 
 ##### Create the *env.yaml* File
 
 This file will actually be used later by the GitHub Actions workflow in charge of building the docker image of the model project, but we recommend creating and filling it now to fix:
 - the **Ubuntu image** you will work on,
-- the **Python version** you want to use.
 
 The format of this file is the following:
 
@@ -265,15 +267,12 @@ The format of this file is the following:
 # This file defines the global environment dependencies for this model project.
 # It is read by the CI/CD workflows in charge of the tests (ai4sim-ci-cd.yaml)
 # and the build of the Docker image (images-ci-cd.yaml) to set the environment.
-python_version: 3.8
 ubuntu_base_image:
   name: nvidia/cuda
   tag: 11.7.1-cudnn8-runtime-ubuntu20.04
 ```
 
-Note, the **Ubuntu base image** should be available on the *docker.io* registry, and the **Python version** chosen must be available in the apt repositories of the chosen **Ubuntu base image**.
-
-> If you have chosen an **Ubuntu base image** with a pre-installed set of python libraries you plan to use (e.g. an nvidia pytorch image), You must report in the *env.yaml* file the python version already available in the image, to prevent a new install of a different python version that will make the pre-installed libraries unavailable.
+Note, the **Ubuntu base image** should be available on the *docker.io* registry.
 
 ##### Initiate *noxfile.py*
 
@@ -312,25 +311,58 @@ sys.path.insert(0, build_ref_dir)
 from nox_ref_file import *
 
 # Insert below the model project specific targets
-
+nox.needs_version = "==2026.2.9"  # You can change the version of nox
 ```
 
 If needed, you can add some sessions, specific to the model project, at the end of the file.
 
-This file must be initiated now because the *Nox* sessions will be used to install the python dependencies (using the ``requirements.txt`` file we will see just below) either in the development docker image, or in the ``dev_dependencies`` virtual environment.
+This file must be initiated now because the *Nox* sessions will be used to install the python dependencies (using the ``pyproject.toml`` file we will see just below) either in the development docker image, or in the ``dev_dependencies`` virtual environment.
 
-##### Initiate *requirements.txt*
+##### Initiate *pyproject.toml*
 
-Like the two first files, the ``requirements.txt`` is used to set up the development environment. It should include, at least, the *pip*, *nox*, *torch* and *lightning* version you plan to use:
+Like the two first files, the ``pyproject.toml`` is used to set up the development environment. In it *dependencies* section, it should include, at least, the *torch* and *lightning* version you plan to use, and in its *classifiers* section the python version that should be used (will be used by *nox* and *uv* to set the proper environment) :
 
-```python
-pip==24.0
-nox==2024.4.15
-torch==1.13.1+cu117
-pytorch-lightning==1.5.7
+```toml
+[project]
+name = "your-project"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "lightning==2.4.0",
+    "torch==2.6.0",
+]
+
+# Nox will find here the python version that will be used
+classifiers = [
+  "Programming Language :: Python :: 3.10",
+]
+
+[dependency-groups]
+tests = [
+    "pytest-cov==7.0.0"
+]
+coverage = [
+    "coverage==7.13.4"
+]
+black = [
+    "black==26.1.0"
+]
+isort = [
+    "isort==7.0.0"
+]
+mypy = [
+    "mypy==1.19.1",
+    "types-PyYAML==6.0.12"
+]
+lint = [
+    "flake8==7.3.0",
+    "flake8-docstrings==1.7.0",
+    "flake8-use-fstring==1.4",
+    "flake8-variables-names==0.0.6",
+    "pep8-naming==0.15.1"
+]
+data = []
 ```
-
-Note this is not the final version of this file, because you will update it at the end of the process (see [Finalize the requirements.txt](#finalize-the-requirementstxt)), just before pushing your development branch to create a pull request. As a consequence, you can add other requirements right now, but any python library you will install, using ``pip install``, during your development process, will be included in the final version of the file.
 
 ##### Build the Development Environment
 
@@ -344,7 +376,6 @@ The 4 following parameters are mandatory and must be passed to the Dockerfile, u
 - MODEL_PROJECT_PATH: the path ``<domain>/<use-case>/<NN architecture>`` you are working on.
 - UBUNTU_IMAGE_NAME: the base Ubuntu docker image name indicated in the ``env.yaml`` file.
 - UBUNTU_IMAGE_TAG: the base Ubuntu docker image tag indicated in the ``env.yaml`` file.
-- PYTHON_VERS: the Python version indicated in the ``env.yaml`` file.
 
 To build the Docker image from the repository root directory, for example:
 
@@ -355,7 +386,6 @@ docker build \
     --build-arg MODEL_PROJECT_PATH=<domain>/<use-case>/<NN architecture> \
     --build-arg UBUNTU_IMAGE_NAME=nvidia/cuda \
     --build-arg UBUNTU_IMAGE_TAG=11.7.1-cudnn8-runtime-ubuntu20.04 \
-    --build-arg PYTHON_VERS=3.8 \
     --build-arg uid=$(id -u) \
     --build-arg gid=$(id -g) \
     --build-arg uname=$(id -un) \
@@ -371,7 +401,7 @@ docker run -ti \
     bash
 ```
 
-In the container, you can directly use the ``pip`` and ``python`` command of the system to respectively install the dependencies and execute your code.
+In the container, you can directly use the ``nox`` and ``uv`` command of the system to respectively install the dependencies and execute your code.
 
 ###### Virtual Environment
 
@@ -381,7 +411,7 @@ Then it is recommended to use the *Nox* session ``dev_dependencies``:
 
 ```bash
 nox -s dev_dependencies
-source dev_dependencies/bin/activate
+source .nox/dev_dependencies/bin/activate
 ```
 
 #### Model Development
@@ -448,7 +478,7 @@ The ``ci`` folder must contain:
 - a ``run.sh`` script file in charge of running the different training tests.
 
 Optionally it can also include:
-- a ``requirements_data.txt`` listing the dependencies related to the synthetic data generation.
+- a **data** entry in the ``[dependency-groups]`` section of the ``pyproject.toml`` to list the dependencies related to the synthetic data generation.
 
 The *Nox* session ``train_test`` allows running the functional tests:
 
@@ -474,14 +504,14 @@ In each model project, a ``README.md`` file should:
 - explain how to get the dataset,
 - briefly describe the model input and output variables and the NN architecture implemented.
 
-#### Finalize the *requirements.txt*
+#### Finalize the *uv.lock*
 
-Before creating the *Pull Request* itself, you must generate the final *requirements.txt* file to freeze all the python dependencies of your model project.
+Before creating the *Pull Request* itself, you must generate the final *uv.lock* file to freeze all the python dependencies of your model project.
 
-In your development environment use:
+Be sure the file has not be modified since the last :
 
 ```bash
-pip freeze --all > requirements.txt
+uv sync
 ```
 
 Then commit this last change.
@@ -507,6 +537,7 @@ jobs:
           - reactive-flows/cnf-combustion/unets
           - weather-forecast/gravity-wave-drag/cnns
           - weather-forecast/ecrad-3d-correction/unets
+          - weather-forecast/nwp-emulation/panguweather
           - <domain>/<use-case>/<NN architecture>       <-- Your new model project path
 ...
 ```

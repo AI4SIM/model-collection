@@ -14,19 +14,18 @@ ARG UBUNTU_IMAGE_TAG
 FROM ${DOCKER_REGISTRY}/${UBUNTU_IMAGE_NAME}:${UBUNTU_IMAGE_TAG}
 
 ARG MODEL_PROJECT_PATH
-ARG PYTHON_VERS
 
 # install required packages
 RUN apt-get update \
  && apt-get install -y \
-  python${PYTHON_VERS}-dev \
+  python3-dev \
   python3-pip \
   build-essential \
   libssl-dev \
   libffi-dev \
   vim \
+  git \
  && apt-get clean
-RUN ln -sf /usr/bin/python${PYTHON_VERS} /usr/bin/python3
 
 # create user ai4sim
 ARG uid=1000
@@ -48,7 +47,8 @@ ENV PATH=${PATH}:${AI4SIM_HOME}/.local/bin
 
 # Install all the python dependencies in the environment
 WORKDIR ${AI4SIM_HOME}/${MODEL_PROJECT_PATH}
-RUN python3 -m pip install $(grep nox== ${AI4SIM_HOME}/${MODEL_PROJECT_PATH}/requirements.txt || echo "nox") \
+RUN python3 -m pip install nox$(grep 'nox.needs_version' ./noxfile.py | sed -rn 's/.*\"([><=]=.*)\"/\1/p') \
+ && python3 -m pip install uv \
  && python3 -m nox -s dev_dependencies --no-venv -- purge
 
 CMD ["bash"]

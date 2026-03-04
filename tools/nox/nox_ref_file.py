@@ -18,10 +18,14 @@ This file is generic and aims at:
 # limitations under the License.
 
 import os
-import sys
-import re
 import glob
 import nox
+from configparser import ConfigParser
+
+try:
+    import uv
+except ImportError:
+    raise ImportError("uv not found. Please install it in your environment, with 'pip install uv'")
 
 REPORTS_DIR = ".ci-reports/"
 COV_FT_FILE = ".coverage-ft"
@@ -31,21 +35,9 @@ FLAKE8_CFG = os.path.join(ROOT_PATH, 'tools', 'flake8', 'flake8.cfg')
 
 # The list of the default targets executed with the simple command "nox".
 nox.options.sessions = ["lint", "tests"]
-
-# Check the required python version is available
-current_python = f'{sys.version_info.major}.{sys.version_info.minor}'
-with open("env.yaml", 'r') as env_file:
-    python_req = None
-    for line in env_file.readlines():
-        if 'python_version:' in line:
-            match = re.search(r'python_version: ([0-9\.]*)', line)
-            python_req = match.group(1)
-    if not python_req:
-        raise RuntimeError("Required python version not found in the env.yaml file.")
-    elif current_python != python_req:
-        raise RuntimeError("Current python version does not match the required version: "
-                           f"{current_python} != {python_req}.")
-
+nox.options.default_venv_backend = "uv"
+PYPROJECT = nox.project.load_toml("pyproject.toml")
+PYTHON_VERSIONS = nox.project.python_versions(PYPROJECT)
 
 def _wheel_version(wheel: str, req_file: str = 'requirements.txt') -> str:
     """Extract the version of a wheel from a requirement.txt, if it is present.
@@ -58,11 +50,10 @@ def _wheel_version(wheel: str, req_file: str = 'requirements.txt') -> str:
             an empty string otherwise.
     """
     version = wheel
-    with open(req_file, encoding='utf-8') as file:
-        for line in file.readlines():
-            if f"{wheel}==" in line:
-                version = line.rstrip()
-                break
+    for lib in PYPROJECT["project"]["dependencies"]:
+        if f"{wheel}==" in lib:
+            version = lib.rstrip()
+            break
     return version
 
 
@@ -77,25 +68,26 @@ def _torch_version(req_file: str = 'requirements.txt') -> str:
             an empty string otherwise.
     """
     cuda = 'cpu'
-    version = _wheel_version("torch", req_file).split('==')[1]
+    version = _wheel_version("torch").split('==')[1]
     if "+" in version:
         version, cuda = version.split('+')
     return version, cuda
 
-@nox.session
-def base_dependencies(session):
-    """Target to install the basics python requirements."""
-    req_file = "requirements.txt"
-    session.run("python3", "-m", "pip", "install",
-                _wheel_version("pip", req_file),
-                _wheel_version("wheel", req_file),
-                _wheel_version("setuptools", req_file))
 
-@nox.session
+def _build_mypy_config():
+    """Build the mypy configuration file by combining common and model specific configs."""
+    mypy_common_cfg = os.path.join(ROOT_PATH, 'tools', 'mypy', 'mypy.ini')
+    mypy_config = ConfigParser()
+    mypy_config.read([mypy_common_cfg, "mypy.ini"])
+    with open("mypy_full.ini", "w") as mypy_file:
+        # Write the full mypy configuration
+        mypy_config.write(mypy_file)
+
+
+@nox.session(python=PYTHON_VERSIONS)
 def dev_dependencies(session):
     """Target to install all requirements of the use-case code."""
     torch_vers, cuda_vers = _torch_version()
-    req_file = "requirements.txt"
 
     additional_url = ''
     extra_url = ''
@@ -107,126 +99,106 @@ def dev_dependencies(session):
         # Set the url of precompiled torch-geometric dependencies depending on torch version
         additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}+{cuda_vers}.html"
 
-    # Install base python dependencies
-    base_dependencies(session)
-
     # Install use-case python dependencies
-    session.run("python3", "-m", "pip", "install",
-                "-r", req_file,
+    session.run("uv", "sync", "--active",
                 "-f", additional_url,
                 "--extra-index-url", extra_url)
     if "purge" in session.posargs:
-        session.run("python3", "-m", "pip", "cache", "purge")
+        session.run("uv", "cache", "clean")
 
 
-@nox.session
+@nox.session(python=PYTHON_VERSIONS)
 def tests(session):
     """Target to run unit tests on the code with pytest, and generate coverage report."""
-    # Install use-case python dependencies
-    dev_dependencies(session)
-    session.run("python3", "-m", "pip", "install", "pytest-cov")
     session.run('rm','-rf', COV_UT_FILE, external=True)
-    session.run("python3", "-m", "pytest", "--cache-clear", "--cov=./", "-v")
+    session.run("uv", "run", "--active", "--group", "tests", "-m", "pytest", "--cache-clear", "--cov=./", "-v")
     session.run('mv','.coverage', COV_UT_FILE, external=True)
     session.notify("coverage_report", ['data-file', f'{COV_UT_FILE}'])
 
 
-def coverage_install(session):
-    session.run("python3", "-m", "pip", "install", "coverage")
-
-
-@nox.session
+@nox.session(python=PYTHON_VERSIONS)
 def coverage_report(session):
     """Target to generate coverage report from test results."""
-    coverage_install(session)
-
+    uv_run = ["uv", "run", "--active", "--only-group", "coverage"]
     cov_file=".coverage"
     if "combine" in session.posargs:
-        session.run("coverage", "combine", "--keep", "--append", *glob.glob(".coverage-*"))
+        session.run(*uv_run, "coverage", "combine", "--keep", "--append", *glob.glob(".coverage-*"))
     elif "data-file" in session.posargs:
         # set the coverage input coverage datafile name, if provided in the command line with the "data-file" key word
         # ex: nox -s coverage_report -- data-file .coverage-out
         cov_file = session.posargs[session.posargs.index("data-file") + 1]
 
-    session.run("coverage", "xml", f"--data-file={cov_file}", "-o", f"{REPORTS_DIR}/py{cov_file.lstrip('.')}.xml")
-    session.run("coverage", "report", "-m", f"--data-file={cov_file}")
+    session.run(*uv_run, "coverage", "xml", f"--data-file={cov_file}", "-o", f"{REPORTS_DIR}/py{cov_file.lstrip('.')}.xml")
+    session.run(*uv_run, "coverage", "report", "-m", f"--data-file={cov_file}")
 
 
-@nox.session
+@nox.session(python=PYTHON_VERSIONS)
 def lint(session):
     """Target to lint the code with flake8."""
-    # Install base python dependencies
-    base_dependencies(session)
-    session.run("python3", "-m", "pip", "install",
-                "flake8",
-                "flake8-docstrings",
-                "flake8-use-fstring",
-                "flake8-variables-names",
-                "pep8-naming")
-    session.run("flake8", "--config", FLAKE8_CFG)
+    uv_run = ["uv", "run", "--active", "--only-group", "lint"]
+    session.run(*uv_run, "flake8", "--config", FLAKE8_CFG)
 
 
-@nox.session
+@nox.session(python=PYTHON_VERSIONS)
 def import_sort(session):
     """Target to sort automatically the import in the code with isort."""
-    # Install base python dependencies
-    base_dependencies(session)
-    session.run("python3", "-m", "pip", "install", "isort")
+    uv_run = ["uv", "run", "--active", "--only-group", "isort"]
     if "check-only" in session.posargs:
-        session.run("isort", "--profile", "black", "--check-only", ".")
+        session.run(*uv_run, "isort", "--profile", "black", "--check-only", ".")
     else:
-        session.run("isort", "--profile", "black", ".")
+        session.run(*uv_run, "isort", "--profile", "black", ".")
 
 
-@nox.session
+@nox.session(python=PYTHON_VERSIONS)
 def black(session):
     """Target to reformat automatically the code with black."""
-    # Install base python dependencies
-    base_dependencies(session)
-    session.run("python3", "-m", "pip", "install", "black")
+    uv_run = ["uv", "run", "--active", "--only-group", "black"]
     if "check-only" in session.posargs:
-        session.run("black", "--check", ".")
+        session.run(*uv_run, "black", "--check", ".")
     else:
-        session.run("black", ".")
+        session.run(*uv_run, "black", ".")
 
 
-@nox.session
+@nox.session(python=PYTHON_VERSIONS)
+def mypy(session):
+    """Target to check type hint with mypy."""
+    # Install base python dependencies
+    _build_mypy_config()
+    uv_run = ["uv", "run", "--active", "--group", "mypy"]
+    try:
+        session.run(*uv_run, "mypy", "--config-file", "mypy_full.ini", "--explicit-package-bases", ".")
+    finally:
+        session.run("rm", "mypy_full.ini", external=True)
+
+
+@nox.session(python=PYTHON_VERSIONS)
 def docs(session):
     """Target to build the documentation (not yet implemented)."""
     raise NotImplementedError("This target is not yet implemented.")
 
 
-@nox.session
+@nox.session(python=PYTHON_VERSIONS)
 def generate_synthetic_data(session):
     """Target to generate synthetic data related to the use case."""
-    # Install python dependencies
-    dev_dependencies(session)
-
-    # Install requirement related to synthetic data generation
-    req_file = "ci/requirements_data.txt"
-    if os.path.isfile(req_file):
-        session.run("python3", "-m", "pip", "install","-r", req_file)
-
     # Generate the data
-    session.run("python3", "ci/generate_synthetic_data.py")
+    session.run("uv", "run", "--active", "--group", "data", "ci/generate_synthetic_data.py")
     
 
-@nox.session
+@nox.session(python=PYTHON_VERSIONS)
 def download_data(session):
     """Target to download the data required to train the use-case models (not yet implemented).""" 
     raise NotImplementedError("This target is not yet implemented.")
 
 
-@nox.session
+@nox.session(python=PYTHON_VERSIONS)
 def train_test(session):
     """Target to launch a basic training of the use-case (not yet implemented)."""
     # Generate the synthetic dataset required for the functional tests
     generate_synthetic_data(session)
 
-    # Run te functional tests with coverage
-    coverage_install(session)
+    # Run the functional tests with coverage
     session.run('rm','-rf', COV_FT_FILE, external=True)
-    session.run('bash', './ci/run.sh', '--runner', f'coverage run --append --data-file={COV_FT_FILE}', external=True)
+    session.run('bash', './ci/run.sh', '--runner', f'uv run --group coverage --active coverage run --append --data-file={COV_FT_FILE}', external=True)
     if "clean_data" in session.posargs:
         session.run('rm','-rf', './data')
     session.notify("coverage_report", ['data-file', f'{COV_FT_FILE}'])

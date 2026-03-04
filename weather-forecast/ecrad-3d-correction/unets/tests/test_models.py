@@ -13,6 +13,7 @@
 import os.path as osp
 from shutil import rmtree
 from tempfile import mkdtemp
+from typing import TypedDict
 from unittest import TestCase, main
 
 import torch
@@ -20,6 +21,18 @@ from torch import Tensor, rand, zeros
 from torch_optimizer import Optimizer
 
 from models import LitUnet1D
+
+InitParam = TypedDict(
+    "InitParam",
+    {
+        "data_path": str,
+        "in_channels": int,
+        "out_channels": int,
+        "n_levels": int,
+        "n_features_root": int,
+        "lr": float,
+    },
+)
 
 
 class TestModels(TestCase):
@@ -33,7 +46,7 @@ class TestModels(TestCase):
         self.root = mkdtemp()
         self.create_env(self.root)
 
-        self.initParam = {
+        self.initParam: InitParam = {
             "data_path": self.root,
             "in_channels": self.in_ch,
             "out_channels": self.out_ch,
@@ -45,7 +58,7 @@ class TestModels(TestCase):
     def tearDown(self) -> None:
         rmtree(self.root)
 
-    def create_env(self, root) -> None:
+    def create_env(self, root: str) -> None:
         """Build an environment with stats.pt."""
         torch.save(
             {
@@ -59,7 +72,7 @@ class TestModels(TestCase):
             osp.join(root, "stats.pt"),
         )
 
-    def test_forward_common_step(self):
+    def test_forward_common_step(self) -> None:
         # Fake data, of dim (n_batchs, height, n_channels).
         x = zeros((1, self.height, self.in_ch))
         y = zeros((1, self.height, self.out_ch))
@@ -74,7 +87,7 @@ class TestModels(TestCase):
         loss = test_unet._common_step(batch=(x, y), stage="train")
         self.assertEqual(len(loss), 2)
 
-    def test_configure_optimizers(self):
+    def test_configure_optimizers(self) -> None:
         test_unet = LitUnet1D(**self.initParam)
         op = test_unet.configure_optimizers()
         self.assertTrue(isinstance(op, Optimizer))

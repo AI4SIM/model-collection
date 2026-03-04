@@ -19,7 +19,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from test_utils import get_filenames, populate_test_data
+from test_utils import get_filenames, populate_test_data  # type: ignore
 
 from data import NOGWDDataModule, NOGWDDataset
 
@@ -52,16 +52,16 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
             splitting_file=REF_FILENAMES_FILE,
         )
 
-    def test__compute_stats(self):
+    def test__compute_stats(self) -> None:
         """Test the instantiated NOGWDDataset class in train mode, has created the stat file."""
         self.assertTrue(os.path.isfile(os.path.join(TEST_DATA_PATH, "stats.pt")))
 
-    def test_raw_filenames_property(self):
+    def test_raw_filenames_property(self) -> None:
         """Test the 'raw_filenames' property is properly set with the train dataset files."""
         expected_file_list = ["2015-01-01.h5", "2016-01-01.h5", "2017-01-01.h5"]
         self.assertListEqual(self.data_test.raw_filenames, expected_file_list)
 
-    def test_download(self):
+    def test_download(self) -> None:
         """Test 'download' method is not yet implemented."""
         self.assertRaisesRegex(
             NotImplementedError,
@@ -69,7 +69,7 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
             self.data_test.download,
         )
 
-    def test_load(self):
+    def test_load(self) -> None:
         """Test the 'load' method returns tensors with good shapes."""
         x, y = self.data_test.load()
         self.assertIsInstance(x, torch.Tensor)
@@ -82,7 +82,7 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
         self.assertEqual(x.dtype, torch.float32)
         self.assertEqual(y.dtype, torch.float32)
 
-    def test_get(self):
+    def test_get(self) -> None:
         """Test the '__getitem__' method returns the proper (x, y) tuple of tensors."""
         data_get = self.data_test[1]
         np.testing.assert_array_equal(
@@ -92,7 +92,7 @@ class TestNOGWDDatasetTrain(unittest.TestCase):
             data_get[1].numpy(), self.data_test.y[1, :].numpy()
         )
 
-    def test_len(self):
+    def test_len(self) -> None:
         """Test the '__len__' method returns the proper value.
         FIXME: note for now the 'shard_len' is hardcoded, but should be dynamically set.
         """
@@ -130,11 +130,11 @@ class TestNOGWDDatasetTest(unittest.TestCase):
             splitting_file=REF_FILENAMES_FILE,
         )
 
-    def test__compute_stats(self):
+    def test__compute_stats(self) -> None:
         """Test the instantiated NOGWDDataset class in train mode, has NOT created the stat file."""
         self.assertFalse(os.path.isfile(os.path.join(TEST_DATA_PATH, "stats.pt")))
 
-    def test_raw_filenames_property(self):
+    def test_raw_filenames_property(self) -> None:
         """Test the 'raw_filenames' property is properly set with the train dataset files."""
         expected_file_list = ["2017-02-19.h5"]
         self.assertListEqual(self.data_test.raw_filenames, expected_file_list)
@@ -169,11 +169,11 @@ class TestNOGWDDatasetVal(unittest.TestCase):
             splitting_file=REF_FILENAMES_FILE,
         )
 
-    def test__compute_stats(self):
+    def test__compute_stats(self) -> None:
         """Test the instantiated NOGWDDataset class in train mode, has NOT created the stat file."""
         self.assertFalse(os.path.isfile(os.path.join(TEST_DATA_PATH, "stats.pt")))
 
-    def test_raw_filenames_property(self):
+    def test_raw_filenames_property(self) -> None:
         """Test the 'raw_filenames' property is properly set with the train dataset files."""
         expected_file_list = ["2016-02-25.h5"]
         self.assertListEqual(self.data_test.raw_filenames, expected_file_list)
@@ -209,35 +209,35 @@ class TestNOGWDDataModule(unittest.TestCase):
             splitting_file=REF_FILENAMES_FILE,
         )
 
-    def test_setup_fit(self):
+    def test_setup_fit(self) -> None:
         """Test the 'setup' method set properly the train and val attributes in 'fit' mode."""
         self.data_module.setup("fit")
         self.assertIsInstance(self.data_module.train, NOGWDDataset)
         self.assertIsInstance(self.data_module.val, NOGWDDataset)
-        self.assertIsNone(self.data_module.test)
+        self.assertFalse(hasattr(self.data_module, "test"))
 
-    def test_setup_test(self):
+    def test_setup_test(self) -> None:
         """Test the 'setup' method set properly the test attribute in 'test' mode."""
         self.data_module.setup("test")
-        self.assertIsNone(self.data_module.train)
-        self.assertIsNone(self.data_module.val)
+        self.assertFalse(hasattr(self.data_module, "train"))
+        self.assertFalse(hasattr(self.data_module, "val"))
         self.assertIsInstance(self.data_module.test, NOGWDDataset)
 
-    def test_train_dataloader(self):
+    def test_train_dataloader(self) -> None:
         """Test the 'train_dataloader' method properly instantiate a DataLoader."""
         self.data_module.setup("fit")
         dataloader = self.data_module.train_dataloader()
         self.assertIsInstance(dataloader, torch.utils.data.DataLoader)
 
-    def test_val_dataloader(self):
+    def test_val_dataloader(self) -> None:
         """Test the 'val_dataloader' method properly instantiate a DataLoader."""
         self.data_module.setup("fit")
         dataloader = self.data_module.val_dataloader()
         self.assertIsInstance(dataloader, torch.utils.data.DataLoader)
 
-    def test_test_dataloader(self):
+    def test_test_dataloader(self) -> None:
         """Test the 'test_dataloader' method properly instantiate a DataLoader."""
-        self.data_module.setup("fit")
+        self.data_module.setup("test")
         dataloader = self.data_module.test_dataloader()
         self.assertIsInstance(dataloader, torch.utils.data.DataLoader)
 

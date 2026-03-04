@@ -72,6 +72,8 @@ class TestInferer(unittest.TestCase):
 class TestInferencePthGnn(unittest.TestCase):
     """InferencePthGnn test suite."""
 
+    infer_data: str
+
     @classmethod
     def setUpClass(cls) -> None:
         """Init the global data used."""
@@ -152,7 +154,7 @@ class TestInferencePthGnn(unittest.TestCase):
 
     def test_preprocess(self) -> None:
         """Test the preprocess method set the self.data attribute."""
-        self.assertIsNone(self.inferer.data)
+        self.assertFalse(hasattr(self.inferer, "data"))
         self.inferer.preprocess()
         self.assertIsInstance(self.inferer.data, pyg.data.Data)
 

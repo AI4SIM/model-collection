@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from typing import TypedDict
 from unittest import TestCase, main
 
 from numpy import zeros
@@ -18,11 +19,22 @@ from torch_optimizer import Optimizer
 
 from models import LitUnet3D
 
+InitParam = TypedDict(
+    "InitParam",
+    {
+        "in_channels": int,
+        "out_channels": int,
+        "n_levels": int,
+        "n_features_root": int,
+        "lr": float,
+    },
+)
+
 
 class TestModels(TestCase):
 
     def setUp(self) -> None:
-        self.initParam = {
+        self.initParam: InitParam = {
             "in_channels": 1,
             "out_channels": 2,
             "n_levels": 2,
@@ -30,7 +42,7 @@ class TestModels(TestCase):
             "lr": 0.0001,
         }
 
-    def test_forward_common_step(self):
+    def test_forward_common_step(self) -> None:
         # Fake data, of dim (n_batchs, n_channels, x, y, z).
         x = from_numpy(zeros((1, self.initParam["in_channels"], 10, 10, 10)))
         y = from_numpy(zeros((1, self.initParam["in_channels"], 10, 10, 10)))
@@ -45,7 +57,7 @@ class TestModels(TestCase):
         loss = test_unet._common_step(batch=(x, y), stage="train")
         self.assertEqual(len(loss), 3)
 
-    def test_configure_optimizers(self):
+    def test_configure_optimizers(self) -> None:
         test_unet = LitUnet3D(**self.initParam)
         op = test_unet.configure_optimizers()
         self.assertTrue(isinstance(op, Optimizer))

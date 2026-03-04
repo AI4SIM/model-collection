@@ -13,13 +13,15 @@
 # limitations under the License.
 
 import os
+from collections.abc import Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
-import torch
 from matplotlib.colors import LogNorm
 from matplotlib.lines import Line2D
+from matplotlib.patches import Polygon
+from numpy._typing import ArrayLike
 from plotly.subplots import make_subplots
 
 plt.style.use("bmh")
@@ -31,9 +33,9 @@ class Plotter:
 
     def __init__(
         self,
-        model_type: torch.Tensor,
+        model_type: str,
         plots_path: str,
-        grid_shape: torch.Tensor,
+        grid_shape: tuple[int, int, int],
     ) -> None:
         """Init the Plotter."""
         self.model_type = model_type
@@ -95,7 +97,11 @@ class Plotter:
         ax.set_xlabel(r"$\overline{\Sigma}$")
         # Create new legend handles but use the colors from the existing ones
         handles, labels = ax.get_legend_handles_labels()
-        new_handles = [Line2D([], [], c=h.get_edgecolor()) for h in handles]
+        new_handles = []
+        for h in handles:
+            if isinstance(h, Polygon):
+                # Create a Line2D object with the same color as the Polygon
+                new_handles.append(Line2D([], [], color=h.get_edgecolor()))
 
         plt.legend(handles=new_handles, labels=labels)
         plt.savefig(os.path.join(self.plots_path, f"histogram-{self.model_type}.png"))
@@ -127,7 +133,11 @@ class Plotter:
             )
 
         fig, ax = plt.subplots(figsize=(20, 10))
-        ax.boxplot(flat_err, labels=np.arange(y_val.shape[0]), showmeans=True)
+        ax.boxplot(
+            flat_err,
+            label=[str(idx) for idx in np.arange(y_val.shape[0])],
+            showmeans=True,
+        )
         ax.set_xlabel("Snapshot")
         ax.set_ylabel(f"$RMSE$({self.label_predicted}, {self.label_target})")
         plt.savefig(os.path.join(self.plots_path, f"boxplot-{self.model_type}"))
@@ -135,10 +145,10 @@ class Plotter:
 
     def total_flame_surface(
         self,
-        y_target: np.ndarray,
-        y_hat: np.ndarray,
-        y_hat_2: np.ndarray = None,
-        y_hat_3: np.ndarray = None,
+        y_target: Sequence[ArrayLike],
+        y_hat: Sequence[ArrayLike],
+        y_hat_2: Sequence[ArrayLike] = None,
+        y_hat_3: Sequence[ArrayLike] = None,
         target_title: str = "Ground Truth",
         pred_title: str = "Prediction GNN",
         pred_2_title: str = "Prediction CNN",

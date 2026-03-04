@@ -20,7 +20,7 @@ import numpy as np
 import yaml
 
 
-def get_filenames(filenames_file):
+def get_filenames(filenames_file: str) -> list:
     """Extract the list of file that are required for test, from the input file.
 
     Args:
@@ -37,7 +37,7 @@ def get_filenames(filenames_file):
     return filenames
 
 
-def populate_test_data(root_data_path, filenames) -> None:
+def populate_test_data(root_data_path: str, filenames: list) -> None:
     """Create fake random data file.
 
     Args:

@@ -16,6 +16,8 @@ from typing import Tuple, Union
 import lightning as pl
 import numpy as np
 import torch
+from lightning.pytorch.loggers import TensorBoardLogger
+from torch.optim.optimizer import Optimizer
 from torch_optimizer import AdamP
 from torchmetrics.functional import mean_squared_error
 
@@ -38,40 +40,48 @@ class ThreeDCorrectionModule(pl.LightningModule):
             normalize (bool): Whether or not to normalize during training.
         """
         super().__init__()
-
+        self.model: torch.nn.Module
         stats = torch.load(osp.join(data_path, "stats.pt"))
+        self.x_mean: torch.Tensor
         self.register_buffer("x_mean", stats["x_mean"], persistent=True)
+        self.x_std: torch.Tensor
         self.register_buffer("x_std", stats["x_std"], persistent=True)
 
-    def forward(self, x: Union[torch.Tensor, np.ndarray]):
+    def forward(self, x: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """
         Args:
             x (ndarray | tensor): Input tensor (numpy or tensor).
         """
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x)
-        x = self.normalize(x)
+        x_norm = self.normalize(x)
 
-        x = torch.moveaxis(x, 1, -1)
-        y_hat = self.model(x)
+        x_norm = torch.moveaxis(x_norm, 1, -1)
+        y_hat = self.model(x_norm)
         y_hat = torch.moveaxis(y_hat, 1, -1)
 
         return y_hat
 
-    def weight_histograms_adder(self):
+    def weight_histograms_adder(self) -> None:
         for name, params in self.named_parameters():
+            assert isinstance(
+                self.logger, TensorBoardLogger
+            ), "Logger must be a TensorBoardLogger to add histograms."
             self.logger.experiment.add_histogram(name, params, self.current_epoch)
 
-    def gradient_histograms_adder(self):
+    def gradient_histograms_adder(self) -> None:
         global_step = self.global_step
         if global_step % 50 == 0:
             for name, param in self.named_parameters():
                 if param.requires_grad:
+                    assert isinstance(
+                        self.logger, TensorBoardLogger
+                    ), "Logger must be a TensorBoardLogger to add histograms."
                     self.logger.experiment.add_histogram(
                         f"{name}_grad", param.grad, global_step
                     )
 
-    def normalize(self, x: torch.Tensor) -> Tuple[torch.Tensor]:
+    def normalize(self, x: torch.Tensor) -> torch.Tensor:
         """
         Normalize inside the network.
         If y is None, then only process x (e.g. forward mode).
@@ -81,7 +91,9 @@ class ThreeDCorrectionModule(pl.LightningModule):
 
         return x
 
-    def _common_step(self, batch, stage):
+    def _common_step(
+        self, batch: Tuple[torch.Tensor, torch.Tensor], stage: str
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute the loss, additional metrics, and log them."""
         x, y = batch
 
@@ -91,20 +103,20 @@ class ThreeDCorrectionModule(pl.LightningModule):
         self.log(f"{stage}_loss", loss, prog_bar=True, on_step=True, batch_size=len(x))
         return y_hat, loss
 
-    def training_step(self, batch):
+    def training_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         _, loss = self._common_step(batch, "train")
         return loss
 
-    def on_after_backward(self):
+    def on_after_backward(self) -> None:
         self.gradient_histograms_adder()
 
-    def on_train_epoch_end(self):
+    def on_train_epoch_end(self) -> None:
         self.weight_histograms_adder()
 
-    def validation_step(self, batch):
+    def validation_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
         self._common_step(batch, "val")
 
-    def test_step(self, batch):
+    def test_step(self, batch: Tuple[torch.Tensor, torch.Tensor]) -> None:
         self._common_step(batch, "test")
 
 
@@ -131,5 +143,5 @@ class LitUnet1D(ThreeDCorrectionModule):
             n_features_root=n_features_root,
         )
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Optimizer:
         return AdamP(self.parameters(), lr=self.lr)

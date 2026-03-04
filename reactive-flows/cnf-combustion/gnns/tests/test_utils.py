@@ -20,7 +20,7 @@ from utils import create_graph_topo
 class TestUtils(unittest.TestCase):
     """Utils function test suite."""
 
-    def test_create_graph_topo(self):
+    def test_create_graph_topo(self) -> None:
         """Test the "create_graph_topo" function."""
         topo = create_graph_topo((10, 10, 10))
         self.assertEqual(topo.num_nodes, 1000)

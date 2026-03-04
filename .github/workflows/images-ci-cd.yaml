@@ -3,15 +3,15 @@ name: Publish Docker image
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
     branches:
-      - main
+      - masrter
 
 jobs:
   push_to_registries:
     name: Push Docker image to multiple registries
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.IMAGE_RUNNER }}
     permissions:
       packages: write
       contents: read
@@ -23,6 +23,7 @@ jobs:
           - reactive-flows/cnf-combustion/unets
           - weather-forecast/gravity-wave-drag/cnns
           - weather-forecast/ecrad-3d-correction/unets
+          - weather-forecast/nwp-emulation/panguweather
       fail-fast: false
 
     steps:
@@ -79,7 +80,6 @@ jobs:
           build-args: |
             UBUNTU_IMAGE_NAME=${{ steps.uc_env.outputs['ubuntu_base_image.name'] }}
             UBUNTU_IMAGE_TAG=${{ steps.uc_env.outputs['ubuntu_base_image.tag'] }}
-            PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
             MODEL_PROJECT_PATH=${{ matrix.model-project }}
           load: true
           tags: "${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}"
@@ -104,6 +104,6 @@ jobs:
             UBUNTU_IMAGE_TAG=${{ steps.uc_env.outputs['ubuntu_base_image.tag'] }}
             PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
             MODEL_PROJECT_PATH=${{ matrix.model-project }}
-          push: true
+          push: ${{ github.event.repository.name == 'model-collection' }}
           tags: "${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}"
           labels: ${{ steps.meta.outputs.labels }}
