@@ -1,0 +1,43 @@
+name: patch-GH-merge
+
+on:
+  pull_request:
+    branches: [ "main" ]
+  merge_group:
+
+jobs:
+  # Force a merge with fast-forward to ensure both, the public and private main branches are identicals
+  patch-GH-merge:
+    runs-on: ubuntu-latest
+
+    if: github.event_name != 'pull_request' || github.event.action == 'enqueued'
+
+    steps:
+
+        - uses: actions/create-github-app-token@v2
+          id: app-token
+          with:
+            app-id: ${{ vars.AI4SIM_APP_ID }}
+            private-key: ${{ secrets.AI4SIM_APP_KEY }}
+            owner: ${{ github.repository_owner }}
+
+        - uses: actions/checkout@v6
+          with:
+            fetch-depth: 0
+            token: ${{ steps.app-token.outputs.token }}
+
+        - name: Branch name
+          run: |
+                echo "${{ github.head_ref }}"
+                echo "${GITHUB_REF##*/}"
+   
+        - name: Do the merge
+          run: |
+            git remote set-url origin https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/${{ github.repository_owner }}/${{ github.event.repository.name }}.git
+            git fetch
+            git branch -a
+            git checkout main
+            # do the merge of the PR branch with --ff-only
+            git config set advice.diverging false
+            git merge --ff-only origin/${{ vars.MODEL_COLLECTION_BRANCH_NAME }}
+            git push origin main

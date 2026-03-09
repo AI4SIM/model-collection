@@ -36,10 +36,10 @@ jobs:
         run: |
           git remote set-url origin https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/AI4SIM/model-collection.git
           git remote add private https://x-access-token:${{ steps.app-token.outputs.token }}@github.com/AI4SIM/model-collection-private.git
-          git fetch private main:private/main
-          git push origin private/main
+          git fetch private main:${{ vars.MODEL_COLLECTION_BRANCH_NAME }}
+          git push origin ${{ vars.MODEL_COLLECTION_BRANCH_NAME }}
 
       - name: Create the PR on public side
-        run: gh pr create -H 'private/main' --title 'Merge private into public' --body 'Created by Github action'
+        run: gh pr create -H '${{ vars.MODEL_COLLECTION_BRANCH_NAME }}' --title 'Merge private into public' --body 'Created by Github action'
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}

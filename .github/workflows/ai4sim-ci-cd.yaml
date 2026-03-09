@@ -93,20 +93,29 @@ jobs:
     runs-on: ubuntu-latest
 
     needs: run-checks
-    if: ${{ (github.event.pull_request.user.login == 'dependabot[bot]') || (github.event.repository.name == 'model-collection') }}
+    if: ${{ (github.event.pull_request.user.login == 'dependabot[bot]') || (github.event.repository.name == 'model-collection' && github.event_name == 'pull_request') }}
 
     steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.AI4SIM_APP_ID }}
+          private-key: ${{ secrets.AI4SIM_APP_KEY }}
+          owner: ${{ github.repository_owner }}
+
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Approve a PR
         run: gh pr review --approve "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Enable auto-merge for Dependabot PRs
         run: gh pr merge --auto ${{ vars.MERGE_FLAG }} "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
