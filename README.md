@@ -97,15 +97,10 @@ Each model can be experimented using a python environment dedicated to the proje
 
 #### Docker Container
 
-The AI4SIM GitHub CI/CD publishes in the [GitHub registry](https://github.com/AI4SIM/model-collection/pkgs/container/model-collection) a docker image dedicated to each model project proposed in the **Model collection** repository. Each image is built on a public **Ubuntu** base image (e.g. *nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04*). The model project code has been added in ``/home/ai4sim/<domain>/<use-case>/<NN architecture>`` and its requirements have been installed in the container.
+It is possible to build a docker image dedicated to each model project proposed in the **Model collection** repository. You can find the instructions in the [Contribute](#contribute) section of this README, to build your own docker.
 
-Each image can be identified using its docker tag, ``<domain>-<use-case>-<NN architecture>``, that is automatically built from the model project path ``<domain>/<use-case>/<NN architecture>``. For example, you can pull the docker images for the ``weather-forecast/ecrad-3d-correction/unets`` model project using:
-
-```bash
-docker pull ghcr.io/ai4sim/model-collection:weather-forecast-ecrad-3d-correction-unets
-```
-
-If you want to experiment with the model in a different environment you can build your own docker image following the instructions described in [Contribute](#contribute).
+Each image is built on a public **Ubuntu** base image (e.g. *nvidia/cuda:11.7.1-cudnn8-runtime-ubuntu20.04*), and tagged using the ``<domain>-<use-case>-<NN architecture>`` format, that is automatically built from the model project path ``<domain>/<use-case>/<NN architecture>``
+Once built, you can find in the container the model project code at ``/home/ai4sim/<domain>/<use-case>/<NN architecture>``.
 
 #### Virtual Environment
 
@@ -166,7 +161,7 @@ cd <domain>/<use-case>/<NN architecture>
 podman run \
     -v ./data:/home/ai4sim/<domain>/<use-case>/<NN architecture>/data \
     -w /home/ai4sim/<domain>/<use-case>/<NN architecture> \
-    ghcr.io/ai4sim/model-collection:<domain>-<use-case>-<NN architecture> \
+    model-collection:<domain>-<use-case>-<NN architecture> \
     uv run trainer.py --config configs/<training-config>.yaml
 ```
 
@@ -520,7 +515,7 @@ Then commit this last change.
 
 The CI/CD workflows are defined by the GitHub Actions Yaml files in the ``workflows`` folder. There are 2 different workflows:
 - the *code quality* CI/CD workflow: this workflow (see ``workflows/ai4sim-ci-cd.yaml``) is in charge of running tests and lint for all model projects, to detect possible regressions. It is triggered by any change done on any branch and on any pull requests.
-- the *docker image builder* CI/CD workflow: this workflow (see ``workflows/images-ci-cd.yaml``) is in charge of building and publishing the docker images for all model projects. It is triggered by any change done on the *main* branch and on any pull requests targeting the *main* branch.
+- the *docker image builder* CI/CD workflow: this workflow (see ``workflows/images-ci-cd.yaml``) is in charge of testing the build of the docker images for all model projects. It is triggered by any change done on the *main* branch and on any pull requests targeting the *main* branch.
 
 The CI/CD workflows run the same actions for all model projects listed in the *jobs/strategy/matrix/model-project* section of the Yaml files.
 
