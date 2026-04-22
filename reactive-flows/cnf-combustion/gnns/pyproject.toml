@@ -1,7 +1,7 @@
 [project]
 name = "cnf-combustion-gnns"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "h5py==3.12.1",
     "jsonargparse[signatures]==4.35.0",
@@ -21,7 +21,7 @@ dependencies = [
 
 # Nox will find here the python version that will be used
 classifiers = [
-  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
 ]
 
 [dependency-groups]

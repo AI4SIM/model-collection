@@ -72,6 +72,10 @@ jobs:
         with:
           config: ${{ matrix.model-project }}/env.yaml
 
+      - name: Read the python version from the model-project pyproject.toml file
+        id: python_version
+        run: echo "PYTHON_VERSION=$(grep requires-python ${{ matrix.model-project }}/pyproject.toml | sed -rn 's/.*[><=]+([0-9]\.[0-9]+)\"/\1/p')" >> "$GITHUB_OUTPUT"
+
       - name: Build the Docker image
         uses: docker/build-push-action@v6
         with:
@@ -81,6 +85,7 @@ jobs:
             UBUNTU_IMAGE_NAME=${{ steps.uc_env.outputs['ubuntu_base_image.name'] }}
             UBUNTU_IMAGE_TAG=${{ steps.uc_env.outputs['ubuntu_base_image.tag'] }}
             MODEL_PROJECT_PATH=${{ matrix.model-project }}
+            PYTHON_VERSION=${{ steps.python_version.outputs.PYTHON_VERSION }}
           load: true
           tags: "${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}"
           labels: ${{ steps.meta.outputs.labels }}
@@ -102,7 +107,7 @@ jobs:
           build-args: |
             UBUNTU_IMAGE_NAME=${{ steps.uc_env.outputs['ubuntu_base_image.name'] }}
             UBUNTU_IMAGE_TAG=${{ steps.uc_env.outputs['ubuntu_base_image.tag'] }}
-            PYTHON_VERS=${{ steps.uc_env.outputs['python_version'] }}
+            PYTHON_VERSION=${{ steps.python_version.outputs.PYTHON_VERSION }}
             MODEL_PROJECT_PATH=${{ matrix.model-project }}
           push: ${{ github.event.repository.name == 'model-collection' }}
           tags: "${{ steps.image.outputs.name }}:${{ steps.image.outputs.tag }}"

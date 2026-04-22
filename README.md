@@ -371,6 +371,7 @@ The 4 following parameters are mandatory and must be passed to the Dockerfile, u
 - MODEL_PROJECT_PATH: the path ``<domain>/<use-case>/<NN architecture>`` you are working on.
 - UBUNTU_IMAGE_NAME: the base Ubuntu docker image name indicated in the ``env.yaml`` file.
 - UBUNTU_IMAGE_TAG: the base Ubuntu docker image tag indicated in the ``env.yaml`` file.
+- PYTHON_VERSION: the python version that should be used. Should be picked from the ``pyproject.toml`` file.
 
 To build the Docker image from the repository root directory, for example:
 
@@ -381,6 +382,7 @@ docker build \
     --build-arg MODEL_PROJECT_PATH=<domain>/<use-case>/<NN architecture> \
     --build-arg UBUNTU_IMAGE_NAME=nvidia/cuda \
     --build-arg UBUNTU_IMAGE_TAG=11.7.1-cudnn8-runtime-ubuntu20.04 \
+    --build-arg PYTHON_VERSION=$(grep requires-python <domain>/<use-case>/<NN architecture>/pyproject.toml | sed -rn 's/.*[><=]+([0-9]\.[0-9]+)\"/\1/p') \
     --build-arg uid=$(id -u) \
     --build-arg gid=$(id -g) \
     --build-arg uname=$(id -un) \

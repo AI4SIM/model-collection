@@ -1,7 +1,7 @@
 [project]
 name = "nwp-emulation-panguweather"
 version = "0.1.0"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "dask==2024.10.0",
     "jsonargparse[signatures]==4.39.0",
@@ -10,12 +10,12 @@ dependencies = [
     "timm==1.0.15",
     "torch==2.8.0+cu128",
     "xarray==2024.10.0",
-    "zarr==2.18.3"
+    "zarr==2.18.7"
 ]
 
 # Nox will find here the python version that will be used
 classifiers = [
-  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
 ]
 
 [dependency-groups]
