@@ -12,11 +12,11 @@ dependencies = [
     "omegaconf==2.3.0",
     "plotly==5.24.1",
     "tensorboard==2.18.0",
-    "torch==2.8.0+cu128",
-    "torch-geometric==2.6.1",
+    "torch==2.11.0+cu128",
+    "torch-geometric==2.8.0",
     "torch-optimizer==0.3.0",
-    "torch_scatter==2.1.2+pt28cu128",
-    "torch_sparse==0.6.18+pt28cu128"
+    "torch_scatter==2.1.2+pt211cu128",
+    "torch_sparse==0.6.18+pt211cu128"
 ]
 
 # Nox will find here the python version that will be used
@@ -62,5 +62,5 @@ explicit = true
 
 [tool.uv]
 find-links = [
-    "https://data.pyg.org/whl/torch-2.8.0+cu128.html"
+    "https://data.pyg.org/whl/torch-2.11.0+cu128.html"
 ]
