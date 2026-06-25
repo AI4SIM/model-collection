@@ -8,8 +8,8 @@ dependencies = [
     "lightning==2.5.1",
     "omegaconf==2.3.0",
     "timm==1.0.15",
-    "torch==2.11.0+cu128",
-    "torchvision==0.26.0+cu128",
+    "torch==2.12.1+cu126",
+    "torchvision==0.27.1+cu126",
     "xarray==2024.10.0",
     "zarr==2.18.7"
 ]
