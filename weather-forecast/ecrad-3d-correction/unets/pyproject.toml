@@ -10,7 +10,7 @@ dependencies = [
     "lightning==2.4.0",
     "omegaconf==2.3.0",
     "tensorboard==2.18.0",
-    "torch==2.12.1+cu126",
+    "torch==2.13.0+cu126",
     "torch-optimizer==0.3.0",
     "xarray==2024.11.0"
 ]

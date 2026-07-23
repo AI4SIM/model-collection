@@ -12,7 +12,7 @@ dependencies = [
     "omegaconf==2.3.0",
     "plotly==5.24.1",
     "tensorboard==2.18.0",
-    "torch==2.12.1+cu126",
+    "torch==2.13.0+cu126",
     "torch-geometric==2.8.0",
     "torch-optimizer==0.3.0",
     "torch_scatter==2.1.2+pt212cu126",

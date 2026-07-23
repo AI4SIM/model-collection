@@ -18,7 +18,10 @@ This file is generic and aims at:
 # limitations under the License.
 
 import os
+import re
+import warnings
 import glob
+from typing import Tuple
 import nox
 from configparser import ConfigParser
 
@@ -39,17 +42,17 @@ nox.options.default_venv_backend = "uv"
 PYPROJECT = nox.project.load_toml("pyproject.toml")
 PYTHON_VERSIONS = nox.project.python_versions(PYPROJECT)
 
-def _wheel_version(wheel: str, req_file: str = 'requirements.txt') -> str:
-    """Extract the version of a wheel from a requirement.txt, if it is present.
+def _wheel_version(wheel: str) -> str:
+    """Extract the version of a wheel from a pyproject.toml, if it is present.
 
     Args:
-        req_file (str): path of the input requirement.txt file.
+        wheel (str): the name of the wheel to extract the version for.
 
     Returns:
-        (str): the pip version extracted from the requirement.txt file if torch is present,
+        (str): the wheel version extracted from the pyproject.toml file if the wheel is present,
             an empty string otherwise.
     """
-    version = wheel
+    version = ""
     for lib in PYPROJECT["project"]["dependencies"]:
         if f"{wheel}==" in lib:
             version = lib.rstrip()
@@ -57,22 +60,45 @@ def _wheel_version(wheel: str, req_file: str = 'requirements.txt') -> str:
     return version
 
 
-def _torch_version(req_file: str = 'requirements.txt') -> str:
-    """Extract the torch version and its cuda support from a requirement.txt, if it is present.
-
-    Args:
-        req_file (str): path of the input requirement.txt file.
+def _torch_version() -> Tuple[str, str]:
+    """Extract the torch version and its cuda support from a pyproject.toml, if it is present.
 
     Returns:
-        (str): the torch version extracted from the requirement.txt file if torch is present,
-            an empty string otherwise.
+        (str, str): a tuple containing the torch version and its CUDA support extracted from
+            the pyproject.toml file if torch is present, an empty string otherwise.
     """
     cuda = 'cpu'
-    version = _wheel_version("torch").split('==')[1]
-    if "+" in version:
-        version, cuda = version.split('+')
-    return version, cuda
+    version = _wheel_version("torch")
+    if version:
+        version = version.split('==')[1]
+        if "+" in version:
+            version, cuda = version.split('+')
+        return version, cuda
+    else:
+        return "", ""
 
+
+def _pyg_related_version(wheel: str) -> Tuple[str, str, str]:
+    """Extract the pyg lib related version, its torch support version and its cuda support from
+        a pyproject.toml, if it is present.
+
+    Args:
+        wheel (str): the name of the wheel to extract the version and cuda support for.
+
+    Returns:
+        (str, str, str): a tuple containing the wheel version, torch version, and CUDA support
+            extracted from the pyproject.toml file if the wheel is present, empty strings otherwise.
+    """
+    cuda = 'cpu'
+    version = _wheel_version(wheel)
+    if version:
+        version, pt_and_cuda = version.split('==')[1].split('+')
+        cuda = pt_and_cuda.replace(f"pt{re.match(r'pt([0-9]+).*', pt_and_cuda).group(1)}", "")
+        torch = pt_and_cuda.replace(cuda, "").lstrip("pt")
+        torch = f"{torch[0]}.{torch[1:]}.0"
+        return version, torch, cuda
+    else:
+        return "", "", ""
 
 def _build_mypy_config():
     """Build the mypy configuration file by combining common and model specific configs."""
@@ -88,6 +114,15 @@ def _build_mypy_config():
 def dev_dependencies(session):
     """Target to install all requirements of the use-case code."""
     torch_vers, cuda_vers = _torch_version()
+    scatter_vers, scatter_torch_vers, scatter_cuda_vers = _pyg_related_version("torch_scatter")
+    sparse_vers, sparse_torch_vers, sparse_cuda_vers = _pyg_related_version("torch_sparse")
+    if torch_vers and (scatter_vers or sparse_vers):
+        if scatter_vers:
+            assert cuda_vers == scatter_cuda_vers, ("torch and torch_scatter CUDA versions "
+                                                   f"do not match: {cuda_vers} != {scatter_cuda_vers}")
+        if sparse_vers:
+            assert cuda_vers == sparse_cuda_vers, ("torch and torch_sparse CUDA versions "
+                                                  f"do not match: {cuda_vers} != {sparse_cuda_vers}")
 
     additional_url = ''
     extra_url = ''
@@ -96,8 +131,16 @@ def dev_dependencies(session):
         if cuda_vers != "cpu":
             extra_url = f"https://download.pytorch.org/whl/{cuda_vers}"
 
-        # Set the url of precompiled torch-geometric dependencies depending on torch version
-        additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}+{cuda_vers}.html"
+        if scatter_vers or sparse_vers:
+            if torch_vers != scatter_torch_vers and torch_vers != sparse_torch_vers:
+                warnings.warn(
+                    "torch version and torch_scatter/torch_sparse versions do not match: please "
+                    f"check if it is intended: {torch_vers} != {scatter_torch_vers} or {sparse_torch_vers} "
+                    "The scatter and sparse versions will be installed from the precompiled wheels provided "
+                    "by torch-geometric, which may not match the torch version.")
+                torch_vers = scatter_torch_vers if scatter_vers else sparse_torch_vers
+            # Set the url of precompiled torch-geometric dependencies depending on torch version
+            additional_url = f"https://data.pyg.org/whl/torch-{torch_vers}+{cuda_vers}.html"
 
     # Install use-case python dependencies
     session.run("uv", "sync", "--active",
