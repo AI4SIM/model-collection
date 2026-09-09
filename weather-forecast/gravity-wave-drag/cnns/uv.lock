@@ -630,8 +630,8 @@ tests = [
 [package.metadata]
 requires-dist = [
     { name = "h5py", specifier = "==3.12.1" },
-    { name = "jsonargparse", extras = ["signatures"], specifier = "==4.35.0" },
-    { name = "lightning", specifier = "==2.4.0" },
+    { name = "jsonargparse", extras = ["signatures"], specifier = "==4.52.0" },
+    { name = "lightning", specifier = "==2.6.5" },
     { name = "omegaconf", specifier = "==2.3.0" },
     { name = "tensorboard", specifier = "==2.18.0" },
     { name = "torch", specifier = "==2.13.0+cu126", index = "https://download.pytorch.org/whl" },
@@ -780,14 +780,14 @@ wheels = [
 
 [[package]]
 name = "jsonargparse"
-version = "4.35.0"
+version = "4.52.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a4/fe/5d9aa1a04d0788fc87069df43545ac00a5ecd6790def90d9e43adea9f15d/jsonargparse-4.35.0.tar.gz", hash = "sha256:815ecd190e4004d2ce69b184fe16915f8f81fd32ae3e479fa37fbb9b89130446", size = 190521, upload-time = "2024-12-16T06:58:38.452Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/f1/1b/86ab3c48f74609de566e6c6fea5493a7bea4c7de485e5a56fa1239c698b5/jsonargparse-4.52.0.tar.gz", hash = "sha256:103168510fab9d45a980fe7560dcbf20d1cce38320a43904583d23869af3bee1", size = 164776, upload-time = "2026-09-01T05:53:07.575Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/36/7a/cc99579675475079d9a488cd0f22385bfa0ff1788126a25854c67b6a309a/jsonargparse-4.35.0-py3-none-any.whl", hash = "sha256:8298ea953987fb41ed074e8802c77bb19166d632d972b23383cad63da7d7486b", size = 211002, upload-time = "2024-12-16T06:58:34.355Z" },
+    { url = "https://files.pythonhosted.org/packages/52/70/e9114d52e9e72daaaeec30ecafe1018a4fbe6288ec35e16822529676b671/jsonargparse-4.52.0-py3-none-any.whl", hash = "sha256:1878b16b6be90c3e838aac569784a110fe1eb1806c28e56175cdc7f2e563d78c", size = 174766, upload-time = "2026-09-01T05:53:04.257Z" },
 ]
 
 [package.optional-dependencies]
@@ -861,7 +861,7 @@ wheels = [
 
 [[package]]
 name = "lightning"
-version = "2.4.0"
+version = "2.6.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "fsspec", extra = ["http"] },
@@ -874,9 +874,9 @@ dependencies = [
     { name = "tqdm" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/56/d0/78ea244ac044cd4df15aa8294a50ff3561fb177e7e5ba788aaa542046cae/lightning-2.4.0.tar.gz", hash = "sha256:9156604cc56e4b2b603f34fa7f0fe5107375c8e6d85e74544b319a15faa9ed0e", size = 620632, upload-time = "2024-08-07T09:46:44.399Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/1d/83be8536bec71a0173e762a9a1fd92a24a5ad0d0f74c59550c3c4e6c103b/lightning-2.6.5.tar.gz", hash = "sha256:16a30310ed69afde3748491feb5d13508908effd70390d2bfc203dc0812a4b4a", size = 659201, upload-time = "2026-05-27T14:33:41.806Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a3/2c/85eaf42c983b0cd81bcda5876da2c8e2a9fd347908666ea9855724369171/lightning-2.4.0-py3-none-any.whl", hash = "sha256:560163af9711cf59055c448232c473150a299089efce0d2be3cc3288082d8768", size = 810971, upload-time = "2024-08-07T09:46:39.874Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/c5/fca7144236b6fa3279d0fb3172b32576c5ad8b84a63b9432ad6592d24847/lightning-2.6.5-py3-none-any.whl", hash = "sha256:3702fb7ef4ab51a8c3d4a140f4674514fe72973a9673dfa05e07a078e2767389", size = 848611, upload-time = "2026-05-27T14:33:39.714Z" },
 ]
 
 [[package]]
