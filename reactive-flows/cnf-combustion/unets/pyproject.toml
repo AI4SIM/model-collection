@@ -5,7 +5,7 @@ requires-python = ">=3.11"
 dependencies = [
     "h5py==3.12.1",
     "jsonargparse[signatures]==4.52.0",
-    "lightning==2.6.5",
+    "lightning==2.6.6",
     "omegaconf==2.3.0",
     "tensorboard==2.18.0",
     "torch==2.14.0",
