@@ -11,3 +11,10 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 0
+    registries:
+      - pyg-wheels
+
+registries:
+  pyg-wheels:
+    type: python-index
+    url: https://data.pyg.org/whl/
